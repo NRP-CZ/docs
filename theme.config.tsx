@@ -9,7 +9,7 @@ const config: DocsThemeConfig = {
   chat: {
     // link: 'https://discord.com',
   },
-  docsRepositoryBase: 'https://github.com/shuding/nextra-docs-template',
+  docsRepositoryBase: 'https://github.com/NRP-CZ/docs',
   footer: {
     text: 'CESNET z.s.p.o. 2024',
   },
