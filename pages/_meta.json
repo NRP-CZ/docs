@@ -1,15 +1,39 @@
 {
-  "index": "Introduction",
-  "another": "Another Page",
-  "advanced": "Advanced (A Folder)",
-  "about": {
-    "title": "About",
+  "index": {
+    "type": "page",
+    "title": "NRP Documentation",
+    "display": "hidden"
+  },
+  "overview": {
+    "title": "Overview",
     "type": "page"
   },
-  "contact": {
-    "title": "Contact ↗",
-    "type": "page",
-    "href": "https://twitter.com/shuding_",
-    "newWindow": true
+  "features": {
+    "title": "Features",
+    "type": "page"
+  },
+  "user": {
+    "title": "User Manual",
+    "type": "page"
+  },
+  "administration": {
+    "title": "Administration",
+    "type": "page"
+  },
+  "getting_started": {
+    "title": "Getting Started",
+    "type": "page"
+  },
+  "customize": {
+    "title": "Customize",
+    "type": "page"
+  },
+  "develop": {
+    "title": "Develop",
+    "type": "page"
+  },
+  "deploy": {
+    "title": "Deploy",
+    "type": "page"
   }
 }
