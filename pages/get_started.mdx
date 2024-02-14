@@ -1,0 +1,90 @@
+import { Cards, Card } from 'nextra/components'
+
+# Getting started
+
+## Prerequisites
+
+To install CESNET flavour of Invenio repository, you will need to have the following tools installed:
+
+* latest version of **Docker** or **OrbStack**
+
+For in-system development (useful for both frontend and backend development and debugging) the following
+extra packages are required:
+
+* Linux or Mac (Windows are not supported)
+* node.js, version 18+
+* python, version 3.10
+* git
+
+## Installation and running
+
+To get the installation package, fill in the form at https://nrp.du.cesnet.cz/installer and
+download the installation zip/tar.gz package.
+
+**Note:** In the form, you will be asked to select a metadata model for your repository.
+If in doubt, select the default DataCite compatible model. For advanced use cases you might want
+to continue without a model and add it to your repository later.
+
+Then unzip the package and run the following command inside the created directory:
+
+```bash
+docker compose -f docker/development.yml up
+```
+
+The docker will install required packages, build the repository and start
+both the frontend and the backend. When run for the first time, the process may
+take a while.
+
+When the process has finished, you should see a message that the repository is running at
+https://127.0.0.1:5000/ . Open the address in your web browser and check that the repository
+is running.
+
+## Purging the installation
+
+The development repository keeps data inside docker named volumes. If you want to start from scratch,
+you can remove the volumes by running the following command:
+
+```bash
+docker compose -f docker/development.yml down -v
+```
+
+## Local development
+
+If you want to make more profound changes to the repository, you are advised to run the repository
+in local development mode, outside the docker compose.
+
+**Advantages:**
+
+* The repository will be reloaded automatically when the code changes
+* You can use python debugger to debug your code
+* The change-to-reload time is much shorter
+
+To run the repository in this mode, use the provided `nrp.sh` tool:
+
+```bash
+./nrp.sh develop
+```
+
+This will create a python virtual environment and install all the required packages. Then it will
+compile the frontend and start the backend. The repository will be available at https://127.0.0.1:5000/.
+
+When you make changes to the code, the repository will be reloaded automatically.
+In some cases, this may stop working (for example, if you've saved syntactically incorrect
+file, the backend server might stop reloading). In such cases, you can restart the repository by
+by pressing `1<Enter>` to restart the backend or `2<Enter>` to restart the frontend.
+
+## Next steps
+
+Now that you have your repository running, you can start playing with it and customizing it to your needs.
+Explore the User guide, Administration guide to learn more about the repository and its features.
+You can also check the customization guide to learn how to customize the repository to your needs.
+
+Here are some suggestions:
+
+<Cards num={2}>
+  <Card title="Upload record from commandline" href="/user/commandline" arrow={true}/>
+  <Card title="Customize your repository" href="/customize" arrow={true}/>
+  <Card title="Add custom fields to record metadata" href="/customize/model/custom_fields" arrow={true}/>
+  <Card title="Develop your own code" href="/develop/repository" arrow={true}/>
+  <Card title="Develop clients" href="/develop/client" arrow={true}/>
+</Cards>

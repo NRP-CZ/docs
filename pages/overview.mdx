@@ -1,3 +1,0 @@
-# Overview
-
-Lorem ipsum

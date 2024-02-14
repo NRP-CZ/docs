@@ -12,16 +12,16 @@
     "title": "Features",
     "type": "page"
   },
+  "get_started": {
+    "title": "» Get Started",
+    "type": "page"
+  },
   "user": {
-    "title": "User Manual",
+    "title": "User Guide",
     "type": "page"
   },
   "administration": {
-    "title": "Administration",
-    "type": "page"
-  },
-  "getting_started": {
-    "title": "Getting Started",
+    "title": "Administration Guide",
     "type": "page"
   },
   "customize": {
