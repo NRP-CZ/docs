@@ -1,0 +1,10 @@
+{
+  "index": {
+    "title": "Developer reference",
+    "type": "page"
+  },
+  "api": {
+    "title": "API reference",
+    "type": "page"
+  }
+}

@@ -1,0 +1,204 @@
+# NRP Invenio repository python client
+
+A python client library for accessing invenio-based repositories.
+
+## Installation
+
+```bash
+pip install nrp-invenio-client
+```
+
+## Imports
+
+Will use the following imports in the examples:
+
+```python
+from pprint import pprint
+from nrp_invenio_client import NRPInvenioClient
+```
+
+## Instantiating the client
+
+### Using config file
+
+The client configuration file can be used to store parameters for repositories. The file is in YAML format and
+is located in `~/.nrp/config.yaml` by default. The file can contain multiple repositories, each with its own
+alias. The alias is used to select the repository to use. One of the repositories is a default repository, which
+is used if no alias is specified.
+
+To use the config file, you need to create it first. The easiest way is to use the `nrp` command line tool:
+
+```bash
+nrp add alias https://repo.du.cesnet.cz repo --default
+```
+
+This will create a config file with a repository with alias `repo` and default repository set to it.
+It will also try to open your browser, let you log in and create and store an access token.
+
+Then, in your python code you instantiate the client like this:
+
+```python
+client = NRPInvenioClient.from_config()
+
+## or
+client = NRPInvenioClient.from_config(alias="repo")
+```
+
+You can pass the location of the config file as well via the `config_file` argument.
+
+*Note:* If `NRP_INVENIO_CLIENT_ABC` environent variable is set, it will be used instead of the value from the config file.
+The ABC is uppercase version of the config key, e.g. `NRP_INVENIO_CLIENT_SERVER_URL` will be used instead of `server_url`
+from the config file.
+
+### Using parameters
+
+To bypass the config file completely, you can instantiate the client with parameters:
+
+```python
+client = NRPInvenioClient(
+    server_url     = "https://repo.du.cesnet.cz",
+    token          = "api token",
+    verify         = "/path/to/cert.pem",   # True by default, might be False to disable SSL verification
+    retry_count    = 10,                    # idempotent requests will be retried 10 times
+    retry_interval = 10,                    # retry interval in seconds if server is busy.
+                                            # Exponential backoff is used from retry_interval - 10 * retry_interval
+)
+```
+
+## Getting repository information
+
+To get information about the invenio repository, we will use the `info` endpoint (/.well-known/info). Note that this endpoint
+is NRP extension, it is not present in vanilla Invenio.
+
+### General information
+
+The general repository information is available at `/.well-known/info/repository` endpoint. Use the following code to get it:
+
+```python
+pprint(client.info.repository)
+
+{
+  "name": "NRP Invenio repository",
+  "description": "NRP Invenio repository",
+  "version": "1.0.0",
+  "invenio_version": "12.0.38",
+  "links": {
+    "self": "https://repo.du.cesnet.cz/api/info/repository",
+    "models": "https://repo.du.cesnet.cz/api/info/models",
+  },
+  "features": [
+    "drafts",
+    "requests",
+    "files"
+  ],
+  "transfers": [
+    "local-file",
+    "direct-s3",
+    "url-fetch"
+  ]
+}
+```
+
+### Models
+
+The repository can enumerate the models it supports, at the `/.well-known/info/models` endpoint. Use the following code to get it:
+
+```python
+pprint(client.info.models)
+
+{
+   "datasets": {
+     "name": "Datasets",
+     "description": "This model contains datasets.",
+     "version": "1.0.0",
+     "features": [
+       "drafts",
+       "requests",
+       "files",
+       "custom_fields"
+     ],
+     "links": {
+      "api": "https://myserver.cesnet.cz/api/datasets",
+      "html": "https://myserver.cesnet.cz/datasets",
+      "schema": "https://myserver.cesnet.cz/info/schemas/datasets-v1.0.0.json",
+      "model": "https://myserver.cesnet.cz/info/models/datasets-v1.0.0.json",
+      "openapi": "https://myserver.cesnet.cz/info/openapi/datasets-v1.0.0.json"
+     }
+   }
+ }
+```
+
+## Searching within repository
+
+### Searching vs. scanning
+
+The client supports two modes of searching within
+the repository: searching and scanning.
+
+Searching is used when you want to have the results sorted by relevance
+(or any other criteria). You will get only a limited number of records,
+at most 10000. This limit can not be changed.
+
+Scanning, on the other hand, gives you all records that match the query.
+Scanning is more resource intensive than searching and server requires
+you to be authenticated to use it.
+
+### API principles
+
+To initiate a search, you need to create a search request via `client.search` method:
+
+```python
+client = NRPInvenioClient.from_config()
+request = client.search("datasets")
+```
+
+On the request, you can set various parameters, such as query, page, size, etc.
+
+```python
+## pagination - not used when scanning
+request.page(2)
+
+## pagination - not used when scanning
+request.size(10)
+
+## ordering - not used when scanning
+request.order_by("+title", ...)
+
+## select only specific records
+request.published()
+request.drafts()
+
+## only return selected fields
+request.fields("metadata.title", "metadata.description", ...)
+
+## filter by query (either SOLR string or opensearch json)
+request.query("metadata.title:foo")
+```
+
+### Using the search endpoint
+
+Finally, you can execute the request:
+
+```python
+response = request.execute()
+```
+
+The response will contain the results of the search:
+
+```python
+print(response.total)
+print(response.total_error)
+for record in response:
+    print(record)
+```
+
+### Using the scan endpoint
+
+For scanning, you need to use the `scan` method instead of `request`:
+
+```python
+with request.scan() as response:
+    for record in response:
+        print(record)
+```
+
