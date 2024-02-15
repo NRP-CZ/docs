@@ -1,7 +1,4 @@
-import { Tabs } from "nextra/components";
-import { Cards, Card } from 'nextra/components'
-import { Steps } from 'nextra/components'
-import { FileTree } from 'nextra/components'
+import { Tabs, Cards, Card, Steps, FileTree, Callout } from "nextra/components";
 
 # Configure Your brand's theme
 
@@ -96,7 +93,7 @@ Follow the steps below to seamlessly integrate your brand's logo into the reposi
 <Steps>
 ### Provide a logo SVG file
 
-Copy your logo image asset to `images` folder inside `branding` folder.
+Copy your logo image asset to `images` folder inside `branding` folder:
 
 ```shell copy
 cp my-logo.svg myrepo/ui/branding/semantic-ui/less/images/
@@ -121,4 +118,106 @@ INVENIO_THEME_LOGO="images/my-logo.svg"
 
 </Steps>
 
- 
+ ## Styling
+
+CSS/LESS variables and style rules are useful for situations, when you need to customize color scheme,
+fonts, sizing or other appearance of existing UI elements in your repository site.
+
+<Callout type="info">
+Styling system used by NRP is based on [Semantic UI theming](https://semantic-ui.com/usage/theming.html).
+</Callout>
+
+### Global variables
+
+The `site.variables` file has been created for you to define/override variables that are used as defaults by all existing UI elements site-wide.
+
+<FileTree>
+  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
+    <FileTree.Folder name="less" defaultOpen>
+        <FileTree.Folder name="globals" defaultOpen>
+            <FileTree.File name="site.variables" active={true} />
+            <FileTree.File name="site.overrides" active={false} />
+        </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+### Global component styles
+
+The `site.overrides` file has been created for you to define/override **CSS/LESS** style rules that gets inherited by all existing UI components site-wide.
+
+<FileTree>
+  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
+    <FileTree.Folder name="less" defaultOpen>
+        <FileTree.Folder name="globals" defaultOpen>
+            <FileTree.File name="site.variables" active={false} />
+            <FileTree.File name="site.overrides" active={true} />
+        </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+<Callout type="warning" emoji="⚠️">
+  You want to keep this file's content minimal. People commonly confuse this file with a [global stylesheet](#global-styles).
+  In reality, anything here gets duplicated as a base stylesheet for each and every existing UI component, increasing total bundle size.
+</Callout>
+
+### Global styles
+
+
+### Customize site colors
+
+#### Brand color
+
+Setting brand color affects the primary color tone of your repository site,
+other important UI elements either directly use this color or derive its appearance from it.
+
+```less filename="ui/branding/semantic-ui/less/globals/site.variables" copy
+@brandColor: rgba(13, 95, 137, 0.8);
+```
+
+For branding purposes, the most prominent and persistent UI elements are page header and footer 
+and actionable elements (like buttons). You can
+either set them to the `@brandColor` defined above, or
+override appearance of those by modifying the following CSS variables:
+
+```less filename="ui/branding/semantic-ui/less/globals/site.variables" copy
+/* Override @primaryColor to override the site-wide primary accents on actionable elements. */
+@primaryColor: 'blue';
+/* Alternatively, use @brandColor for primary accents */
+@primaryColor: @brandColor;
+
+/* Header can contain either image based or solid color background */
+@navbarBackgroundColor: blue;
+@navbarBackgroundImage: linear-gradient(12deg, blue, blue 15%, rgba(251, 130, 115, 0.69));
+/* You can also reference image assets inside your branding folder. */
+@navbarBackgroundImage: url("~@less/images/your_image.png");
+
+/* Footer */
+@footerLightColor: @brandColor;
+@footerDarkColor: /* a shade of your brandColor */;
+```
+
+### Custom fonts
+
+To use a custom font in your repository site, follow these steps:
+
+<Steps>
+#### Provide font assets
+
+Copy your font asset files to `fonts` folder inside `branding` folder:
+
+```shell copy
+cp my-font.ttf myrepo/ui/branding/semantic-ui/less/fonts/
+```
+
+#### Configure font styles
+
+```less filename="ui/branding/semantic-ui/less/globals/site.overrides" copy
+@font-face {
+  font-family: Source_Sans_Pro_light;
+  src: url("~@less/fonts/Source_Sans_Pro/SourceSansPro-Light.ttf");
+}
+```
+
+</Steps>
