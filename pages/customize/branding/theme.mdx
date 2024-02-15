@@ -1,0 +1,124 @@
+import { Tabs } from "nextra/components";
+import { Cards, Card } from 'nextra/components'
+import { Steps } from 'nextra/components'
+import { FileTree } from 'nextra/components'
+
+# Configure Your brand's theme
+
+This guide will help you to customize overall look-and-feel of your NRP repository, so that it better reflects your brand's identity.
+It provides step-by-step instructions for configuring key elements of your brand's theme, including color scheme, typography, slogans and logos.
+
+## Methods
+
+### Modify configuration
+
+You can customize theme of your site by setting configuration options either in `invenio.cfg` or `variables` files present in the root of your project:
+
+<FileTree>
+  <FileTree.Folder name="myrepo" defaultOpen>
+    <FileTree.Folder name="..." />
+    <FileTree.File name="..." />
+    <FileTree.File name="invenio.cfg" active={true} />
+    <FileTree.File name="variables" active={true} />
+  </FileTree.Folder>
+</FileTree>
+
+For a complete list of possible configuration options, please refer to:
+
+<Cards>
+  <Card title="Invenio Theme configuration options reference" href="https://invenio-theme.readthedocs.io/en/latest/configuration.html" />
+</Cards>
+
+### Create/override files in branding folder
+
+You can also place your custom files, or customize existing ones, under the `branding` folder created in your project:
+
+<FileTree>
+  <FileTree.Folder name="myrepo" defaultOpen>
+    <FileTree.Folder name="ui" defaultOpen>
+        <FileTree.Folder name="branding">
+            <FileTree.Folder name="semantic-ui" />
+            <FileTree.Folder name="templates" />
+            <FileTree.File name="__init__.py" />
+            <FileTree.File name="webpack.py" />
+        </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+
+## Titles
+
+Learn how to update the site title of your NRP repository with ease. Your site title serves as the primary identifier of your site and is crucial for brand recognition. Change the following settings to ensure your site title reflects your brand accurately.
+
+### Site name
+
+This setting determines the name of the site to be displayed on the header and used as a page title.
+
+<Tabs items={["invenio.cfg", "variables"]}>
+  <Tabs.Tab>
+```python copy
+THEME_SITENAME = _('My new NRP repository!');
+```
+  </Tabs.Tab>
+   <Tabs.Tab>
+```python copy
+INVENIO_THEME_SITENAME = 'My new NRP repository!';
+```
+  </Tabs.Tab>
+</Tabs>
+
+### Front page title
+
+The title shown on the front page of the repository site.
+
+
+<Tabs items={["invenio.cfg", "variables"]}>
+  <Tabs.Tab>
+```python copy
+THEME_FRONTPAGE_TITLE = _('Welcome to my new NRP repository!');
+```
+  </Tabs.Tab>
+   <Tabs.Tab>
+```python copy
+INVENIO_THEME_FRONTPAGE_TITLE = 'Welcome to my new NRP repository!';
+```
+  </Tabs.Tab>
+</Tabs>
+
+
+## Logo
+
+In this section, you'll learn how to update the logo on your [Software Platform Name]. Your logo is a fundamental element of your brand identity, and ensuring it's prominently displayed within the software platform helps reinforce brand recognition and trust among users.
+
+Follow the steps below to seamlessly integrate your brand's logo into the repository site.
+
+<Steps>
+### Provide a logo SVG file
+
+Copy your logo image asset to `images` folder inside `branding` folder.
+
+```shell copy
+cp my-logo.svg myrepo/ui/branding/semantic-ui/less/images/
+```
+
+### Configure theme to use your logo
+
+
+<Tabs items={["invenio.cfg", "variables"]}>
+  <Tabs.Tab>
+```python copy
+THEME_LOGO="images/my-logo.svg"
+```
+  </Tabs.Tab>
+   <Tabs.Tab>
+```python copy
+INVENIO_THEME_LOGO="images/my-logo.svg"
+```
+  </Tabs.Tab>
+</Tabs>
+
+
+</Steps>
+
+ 
