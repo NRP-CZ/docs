@@ -1,10 +1,11 @@
 {
   "index": {
-    "title": "Developer reference",
-    "type": "page"
+    "title": "Developer reference"
   },
   "api": {
-    "title": "API reference",
-    "type": "page"
+    "title": "API reference"
+  },
+  "client": {
+    "title": "Python client library"
   }
 }
