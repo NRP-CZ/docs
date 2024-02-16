@@ -1,0 +1,46 @@
+import { Tabs } from "nextra/components";
+
+# Copywriting
+
+In this section, you'll explore how to tailor the language and messaging across your site to align with your brand voice and resonate with your target audience.
+
+Effective copywriting is essential for engaging users, communicating value propositions, and guiding them through your repository site seamlessly. Follow the instructions below to personalize the copy and ensure consistency with your brand identity and messaging strategy.
+
+## Titles
+
+Learn how to update titles appearing throughout your NRP repository site with ease. It serves as the primary identifier of your site and is crucial for brand recognition. Change the following settings to ensure your site title reflects your brand accurately.
+
+### Site name
+
+This setting determines the name of the site to be displayed on the header and used as a page title.
+
+<Tabs items={["invenio.cfg", "variables"]}>
+  <Tabs.Tab>
+```python copy
+THEME_SITENAME = _('My new NRP repository!');
+```
+  </Tabs.Tab>
+   <Tabs.Tab>
+```python copy
+INVENIO_THEME_SITENAME = 'My new NRP repository!';
+```
+  </Tabs.Tab>
+</Tabs>
+
+### Front page title
+
+The title shown on the front page of the repository site.
+
+
+<Tabs items={["invenio.cfg", "variables"]}>
+  <Tabs.Tab>
+```python copy
+THEME_FRONTPAGE_TITLE = _('Welcome to my new NRP repository!');
+```
+  </Tabs.Tab>
+   <Tabs.Tab>
+```python copy
+INVENIO_THEME_FRONTPAGE_TITLE = 'Welcome to my new NRP repository!';
+```
+  </Tabs.Tab>
+</Tabs>

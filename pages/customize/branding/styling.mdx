@@ -1,0 +1,129 @@
+import { doesNotMatch } from "assert";
+import { setEngine } from "crypto";
+import { Cards, Card, FileTree, Callout, Steps, Button } from "nextra/components";
+
+# Styling
+
+[LESS](https://lesscss.org/) variables and style rules are useful for situations, when you need to customize color scheme,
+fonts, sizing or other appearance of existing UI components and elements living in your repository site.
+
+
+## Global variables
+
+The `site.variables` file has been created for you to define/override variables that are used as defaults by all existing UI elements site-wide.
+
+<FileTree>
+  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
+    <FileTree.Folder name="less" defaultOpen>
+        <FileTree.Folder name="globals" defaultOpen>
+            <FileTree.File name="site.variables" active={true} />
+            <FileTree.File name="site.overrides" active={false} />
+        </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+
+For a complete list of possible styling variables, please refer to:
+
+<Cards>
+  <Card title="Invenio Theme global variables reference" href="https://github.com/inveniosoftware/invenio-theme/blob/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme/globals/site.variables" />
+  <Card title="SemanticUI default theme variables reference" href="https://github.com/Semantic-Org/Semantic-UI/blob/master/src/themes/default/globals/site.variables" />
+</Cards>
+
+
+## Global stylesheet
+
+Any global styling rules (such as font faces, CSS reset styles), which should be applied just once and before any other component-specific styles, should be placed into the `branding.less` file:
+
+<FileTree>
+  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
+    <FileTree.Folder name="less" defaultOpen>
+        <FileTree.File name="branding.less" active={true} />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Default component styles
+
+The `site.overrides` file has been created for you to define/override default LESS style rules that gets inherited by all existing UI components site-wide.
+
+<FileTree>
+  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
+    <FileTree.Folder name="less" defaultOpen>
+        <FileTree.Folder name="globals" defaultOpen>
+            <FileTree.File name="site.variables" active={false} />
+            <FileTree.File name="site.overrides" active={true} />
+        </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+<Callout type="warning" emoji="⚠️">
+  You want to keep this file's content minimal. People commonly confuse this file with a [global stylesheet](#global-stylesheet).
+  In reality, any rules here gets duplicated as a base stylesheet for each and every existing UI component, increasing total bundle size.
+</Callout>
+
+## Customize components
+
+Appearance of any Semantic UI component can be tweaked by overriding its default variables and/or style rules. Here we demonstrate, how to customize appearance of the [`Button`](https://semantic-ui.com/elements/button.html) component used to display buttons on pages, but the process is the same for any other component.
+
+For a full list of UI components usable in a NRP repository site, please refer to:
+<Cards>
+  <Card title="Semantic UI docs" href="https://semantic-ui.com/introduction/getting-started.html" />
+  <Card title="Default Semantic UI component style definitions" href="https://github.com/Semantic-Org/Semantic-UI/tree/master/src/definitions" />
+</Cards>
+
+## Variable overrides
+
+The easiest way to change a component's appearance is to look up the default `{componentType}/{component}.variables` definition
+and find a variable that you need to tweak to get the desired effect. Then override that variable by putting it in the `{componentType}/{component}.variables` file under your [`branding`](/customize/branding/theme#createoverride-files-under-branding-folder) folder.
+
+<Cards>
+  <Card title="Default SemanticUI component variables" href="https://github.com/Semantic-Org/Semantic-UI/tree/master/src/themes/default" />
+  <Card title="Default Invenio Theme component variables" href="https://github.com/inveniosoftware/invenio-theme/tree/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme" />
+</Cards>
+
+If we were tasked to tweak the button to have a **shadow** of size `16px` and a **border radius** of `8px`, we would need to follow the following process:
+
+<Steps>
+### Find the right variable names
+
+Look up the correct variable names in the default [button.variables](https://github.com/Semantic-Org/Semantic-UI/blob/master/src/themes/default/elements/button.variables) file.
+
+We can see there, that the variables controlling the border radius and shadows are:
+```less filename="/Semantic-UI//src/themes/default/elements/button.variables" copy {1,3}
+@borderRadius: @defaultBorderRadius;
+/* ... */
+@shadowDistance: 0em;
+@shadowOffset: (@shadowDistance / 2);
+@shadowBoxShadow: 0px -@shadowDistance 0px 0px @borderColor inset;
+```
+
+<Callout  emoji="💡">
+  If unsure, which variable controls which styles/appearance properties or what it's being used for, you might need to consult the [definition](https://github.com/Semantic-Org/Semantic-UI/tree/master/src/definitions) of the component of interest.
+</Callout>
+
+### Create custom variables file
+
+In order to override values of these variables, we create a corresponding `button.variables` file inside the [`branding`](/customize/branding/theme#createoverride-files-under-branding-folder) folder structure. We need to respect the theme folder structure imposed by Semantic UI:
+
+```{themeName}/{componentType}s/{componentName}.variables```
+
+Since we use the `default` theme and the Button is a [component of type `element`](https://github.com/Semantic-Org/Semantic-UI/blob/master/src/definitions/elements/button.less#L15), the correct path would end with: `default/elements/button.variables`. Place just the variables that we need to customize there and we're done.
+
+```less filename="ui/branding/semantic-ui/less/default/elements/button.variables" copy
+@borderRadius: 8px;
+@shadowDistance: 16px;
+```
+
+<Callout type="info" emoji="ℹ️">
+  You might need to manually create the folder structure if it doesn't exist yet.
+</Callout>
+
+
+</Steps>
+
+## Style overrides
+
+For situations, where there is no suitable variable defined on the component you want to tweak, you can completely override or extend style rules for such a component.

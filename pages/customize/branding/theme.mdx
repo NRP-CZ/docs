@@ -1,15 +1,22 @@
 import { Tabs, Cards, Card, Steps, FileTree, Callout } from "nextra/components";
 
-# Configure Your brand's theme
+# Theme
 
 This guide will help you to customize overall look-and-feel of your NRP repository, so that it better reflects your brand's identity.
 It provides step-by-step instructions for configuring key elements of your brand's theme, including color scheme, typography, slogans and logos.
 
-## Methods
+<Callout type="info">
+Theming system used by NRP is based on [Semantic UI theming](https://semantic-ui.com/usage/theming.html) and 
+[Invenio Semantic UI theme](https://github.com/inveniosoftware/invenio-theme/tree/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme) package.
+</Callout>
 
-### Modify configuration
+User interface of a typical NRP repository site comprises of configuration-driven page templates and many themed Semantic UI elements and components, which are initially configured to use the `default` Semantic UI theme. User interface appearance can be customized by the methods described below.
 
-You can customize theme of your site by setting configuration options either in `invenio.cfg` or `variables` files present in the root of your project:
+## Theming methods
+
+### Modify Invenio configuration
+
+You can customize theme of your site by setting configuration options either in `invenio.cfg` or `variables` file present in the root of your repository project:
 
 <FileTree>
   <FileTree.Folder name="myrepo" defaultOpen>
@@ -26,15 +33,19 @@ For a complete list of possible configuration options, please refer to:
   <Card title="Invenio Theme configuration options reference" href="https://invenio-theme.readthedocs.io/en/latest/configuration.html" />
 </Cards>
 
-### Create/override files in branding folder
+### Create/override files under branding folder
 
 You can also place your custom files, or customize existing ones, under the `branding` folder created in your project:
 
 <FileTree>
   <FileTree.Folder name="myrepo" defaultOpen>
     <FileTree.Folder name="ui" defaultOpen>
-        <FileTree.Folder name="branding">
-            <FileTree.Folder name="semantic-ui" />
+        <FileTree.Folder name="branding" defaultOpen>
+            <FileTree.Folder name="semantic-ui" defaultOpen>
+              <FileTree.Folder name="js"></FileTree.Folder>
+              <FileTree.Folder name="less" defaultOpen></FileTree.Folder>
+              <FileTree.Folder name="templates"></FileTree.Folder>
+            </FileTree.Folder>
             <FileTree.Folder name="templates" />
             <FileTree.File name="__init__.py" />
             <FileTree.File name="webpack.py" />
@@ -43,181 +54,22 @@ You can also place your custom files, or customize existing ones, under the `bra
   </FileTree.Folder>
 </FileTree>
 
+When customizing your brand theme, most of the time you'll be spending in the context of `ui/branding/semantic-ui/less` and `templates` folders. 
 
-## Titles
+## Theme hierarchy
 
-Learn how to update the site title of your NRP repository with ease. Your site title serves as the primary identifier of your site and is crucial for brand recognition. Change the following settings to ensure your site title reflects your brand accurately.
-
-### Site name
-
-This setting determines the name of the site to be displayed on the header and used as a page title.
-
-<Tabs items={["invenio.cfg", "variables"]}>
-  <Tabs.Tab>
-```python copy
-THEME_SITENAME = _('My new NRP repository!');
-```
-  </Tabs.Tab>
-   <Tabs.Tab>
-```python copy
-INVENIO_THEME_SITENAME = 'My new NRP repository!';
-```
-  </Tabs.Tab>
-</Tabs>
-
-### Front page title
-
-The title shown on the front page of the repository site.
-
-
-<Tabs items={["invenio.cfg", "variables"]}>
-  <Tabs.Tab>
-```python copy
-THEME_FRONTPAGE_TITLE = _('Welcome to my new NRP repository!');
-```
-  </Tabs.Tab>
-   <Tabs.Tab>
-```python copy
-INVENIO_THEME_FRONTPAGE_TITLE = 'Welcome to my new NRP repository!';
-```
-  </Tabs.Tab>
-</Tabs>
-
-
-## Logo
-
-In this section, you'll learn how to update the logo on your [Software Platform Name]. Your logo is a fundamental element of your brand identity, and ensuring it's prominently displayed within the software platform helps reinforce brand recognition and trust among users.
-
-Follow the steps below to seamlessly integrate your brand's logo into the repository site.
+When it comes to applying any rules and variables, NRP applies the following theme hierarchy:
 
 <Steps>
-### Provide a logo SVG file
+### [Semantic UI theme](https://semantic-ui.com/usage/theming.html)
 
-Copy your logo image asset to `images` folder inside `branding` folder:
+Default theme settings provided by Semantic UI is applied
 
-```shell copy
-cp my-logo.svg myrepo/ui/branding/semantic-ui/less/images/
-```
+### [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html)
 
-### Configure theme to use your logo
+Deafult theme settings packaged by the [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html) is applied, extending or overriding pre-existing settings with own values.
 
+### [Branding](#createoverride-files-under-branding-folder)
 
-<Tabs items={["invenio.cfg", "variables"]}>
-  <Tabs.Tab>
-```python copy
-THEME_LOGO="images/my-logo.svg"
-```
-  </Tabs.Tab>
-   <Tabs.Tab>
-```python copy
-INVENIO_THEME_LOGO="images/my-logo.svg"
-```
-  </Tabs.Tab>
-</Tabs>
-
-
-</Steps>
-
- ## Styling
-
-CSS/LESS variables and style rules are useful for situations, when you need to customize color scheme,
-fonts, sizing or other appearance of existing UI elements in your repository site.
-
-<Callout type="info">
-Styling system used by NRP is based on [Semantic UI theming](https://semantic-ui.com/usage/theming.html).
-</Callout>
-
-### Global variables
-
-The `site.variables` file has been created for you to define/override variables that are used as defaults by all existing UI elements site-wide.
-
-<FileTree>
-  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
-    <FileTree.Folder name="less" defaultOpen>
-        <FileTree.Folder name="globals" defaultOpen>
-            <FileTree.File name="site.variables" active={true} />
-            <FileTree.File name="site.overrides" active={false} />
-        </FileTree.Folder>
-    </FileTree.Folder>
-  </FileTree.Folder>
-</FileTree>
-
-### Global component styles
-
-The `site.overrides` file has been created for you to define/override **CSS/LESS** style rules that gets inherited by all existing UI components site-wide.
-
-<FileTree>
-  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
-    <FileTree.Folder name="less" defaultOpen>
-        <FileTree.Folder name="globals" defaultOpen>
-            <FileTree.File name="site.variables" active={false} />
-            <FileTree.File name="site.overrides" active={true} />
-        </FileTree.Folder>
-    </FileTree.Folder>
-  </FileTree.Folder>
-</FileTree>
-
-<Callout type="warning" emoji="⚠️">
-  You want to keep this file's content minimal. People commonly confuse this file with a [global stylesheet](#global-styles).
-  In reality, anything here gets duplicated as a base stylesheet for each and every existing UI component, increasing total bundle size.
-</Callout>
-
-### Global styles
-
-
-### Customize site colors
-
-#### Brand color
-
-Setting brand color affects the primary color tone of your repository site,
-other important UI elements either directly use this color or derive its appearance from it.
-
-```less filename="ui/branding/semantic-ui/less/globals/site.variables" copy
-@brandColor: rgba(13, 95, 137, 0.8);
-```
-
-For branding purposes, the most prominent and persistent UI elements are page header and footer 
-and actionable elements (like buttons). You can
-either set them to the `@brandColor` defined above, or
-override appearance of those by modifying the following CSS variables:
-
-```less filename="ui/branding/semantic-ui/less/globals/site.variables" copy
-/* Override @primaryColor to override the site-wide primary accents on actionable elements. */
-@primaryColor: 'blue';
-/* Alternatively, use @brandColor for primary accents */
-@primaryColor: @brandColor;
-
-/* Header can contain either image based or solid color background */
-@navbarBackgroundColor: blue;
-@navbarBackgroundImage: linear-gradient(12deg, blue, blue 15%, rgba(251, 130, 115, 0.69));
-/* You can also reference image assets inside your branding folder. */
-@navbarBackgroundImage: url("~@less/images/your_image.png");
-
-/* Footer */
-@footerLightColor: @brandColor;
-@footerDarkColor: /* a shade of your brandColor */;
-```
-
-### Custom fonts
-
-To use a custom font in your repository site, follow these steps:
-
-<Steps>
-#### Provide font assets
-
-Copy your font asset files to `fonts` folder inside `branding` folder:
-
-```shell copy
-cp my-font.ttf myrepo/ui/branding/semantic-ui/less/fonts/
-```
-
-#### Configure font styles
-
-```less filename="ui/branding/semantic-ui/less/globals/site.overrides" copy
-@font-face {
-  font-family: Source_Sans_Pro_light;
-  src: url("~@less/fonts/Source_Sans_Pro/SourceSansPro-Light.ttf");
-}
-```
-
+Your customizations made in [branding](#createoverride-files-under-branding-folder) folder is applied on top
 </Steps>

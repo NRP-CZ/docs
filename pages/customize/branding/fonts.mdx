@@ -1,0 +1,51 @@
+import { Steps } from "nextra/components";
+
+# Fonts
+
+This section provides you with the guidance to tailor the typography of your site to suit your brand's style and enhance readability. To use custom fonts in your repository site, follow these steps:
+
+<Steps>
+### Provide font assets
+
+Copy your font asset files to `fonts` folder inside `branding` folder:
+
+```shell copy
+cp {my-font.ttf,my-heading-font.ttf} myrepo/ui/branding/semantic-ui/less/fonts/
+```
+
+### Configure font styles
+
+Declare corresponding [`@font-face`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face) rules inside your [Global stylesheet](#global-stylesheet):
+
+```less filename="ui/branding/semantic-ui/less/branding.less" copy
+@font-face {
+  font-family: 'MyFont';
+  src: url("~@less/fonts/my-font.ttf");
+}
+
+@font-face {
+  font-family: 'MyHeading';
+  src: url("~@less/fonts/my-heading-font.ttf");
+}
+```
+
+### Use your fonts in styles
+
+Now you can use your font in your branding overrides, e.g.:
+
+```less filename="ui/branding/semantic-ui/less/branding.less" copy
+/* Here we set a global font face for the whole site */
+html {
+    font-family: "MyFont";
+    //...
+}
+```
+
+```less filename="ui/branding/semantic-ui/less/default/elements/header.overrides" copy
+/* This font face will be used just for the Header component instances */
+.ui.header {
+    font-family: "MyHeading";
+    //...
+}
+```
+</Steps>
