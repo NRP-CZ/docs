@@ -1,29 +1,32 @@
-import { Cards, Card } from 'nextra/components'
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+
 
 # Repository customizations
 
 ## Simple customizations
 
-The following parts of the repository can be customized without the need to modify the code:
+The following parts of the repository can be customized without the need to modify the code and without the need to deep dive into some advanced Invenio concepts.
 
-| Category | Customization | Documentation |
-|:---|:---|:---|
-| **Branding** | change name, logo, and color palette. | [Simple branding](/customize/branding/simple) |
-| **Record metadata** | add new fields to the model | [Custom fields](/customize/record/custom_fields) |
-| **Record metadata** | change the order of the fields on the detail page | [Detail page template](/customize/record/detail) |
-| **Record metadata** | change the order of the fields on the deposit page. | [Deposit page template](/customize/record/deposit) |
-| **Vocabularies** | initial values of vocabularies | [Fixtures](/customize/vocabularies) |
-| **Translations** | change translations | [Translations](/customize/translations) |
+<Cards>
+<Card title='Branding' arrow href="/customize/branding/theme">Change site name, brand logo, color palette, fonts and styling.</Card>
+<Card title='Custom fields' arrow href="/customize/record/custom_fields">Add custom metadata fields to your records.</Card>
+<Card title='Vocabularies' arrow href="/customize/vocabularies">Provide custom initial data for controlled vocabularies.</Card>
+<Card title='Translations' arrow href="/customize/translations">Translate into your language, or customize existing translations.</Card>
+<Card title='Record landing page' arrow href="/customize/record/detail">Change the order of metadata fields displayed on the record detail page.</Card>
+<Card title='Record deposition' arrow href="/customize/record/deposit">Change the order of metadata fields displayed in the record deposition form.</Card>
+</Cards>
 
 
-## Intermediary customization
+## Intermediary customizations
 
-The following parts of the repository can be customized by modifying the code:
+The following parts of the repository can be customized, but requires intermediary level of Python/Jinja/React/JS programming knowledge.
 
-| Category | Customization | Documentation |
-|:---|:---|:---|
-| **Branding** | change the layout of pages | [Page templates](/customize/branding/layout) |
-| **Record metadata** | change the display of records on the list page | [Record List Item](/customize/record/list) |
-| **Record metadata** | add a whole new model | [Adding new model](/customize/record/new_model) |
-| **Record metadata** | add complex metadata fields | [Complex metadata fields](/customize/record/complex_fields) |
-| **Record metadata** | add complex validation of the fields | [Complex validation](/customize/record/validation) |
+<Cards>
+<Card title='Page templates' arrow href="/customize/branding/layout">Modify pages layout, compose & create your own page templates.</Card>
+<Card title='Search results' arrow href="/customize/record/list">Modify how to display the results of a record search.</Card>
+<Card title='Search results' arrow href="/customize/record/list">Modify how to display the results of a record search.</Card>
+<Card title='Create record model' arrow href="/customize/record/new_model">Create additional custom record metadata model.</Card>
+<Card title='Complex custom fields' arrow href="/customize/record/complex_fields">Add custom metadata fields with complex data types to your records.</Card>
+<Card title='Complex validation' arrow href="/customize/record/complex_validation">Specify complex validation rules on record metadata fields.</Card>
+</Cards>
