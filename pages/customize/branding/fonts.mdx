@@ -1,6 +1,7 @@
 import { Steps } from "nextra/components";
+import { Difficulty } from "@/components/difficulty"
 
-# Fonts
+# Fonts <Difficulty level="easy" />
 
 This section provides you with the guidance to tailor the typography of your site to suit your brand's style and enhance readability. To use custom fonts in your repository site, follow these steps:
 
@@ -15,7 +16,7 @@ cp {my-font.ttf,my-heading-font.ttf} myrepo/ui/branding/semantic-ui/less/fonts/
 
 ### Configure font styles
 
-Declare corresponding [`@font-face`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face) rules inside your [Global stylesheet](#global-stylesheet):
+Declare corresponding [`@font-face`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face) rules inside your [Global stylesheet](/customize/branding/styling#global-stylesheet):
 
 ```less filename="ui/branding/semantic-ui/less/branding.less" copy
 @font-face {
