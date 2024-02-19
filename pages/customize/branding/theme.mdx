@@ -1,0 +1,75 @@
+import { Tabs, Cards, Card, Steps, FileTree, Callout } from "nextra/components";
+
+# Theme
+
+This guide will help you to customize overall look-and-feel of your NRP repository, so that it better reflects your brand's identity.
+It provides step-by-step instructions for configuring key elements of your brand's theme, including color scheme, typography, slogans and logos.
+
+<Callout type="info">
+Theming system used by NRP is based on [Semantic UI theming](https://semantic-ui.com/usage/theming.html) and 
+[Invenio Semantic UI theme](https://github.com/inveniosoftware/invenio-theme/tree/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme) package.
+</Callout>
+
+User interface of a typical NRP repository site comprises of configuration-driven page templates and many themed Semantic UI elements and components, which are initially configured to use the `default` Semantic UI theme. User interface appearance can be customized by the methods described below.
+
+## Theming methods
+
+### Modify Invenio configuration
+
+You can customize theme of your site by setting configuration options either in `invenio.cfg` or `variables` file present in the root of your repository project:
+
+<FileTree>
+  <FileTree.Folder name="myrepo" defaultOpen>
+    <FileTree.Folder name="..." />
+    <FileTree.File name="..." />
+    <FileTree.File name="invenio.cfg" active={true} />
+    <FileTree.File name="variables" active={true} />
+  </FileTree.Folder>
+</FileTree>
+
+For a complete list of possible configuration options, please refer to:
+
+<Cards>
+  <Card title="Invenio Theme configuration options reference" href="https://invenio-theme.readthedocs.io/en/latest/configuration.html" />
+</Cards>
+
+### Create/override files under branding folder
+
+You can also place your custom files, or customize existing ones, under the `branding` folder created in your project:
+
+<FileTree>
+  <FileTree.Folder name="myrepo" defaultOpen>
+    <FileTree.Folder name="ui" defaultOpen>
+        <FileTree.Folder name="branding" defaultOpen>
+            <FileTree.Folder name="semantic-ui" defaultOpen>
+              <FileTree.Folder name="js"></FileTree.Folder>
+              <FileTree.Folder name="less" defaultOpen></FileTree.Folder>
+              <FileTree.Folder name="templates"></FileTree.Folder>
+            </FileTree.Folder>
+            <FileTree.Folder name="templates" />
+            <FileTree.File name="__init__.py" />
+            <FileTree.File name="webpack.py" />
+        </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+When customizing your brand theme, most of the time you'll be spending in the context of `ui/branding/semantic-ui/less` and `templates` folders. 
+
+## Theme hierarchy
+
+When it comes to applying any rules and variables, NRP applies the following theme hierarchy:
+
+<Steps>
+### [Semantic UI theme](https://semantic-ui.com/usage/theming.html)
+
+Default theme settings provided by Semantic UI is applied
+
+### [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html)
+
+Deafult theme settings packaged by the [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html) is applied, extending or overriding pre-existing settings with own values.
+
+### [Branding](#createoverride-files-under-branding-folder)
+
+Your customizations made in [branding](#createoverride-files-under-branding-folder) folder is applied on top
+</Steps>

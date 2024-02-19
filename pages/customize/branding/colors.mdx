@@ -1,0 +1,34 @@
+import {Difficulty} from '@/components/difficulty'
+
+# Colors <Difficulty level="easy" />
+
+Setting a brand color affects the primary color tone of your repository site,
+other important UI elements either directly use this color or derive its appearance from it.
+
+```less filename="ui/branding/semantic-ui/less/globals/site.variables" copy
+@brandColor: rgba(13, 95, 137, 0.8);
+```
+
+For further branding purposes, the most prominent and persistent UI elements are page header and footer 
+and actionable elements (like buttons). You can
+either set them to the `@brandColor` defined above, or
+override appearance of those by modifying the following CSS variables:
+
+```less filename="ui/branding/semantic-ui/less/globals/site.variables" copy
+/* Override @primaryColor to override the site-wide primary accents on actionable elements. */
+@primaryColor: 'blue';
+/* Alternatively, use @brandColor for primary accents */
+@primaryColor: @brandColor;
+
+/* Header can contain either image based or solid color background */
+@navbarBackgroundColor: blue;
+@navbarBackgroundImage: linear-gradient(12deg, blue, blue 15%, rgba(251, 130, 115, 0.69));
+/* You can also reference image assets inside your branding folder. */
+@navbarBackgroundImage: url("~@less/images/your_image.png");
+
+/* Footer */
+@footerLightColor: @brandColor;
+@footerDarkColor: /* a shade of your brandColor */;
+```
+
+If you are interested into more available color customizations, please refer to the [global](/customize/branding/styling#global-variables) and [component-specific](/customize/branding/styling#variable-overrides) variable references.
