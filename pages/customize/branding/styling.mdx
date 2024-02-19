@@ -131,11 +131,11 @@ We can see there, that the variables controlling the border radius and shadows a
 
 ### Create custom variables file
 
-In order to override values of these variables, we create a corresponding `button.variables` file inside the [`branding`](/customize/branding/theme#createoverride-files-under-branding-folder) folder structure. We need to respect the theme folder structure imposed by Semantic UI:
+In order to override values of these LESS variables, we create a corresponding `button.variables` file inside the [`branding`](/customize/branding/theme#createoverride-files-under-branding-folder) folder structure. We need to respect the theme folder structure imposed by Semantic UI:
 
 `{themeName}/{componentType}s/{componentName}.variables`
 
-Since we use the `default` theme and the Button is a [component of type `element`](https://github.com/Semantic-Org/Semantic-UI/blob/master/src/definitions/elements/button.less#L15), the correct path would end with: `default/elements/button.variables`. Place just the variables that we need to customize there and we're done.
+As we use the `default` theme and the Button is a [component of type `element`](https://github.com/Semantic-Org/Semantic-UI/blob/master/src/definitions/elements/button.less#L15), the correct path would end with: `default/elements/button.variables`. Place just the variables that we need to customize there and we're done.
 
 ```less filename="ui/branding/semantic-ui/less/default/elements/button.variables" copy
 @borderRadius: 8px;
@@ -151,4 +151,80 @@ Since we use the `default` theme and the Button is a [component of type `element
 
 ## Style overrides
 
-For situations, where there is no suitable variable defined on the component you want to tweak, you can completely override or extend style rules for such a component.
+For situations, where there is no suitable variable defined on the component you want to tweak, you can completely override or add your own style rules for such a component.
+
+For example, there is no way to affect button's `min-height` attribute using LESS variables. If we were tasked to change buttons on our site to have
+`min-height` of `2rem`, we need to do the following:
+
+<Steps>
+### Find the rule you want to override
+Look up styles definition (`.less` file) of your component of interest, e.g. for our [button](
+https://github.com/Semantic-Org/Semantic-UI/blob/master/src/definitions/elements/button.less#L24-L57) (we can see the rule
+controlling `min-height` there, it is `ui.button`):
+
+```less filename="/Semantic-Org/Semantic-UI/blob/master/src/definitions/elements/button.less" copy {5,9}
+/*******************************
+            Button
+*******************************/
+
+.ui.button {
+  cursor: pointer;
+  display: inline-block;
+
+  min-height: 1em;
+
+  outline: none;
+  border: none;
+  vertical-align: @verticalAlign;
+  background: @background;
+  color: @textColor;
+
+  font-family: @fontFamily;
+  // ...
+}
+```
+
+### Define custom rules in overrides
+
+Using a similar approach to [overriding variables](#create-custom-variables-file), we put our style rules 
+into a custom overrides file. The path needs to respect the theme folder structure imposed by Semantic UI:
+
+`{themeName}/{componentType}s/{componentName}.overrides`
+
+We redefine the `ui.button` class there:
+
+```less filename="ui/branding/semantic-ui/less/default/elements/button.overrides" copy {5}
+.ui.button {
+  cursor: pointer;
+  display: inline-block;
+
+  min-height: 2em;
+
+  outline: none;
+  border: none;
+  vertical-align: @verticalAlign;
+  background: @background;
+  color: @textColor;
+
+  font-family: @fontFamily;
+  // ... same declarations as in original rule
+}
+```
+
+### (optional) Combine with custom variables
+
+You can further combine the two customization approaches described here. Create a custom LESS variable and reference it from this overriden rule, to make `min-height` easily tweakable like other variable-driven button attributes:
+
+```less filename="ui/branding/semantic-ui/less/default/elements/button.variables" copy
+@minHeight: 2rem;
+```
+
+```less filename="ui/branding/semantic-ui/less/default/elements/button.overrides" copy {5}
+.ui.button {
+  cursor: pointer;
+  display: inline-block;
+
+  min-height: @minHeight;
+  // ... same declarations as above
+```
+</Steps>
