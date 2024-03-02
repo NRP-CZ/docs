@@ -29,9 +29,9 @@ with your own prefix. This way you can avoid conflicts with other custom fields
 from other organizations. Using the prefix also simplifies serialization to
 the JSON-LD format.
 
-## Configuration
+## Field definition
 
-### Field definition
+### Configuration
 
 Use the following configuration keys to define custom fields:
 
@@ -74,7 +74,7 @@ DATA_CF = [
 ```
 
 
-#### Built-in custom field types
+### Built-in custom field types
 
 The following custom field types are built inside the Invenio platform:
 
@@ -105,7 +105,10 @@ The following custom field types are built inside the Invenio platform:
   If the vocabulary is small, pass `dump_options=True` to speed up the UI.
 
 
-### Deposit form
+## Deposit form
+
+### Configuration
+
 
 Use the following configuration keys to define how the custom fields will be rendered:
 
@@ -139,7 +142,7 @@ DATA_CF_UI = [
 ]
 ```
 
-#### Built-in UI widgets
+### Built-in UI widgets
 
 The following UI widgets are built inside the Invenio platform:
 
@@ -197,13 +200,13 @@ VOCABULARIES_CF_UI = {
 }
 ```
 
-### Landing page
+## Landing page
 
 Custom fields are rendered on the landing page automatically. You can either
 override the whole section of the landing page or you can override a rendering
 of a single custom field.
 
-#### Overriding the whole section
+#### Overriding the whole custom fields section
 
 To override the whole section, add a jinjax component with the following file name
 to the ui/templates directory:
