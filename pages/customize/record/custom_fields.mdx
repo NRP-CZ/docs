@@ -21,9 +21,17 @@ To check that custom fields have been initialized properly, have a look at
 the search index inside the Opensearch server. You should see the new fields
 in the index's mapping.
 
+
+## Custom field names
+
+Although not required, it is recommended to prefix the custom field
+with your own prefix. This way you can avoid conflicts with other custom fields
+from other organizations. Using the prefix also simplifies serialization to
+the JSON-LD format.
+
 ## Configuration
 
-### OpenSearch index
+### Field definition
 
 Use the following configuration keys to define custom fields:
 
@@ -41,7 +49,7 @@ The value of the configuration key is a list of custom fields.
 from invenio_records_resources.services.custom_fields.text import KeywordCF
 
 DATA_CF = [
-    KeywordCF("instrument", multiple=False),
+    KeywordCF("myorg:instrument", multiple=False),
     ...
 ]
 ```
@@ -60,7 +68,7 @@ for more information.
 from marshmallow.validate import Length
 
 DATA_CF = [
-    KeywordCF("instrument", multiple=False, field_args=dict(validate=Length(min=1, max=100))),
+    KeywordCF("myorg:instrument", multiple=False, field_args=dict(validate=Length(min=1, max=100))),
     ...
 ]
 ```
@@ -117,7 +125,7 @@ DATA_CF_UI = [
         "section": _("Instrument"),
         "fields": [
             dict(
-                field="instrument",
+                field="myorg:instrument",
                 ui_widget="Input",
                 props=dict(
                     label="Instrument",
@@ -157,7 +165,7 @@ VOCABULARIES_CF_UI = {
             "section": _("Language identifiers"),
             "fields": [
                 dict(
-                    field="iso_639_3",
+                    field="myorg:iso_639_3",
                     ui_widget="Input",
                     props=dict(
                         label="ISO 639-3 code (3 letters)",
@@ -174,7 +182,7 @@ VOCABULARIES_CF_UI = {
             "section": _("OpenAIRE institution"),
             "fields": [
                 dict(
-                    field="openaire_institution_url",
+                    field="myorg:openaire_institution_url",
                     ui_widget="Input",
                     props=dict(
                         label="OpenAIRE institution URL",
