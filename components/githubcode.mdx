@@ -1,0 +1,27 @@
+import React from "react";
+
+export function GitHubCode({ title = "GitHub", repo, branch = "main", path }) {
+  const url = `https://github.com/${repo}/tree/${branch}/${path}`;
+  const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${path}`;
+  const [content, setContent] = React.useState(null);
+  const extension = path.split(".").pop();
+
+  React.useEffect(() => {
+    async function loadContent() {
+      fetch(rawUrl).then(async (response) => {
+        setContent(await response.text());
+      });
+    }
+
+    loadContent();
+  }, []);
+
+  return (
+    <pre>
+      {`// ${url} \n`}
+      {content}
+    </pre>
+  );
+}
+
+export default GitHubCode;
