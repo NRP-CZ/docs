@@ -8,5 +8,6 @@ module.exports = {
   images: {
     unoptimized: true,
   },
+  defaultShowCopyCode: true,
   basePath: "/docs"
 }
