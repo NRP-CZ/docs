@@ -1,0 +1,123 @@
+import { Cards, Callout, FileTree } from "nextra/components";
+import { Card } from "@/components/card";
+import { Difficulty } from "@/components/difficulty";
+
+# React components <Difficulty level="intermediate" />
+
+This guide empowers you to customize and extend the functionality of React components within your repository's React-powered UI applications.
+
+React components serve as interactive building blocks of your user interface, offering modularity, reusability, and flexibility in application. By customizing these components, you can tailor the look, behavior, and functionality of your application to meet your specific requirements and brand standards.
+
+## Prerequisites
+
+Before delving into React components customization, it's recommended that you have a solid understanding of the following concepts and technologies:
+
+- **JavaScript and ES6**: Familiarity with JavaScript fundamentals and ES6 features such as arrow functions, template literals, destructuring, and classes is essential for writing React code.
+- **React Basics**: A basic understanding of React fundamentals, including JSX syntax, component rendering, props, state, and component lifecycle methods, is necessary to follow along with the customization instructions.
+- **CSS**: Basic knowledge of Cascading Style Sheets (CSS) is required for styling React components. Understanding selectors, properties, values, and basic layout techniques will help you customize the appearance of components effectively.
+- **LESS (Optional)**: Familiarity with LESS CSS preprocessor syntax and features can be beneficial.
+- **Node.js and npm/Yarn**: Understanding how to work with Node.js and package managers like npm or Yarn is essential for setting up and managing React projects, installing dependencies, and running development/build scripts.
+- **Command Line Interface (CLI) Basics**: Basic proficiency in using the command line interface (CLI) to navigate directories, run commands, and manage files is helpful for setting up React projects and running development/build tasks.
+
+Whether you're a seasoned React developer or new to the framework, this documentation provides you with the tools, techniques, and best practices for effectively customizing React components and creating and registering your own.
+
+## Customization
+
+### Overridable IDs
+
+In order to customize a specific component, every overridable component living inside a React application is identified by it's `Overridable ID`.
+It is a string with a format of:
+
+```
+{overridableIdPrefix}.{componentId}
+```
+
+Where `{overridableIdPrefix}` consists of an `{applicationId}` (a namespace identifier for all components belonging to the same record model) and a name
+of a specific React appplication:
+
+```
+{applicationId}.{Search|Form|...}
+```
+
+and `{componentId}` refers to a specific component defined in a specific application.
+Under the following [applications](#applications) sections, you can find out supported `component IDs` for each application.
+
+<Callout type="info" emoji="💡">
+  For example, a component responsible for rendering a search result item (`componentId="ResultsList.item"`), used
+  in search applications for the `example` record model would use the following `Overridable ID`:
+
+```
+Example.Search.ResultsList.item
+```
+
+</Callout>
+
+### Methods
+
+There are two following methods you can leverage to override default React components with your own.
+
+#### Templates
+
+This methods depends purely on naming convention and correct component file placement under templates folder.
+After you find out the correct [Overridable ID](#overridable-ids), create the corresponding
+file structure and place your custom JSX component files like this:
+
+<FileTree>
+  <FileTree.Folder name="myrepo/ui/mymodel" defaultOpen>
+      <FileTree.Folder name="semantic-ui" defaultOpen>
+        <FileTree.Folder name="templates" defaultOpen>
+              <FileTree.Folder name="{applicationId}" defaultOpen>
+                <FileTree.Folder name="form" defaultOpen>
+                    <FileTree.File active={true} name="{someComponentId1}.jsx" />
+                    <FileTree.File active={true} name="{someComponentId2}.jsx" />
+                    <FileTree.File active={true} name="{someComponentId3}.jsx" />
+                </FileTree.Folder>
+                <FileTree.Folder name="search">
+                    <FileTree.File active={true} name="{someComponentId4}.jsx" />
+                </FileTree.Folder>
+                <FileTree.Folder name="{someOtherApp}">
+                    <FileTree.File active={true} name="{someComponentId5}.jsx" />
+                </FileTree.Folder>
+              </FileTree.Folder>
+        </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+<Callout type="info" emoji="ℹ️">
+All `{componentId}`-based file names must be camel-cased, with any '.' characters removed. E.g. if a component has
+a `{componentId}` of `ResultsList.item`, then the resulting file name would be `ResultsListItem.jsx`.
+</Callout>
+
+#### JS component overrides
+
+You can also override components just before initialization of React applications inside its JS entrypoints.
+This is achiveved by declaring a `componentOverrides` map, translating from a specific `Overridable ID` to a specific
+component of your own. The following depicts the generic workflow when using this method:
+
+```jsx filename="myrepo/ui/mymodel/semantic-ui/js/someapp/index.js"
+import MyComponent from './components/MyComponent'
+import MyOtherComponent from './components/MyOtherComponent'
+import {initSomeApp} from 'some-app'
+
+const componentOverrides = {
+    [`${overridableId1}`]: MyComponent
+    [`${overridableId2}`]: MyOtherComponent
+    // ...
+}
+
+initSomeApp({componentOverrides})
+```
+
+### Applications
+
+Explore the sections below to learn how to enhance your application with customized React components:
+
+<Cards>
+  <Card title="Search" arrow href="/customize/record/search">
+    Create or modify components used in search application interfaces.
+  </Card>
+  <Card title="Form" arrow href="/customize/record/deposit">
+    Create or modify components used in record deposition form applications.
+  </Card>
+</Cards>
