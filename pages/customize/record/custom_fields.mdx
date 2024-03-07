@@ -213,10 +213,10 @@ to the ui/templates directory:
 
 | metadata schema | file name |
 |---------------|-----------------|
-| nr-data       | `100-NRDataCF.jinja` |
-| nr-documents  | `100-NRDocumentsCF.jinja` |
-| datacite      | `100-NRDataCiteCF.jinja` |
-| vocabularies  | `100-NRVocabulariesCF.jinja` |
+| nr-data       | `NRDataCF.jinja` |
+| nr-documents  | `NRDocumentsCF.jinja` |
+| datacite      | `NRDataCiteCF.jinja` |
+| vocabularies  | `NRVocabulariesCF.jinja` |
 
 ### Overriding a single custom field
 
@@ -255,5 +255,137 @@ DATA_CF_UI = [
 
 ## Complex custom field types
 
-To define complex custom field types, such as objects or lists of objects,
-see [the dedicated guide](complex_custom_fields).
+If you need to create a custom field that is more complex than the built-in types, you can use the "ComplexCF" class:
+
+```python
+from oarepo_ui.services.custom_fields import ComplexCF
+
+DATA_CF = [
+    ComplexCF("myorg:instrument", [
+        KeywordCF("maker"),
+        KeywordCF("serial_number"),
+    ])
+]
+```
+
+Inside the UI configuration, you need to choose the "ComplexWidget" widget and specify the nested fields:
+
+```python
+DATA_CF_UI = [
+    {
+        "section": _("Instrument"),
+        "fields": [
+            dict(
+                field="myorg:instrument",
+                ui_widget="ComplexWidget",
+                props=dict(
+                    label="Instrument",
+                    description="Specify the instrument...",
+                    nested = [
+                        dict(
+                            field="maker",
+                            ui_widget="Input",
+                            props=dict(
+                                label="Maker",
+                                placeholder="...",
+                                icon="pencil",
+                                description="...",
+                            )
+                        ),
+                        dict(
+                            field="serial_number",
+                            ui_widget="Input",
+                            props=dict(
+                                label="Serial number",
+                                placeholder="...",
+                                icon="pencil",
+                                description="...",
+                            )
+                        )
+                    ]
+                )
+            )
+        ]
+    }
+]
+```
+
+## Multi-valued custom fields
+
+If you need to create an array of custom fields, pass the `multiple` argument to the custom field definition.
+Both simple-valued and complex fields are supported.
+
+```python
+from invenio_records_resources.services.custom_fields.text import KeywordCF
+
+DATA_CF = [
+    KeywordCF("myorg:internal", multiple=True),
+    ComplexCF("myorg:instrument", [
+        KeywordCF("maker"),
+        KeywordCF("serial_number"),
+    ])
+]
+```
+
+In the UI configuration, you need to choose the "ArrayField" widget and specify the item widget:
+
+```python
+
+DATA_CF_UI = [
+    {
+        "section": _("Internal codes"),
+        "fields": [
+            dict(
+                field="myorg:internal",
+                ui_widget="ArrayField",
+                props=dict(
+                    label="Internal codes",
+                    item_widget="Input",
+                    item_props=dict(
+                        label="Code",
+                        placeholder="Internal code ...",
+                        icon="pencil"
+                    )
+                )
+            )
+        ]
+    },
+    {
+        "section": _("Instruments"),
+        "fields": [
+            dict(
+                field="myorg:instrument",
+                ui_widget="ArrayField",
+                props=dict(
+                    label="Instruments",
+                    item_widget="ComplexWidget",
+                    item_props=dict(
+                        nested = [
+                            dict(
+                                field="maker",
+                                ui_widget="Input",
+                                props=dict(
+                                    label="Maker",
+                                    placeholder="...",
+                                    icon="pencil",
+                                    description="...",
+                                )
+                            ),
+                            dict(
+                                field="serial_number",
+                                ui_widget="Input",
+                                props=dict(
+                                    label="Serial number",
+                                    placeholder="...",
+                                    icon="pencil",
+                                    description="...",
+                                )
+                            )
+                        ]
+                    )
+                )
+            )
+        ]
+    }
+]
+```
