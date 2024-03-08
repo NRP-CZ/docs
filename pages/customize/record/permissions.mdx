@@ -1,0 +1,108 @@
+import {Difficulty} from '@/components/difficulty'
+
+# Permissions
+
+## Pre-defined permission presets <Difficulty level="easy" />
+
+When you create a new repository metadata schema, or extend an existing one,
+you can use pre-defined permission presets to quickly set up the permissions for the schema.
+
+To use a pre-defined permission preset, set the `XXXXX_PERMISSIONS_PRESETS` environment variable
+to a list of presets that should be used. The `XXXXX` part of the environment variable name should be
+the uppercase name of the schema. For example, if the schema is called `theses`, the environment variable
+should be called `THESES_PERMISSIONS_PRESETS`.
+
+Example:
+
+```python
+# invenio.cfg
+
+THESES_PERMISSIONS_PRESETS = ["read_only", UCTThesisUploaderPermissionPolicy]
+```
+
+Permissions are evaluated as "OR" - that is, if any permission preset matches the current user, the user
+will be granted the permissions. You can specify either the name of a pre-defined permission preset, or a
+custom permission policy class.
+
+The following pre-defined permission presets are available:
+
+| Name | Description |
+|------|-------------|
+| `read_only` | No one can modify the records, everyone has read-only access |
+| `authenticated` | Authenticated users can modify the records |
+| `everyone` | Everyone can modify the records |
+| `community` | The community to which the record belongs defines the access rules |
+
+## Custom permission presets <Difficulty level="intermediate" />
+
+You can also define your own permission presets. To do this, you need to create a new class that
+inherits from `invenio_records_permissions.policies.records.RecordPermissionPolicy`:
+
+```python
+class UCTThesisUploaderPermissionPolicy(RecordPermissionPolicy):
+    """record policy for read only repository"""
+
+    can_search = [UCTUploader(), AnyUser()]
+    can_read = [UCTUploader(), AnyUser()]
+    can_create = [UCTUploader()]
+    can_update = [UCTUploader()]
+    can_delete = [UCTUploader()]
+    can_manage = [UCTUploader()]
+
+    can_create_files = [UCTUploader()]
+    can_set_content_files = [UCTUploader()]
+    can_get_content_files = [UCTUploader(), AnyUser()]
+    can_commit_files = [UCTUploader()]
+    can_read_files = [UCTUploader(), AnyUser()]
+    can_update_files = [UCTUploader()]
+    can_delete_files = [UCTUploader()]
+
+    can_edit = [UCTUploader()]
+    can_new_version = [UCTUploader()]
+    can_search_drafts = [UCTUploader()]
+    can_read_draft = [UCTUploader()]
+    can_update_draft = [UCTUploader()]
+    can_delete_draft = [UCTUploader()]
+    can_publish = [UCTUploader()]
+    can_draft_create_files = [UCTUploader()]
+    can_draft_set_content_files = [UCTUploader()]
+    can_draft_get_content_files = [UCTUploader()]
+    can_draft_commit_files = [UCTUploader()]
+    can_draft_read_files = [UCTUploader()]
+    can_draft_update_files = [UCTUploader()]
+```
+
+The names of the fields in the class are the names of the actions that can be performed on the records
+prefixed with `can_`. The values of the fields are lists of permission checkers. The following can be used:
+
+| Name | Description |
+|------|-------------|
+| AnyUser() | any user |
+| AuthenticatedUser() | any authenticated user |
+| SystemProcess() | the system process or superuser |
+| SystemProcessWithoutSuperUser() | just system processes |
+| RecordOwners() | people owning the record |
+| AnyUserIfPublic() | any authenticated user if the record is public |
+| UserWithRole("role") | any user with the specified role |
+
+## Custom permission checkers <Difficulty level="advanced" />
+
+You can also define your own permission checkers. To do this, you need to create a new class that
+inherits from `invenio_records_permissions.generators.Generator` and provides needs and query filters:
+
+```python
+class UserWithRole(Generator):
+    def __init__(self, *roles):
+        self.roles = roles
+
+    def needs(self, **kwargs):
+        return [RoleNeed(role) for role in self.roles]
+
+    def query_filter(self, identity=None, **kwargs):
+        if not identity:
+            return dsl.Q("match_none")
+        for provide in identity.provides:
+            if provide.method == "role" and provide.value in self.roles:
+                return dsl.Q("match_all")
+        return dsl.Q("match_none")
+```
