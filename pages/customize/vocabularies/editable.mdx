@@ -1,4 +1,6 @@
-# Editable vocabularies
+import {Difficulty} from '@/components/difficulty'
+
+# Editable vocabularies  <Difficulty level="intermediate" />
 
 NRP Invenio repositories have support for editable vocabularies. To activate it, you need to:
 
@@ -41,7 +43,6 @@ INVENIO_VOCABULARY_TYPE_METADATA = {
                 "search": False,
             },
         },
-        "custom_fields": [],
         "dump_options": True,
     },
     # ...
@@ -50,8 +51,9 @@ INVENIO_VOCABULARY_TYPE_METADATA = {
 
 The `name` and `description` fields are used for the human readable vocabulary type name and description.
 The `props` field is a dictionary of editable string fields, that can be set on the vocabulary item.
-If you need to specify non-string variables, you can use the `custom_fields` field which contain the names
-of the extra variables. See [Vocabulary custom fields](/customize/vocabularies/custom_fields.mdx) for more information.
+
+*Note:* Custom fields (that is, non-string fields, such as booleans, structures or arrays) can be specified elsewhere
+inside the `invenio.cfg`. See [Vocabulary custom fields](/customize/vocabularies/custom_fields.mdx) for more information.
 
 If you specify `dump_options` to `True`, the vocabulary content will be stored within the editation form,
 so that no API requests will need to be called to get the vocabulary content. This might yield to a better user experience

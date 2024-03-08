@@ -1,0 +1,42 @@
+import {Difficulty} from '@/components/difficulty'
+
+# Custom vocabulary fields  <Difficulty level="intermediate" />
+
+Custom vocabulary fields can be used to add additional, non-text information to a vocabulary term.
+For example, you might want to add integer fields, boolean fields, or even custom structured data to a vocabulary term.
+
+If you want to add string fields, there is no need to create custom vocabulary fields. Just add the data to the `props`
+section of the vocabulary term.
+
+## Example
+
+```yaml
+# languages.yaml inside fixtures directory
+
+id: english
+title:
+  en: English
+  fr: Anglais
+props:
+  isoCode: en
+```
+
+## API configuration
+
+The model is shared between all vocabulary types - so at the API level, there is no distinction between, for example,
+languages, countries, or resource types. The model is the same for all of them.
+
+That is why the custom fields are also shared between all vocabulary types. To define them, add the following section
+to the `invenio.cfg` file:
+
+```python
+VOCABULARIES_CF = [
+    BooleanCF("myorg:featured")
+]
+```
+
+This will add a new custom field to all vocabularies. The `BooleanCF` class is used to define a custom field for
+a boolean value. There are also other classes available, such as `IntegerCF`, `KeywordCF`, `DateCF`, etc., see the
+[Records's custom fields](/customize/record/custom_fields) section for more information.
+
+## UI configuration

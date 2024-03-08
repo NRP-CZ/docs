@@ -1,16 +1,6 @@
 {
     "index": "Vocabularies",
-    "initial_data": {
-        "type": "page",
-        "title": "Initial Data for vocabularies"
-    },
-
-    "permissions": {
-        "type": "page",
-        "title": "Vocabulary permissions"
-    },
-    "custom_fields": {
-        "type": "page",
-        "title": "Custom fields for vocabularies"
-    }
+    "initial_data": "Initial Data",
+    "editable": "Editable vocabularies",
+    "custom_fields": "Custom fields"
 }

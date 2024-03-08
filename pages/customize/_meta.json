@@ -1,5 +1,8 @@
 {
-    "index": "Overview",
+    "index": {
+        "type": "page",
+        "title": "Customize"
+    },
     "branding": {
         "type": "page",
         "title": "Branding"
