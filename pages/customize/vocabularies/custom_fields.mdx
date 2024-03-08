@@ -1,0 +1,93 @@
+import {Difficulty} from '@/components/difficulty'
+
+# Custom vocabulary fields  <Difficulty level="intermediate" />
+
+Custom vocabulary fields can be used to add additional, non-text information to a vocabulary term.
+For example, you might want to add integer fields, boolean fields, or even custom structured data to a vocabulary term.
+
+If you want to add string fields, there is no need to create custom vocabulary fields. Just add the data to the `props`
+section of the vocabulary term.
+
+## Example
+
+```yaml
+# languages.yaml inside fixtures directory
+
+id: english
+title:
+  en: English
+  fr: Anglais
+props:
+  isoCode: en
+```
+
+## API configuration
+
+The model is shared between all vocabulary types - so at the API level, there is no distinction between, for example,
+languages, countries, or resource types. The model is the same for all of them.
+
+That is why the custom fields are also shared between all vocabulary types. To define them, add the following section
+to the `invenio.cfg` file:
+
+```python
+VOCABULARIES_CF = [
+    BooleanCF("myorg:featured")
+]
+```
+
+This will add a new custom field to all vocabularies. The `BooleanCF` class is used to define a custom field for
+a boolean value. There are also other classes available, such as `IntegerCF`, `KeywordCF`, `DateCF`, etc., see the
+[Records's custom fields](/customize/record/custom_fields) section for more information.
+
+## UI configuration
+
+The deposit form for vocabularies is a bit different that the one of plain records. You need to specify the
+ui sections per vocabulary type. This way each vocabulary can have different fields inside its deposit form.
+For details on the structure of the UI configuration, see the [Records's custom fields](/customize/record/custom_fields#deposit-form)
+
+To define the UI configuration for the custom fields, add the following section to the `invenio.cfg` file:
+
+```python
+
+VOCABULARIES_CF_UI = {
+    "languages": [
+        {
+            "section": _("Language identifiers"),
+            "fields": [
+                dict(
+                    field="myorg:iso_639_3",
+                    ui_widget="Input",
+                    props=dict(
+                        label="ISO 639-3 code (3 letters)",
+                        placeholder="...",
+                        icon="pencil",
+                        description="...",
+                    )
+                ),
+            ]
+        }
+    ],
+    "institutions": [
+        {
+            "section": _("OpenAIRE institution"),
+            "fields": [
+                dict(
+                    field="myorg:openaire_institution_url",
+                    ui_widget="Input",
+                    props=dict(
+                        label="OpenAIRE institution URL",
+                        placeholder="...",
+                        icon="pencil",
+                        description="...",
+                    )
+                ),
+            ]
+        }
+    ],
+}
+```
+
+## Complex and multi-valued fields
+
+Complex and multi-valued fields in your vocabularies behave the same way as in records.
+See [Records's complex custom fields](/customize/record/custom_fields#complex-custom-field-types) for details.

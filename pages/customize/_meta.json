@@ -1,5 +1,18 @@
 {
-    "index": "Overview",
-    "branding": "Branding",
-    "record": "Records"
+    "index": {
+        "type": "page",
+        "title": "Customize"
+    },
+    "branding": {
+        "type": "page",
+        "title": "Branding"
+    },
+    "record": {
+        "type": "page",
+        "title": "Records"
+    },
+    "vocabularies": {
+        "type": "page",
+        "title": "Vocabularies"
+    }
 }
