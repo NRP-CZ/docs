@@ -154,51 +154,6 @@ The following UI widgets are built inside the Invenio platform:
 | Dropdown | Dropdown list (for vocabularies with dump_options=True) |
 | AutocompleteDropdown | Dropdown list with autocomplete (for vocabularies with dump_options=False) |
 
-#### Deposit form for vocabularies
-
-The deposit form for vocabularies is a bit different. You need to specify the
-ui sections per vocabulary type. This way each vocabulary can have different
-fields inside its deposit form.
-
-```python
-
-VOCABULARIES_CF_UI = {
-    "languages": [
-        {
-            "section": _("Language identifiers"),
-            "fields": [
-                dict(
-                    field="myorg:iso_639_3",
-                    ui_widget="Input",
-                    props=dict(
-                        label="ISO 639-3 code (3 letters)",
-                        placeholder="...",
-                        icon="pencil",
-                        description="...",
-                    )
-                ),
-            ]
-        }
-    ],
-    "institutions": [
-        {
-            "section": _("OpenAIRE institution"),
-            "fields": [
-                dict(
-                    field="myorg:openaire_institution_url",
-                    ui_widget="Input",
-                    props=dict(
-                        label="OpenAIRE institution URL",
-                        placeholder="...",
-                        icon="pencil",
-                        description="...",
-                    )
-                ),
-            ]
-        }
-    ],
-}
-```
 
 ## Landing page
 
