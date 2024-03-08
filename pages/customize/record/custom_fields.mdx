@@ -161,7 +161,7 @@ Custom fields are rendered on the landing page automatically. You can either
 override the whole section of the landing page or you can override a rendering
 of a single custom field.
 
-### Overriding the whole custom fields section
+### Overriding the whole custom fields section <Difficulty level="intermediate" />
 
 To override the whole section, add a jinjax component with the following file name
 to the ui/templates directory:
@@ -173,7 +173,7 @@ to the ui/templates directory:
 | datacite      | `NRDataCiteCF.jinja` |
 | vocabularies  | `NRVocabulariesCF.jinja` |
 
-### Overriding a single custom field
+### Overriding a single custom field <Difficulty level="intermediate" />
 
 To override a single custom field, create a jinjax component and set the name of the component
 to the ui configuration key of the custom field:
@@ -208,7 +208,7 @@ DATA_CF_UI = [
 ```
 
 
-## Complex custom field types
+## Complex custom field types <Difficulty level="intermediate" />
 
 If you need to create a custom field that is more complex than the built-in types, you can use the "ComplexCF" class:
 
@@ -265,7 +265,7 @@ DATA_CF_UI = [
 ]
 ```
 
-## Multi-valued custom fields
+## Multi-valued custom fields <Difficulty level="intermediate" />
 
 If you need to create an array of custom fields, pass the `multiple` argument to the custom field definition.
 Both simple-valued and complex fields are supported.
