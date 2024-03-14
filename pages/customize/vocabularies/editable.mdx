@@ -130,9 +130,9 @@ class FineGrainedPermissionPolicy(EveryonePermissionPolicy):
 
 **Implementation note:** The policy above is applied in two steps:
 
-1. can_XXXX_vocabulary permission policy is checked. If it returns False, permission is denied.
-2. Invenio checks the can_XXXX permission policy (the generic one). If it returns False, permission is denied.
+1. `can_XXXX_vocabulary` permission policy is checked. If it returns False, permission is denied.
+2. Invenio checks the `can_XXXX` permission policy (the generic one). If it returns False, permission is denied.
 
 That's why the base class above is EveryonePermissionPolicy. If you'd like to use a different base class
-(such as ReadOnlyPermissionPolicy), you need to override the can_XXXX permission policy to the same value
-as the can_XXXX_vocabulary policy.
+(such as ReadOnlyPermissionPolicy), you need to override the `can_XXXX` permission policy to the same value
+as the `can_XXXX_vocabulary` policy.
