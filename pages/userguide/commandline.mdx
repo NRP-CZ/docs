@@ -67,8 +67,13 @@ If you do not provide the alias, the first part of the servername (up to the fir
 will be used.
 
 If you do not specify the token, the command will try to open a repository login page
-in your default browser. After you log in, the command will finish automatically
-and store the token in the file.
+in your default browser. After you log in, head to `Personal tokens`, create a token
+for the UI and copy it to the terminal. The token will be stored in the configuration
+file and used for subsequent requests.
+
+You can skip this step by using the `--skip-token` option. If you do so, you will get
+an anonymous access to the repository - you will be able to read public records, but
+not to create or modify them.
 
 ### Selecting the default repository
 
