@@ -316,7 +316,7 @@ To publish a record, call the `publish` method on the `record` object:
 ```python
 client = NRPInvenioClient.from_config()
 rec = client.records.get("draft/datasets/1234")
-rec.publish(version="v1")
+published_record = rec.publish(version="v1")
 ```
 
 You can optionally specify the "human-readable" version of the record to publish.
@@ -441,3 +441,125 @@ Then, you can delete the file:
 file = rec.files.get("filename.txt")
 file.delete()
 ```
+
+## Requests
+
+Requests are used to ask for certain operations to be performed on a record. Each repository can provide
+a custom set of operations, examples of such operations are "publish", "unpublish", "delete", "edit",
+"access private files" etc.
+
+### Getting requests for a record
+
+To get requests for a record, you need to get the record first:
+
+```python
+client = NRPInvenioClient.from_config()
+rec = client.records.get("datasets/1234", include_requests=True)
+```
+
+Then, you can get the requests (instances of NRPRecordRequests) from the record:
+
+```python
+requests: NRPRecordRequests = rec.requests
+
+for req_type in requests:
+    print(f"Request type {req_type.type_id}")
+    print("Open requests of this type:")
+    for req in req_type.submitted_requests:
+        print(req.to_dict())
+```
+
+You can iterate all requests of this type using `for req in req_type` or you can get subsets of requests:
+
+* `req_type.submitted_requests` - open requests
+* `req_type.cancelled_requests` - expired requests (closed)
+* `req_type.accepted_requests` - accepted requests (closed)
+* `req_type.declined_requests` - declined requests (closed)
+* `req_type.expired_requests` - expired requests (closed)
+
+
+
+### Creating a request for a record
+
+To create a request for a record, you need to get the record first:
+
+```python
+client = NRPInvenioClient.from_config()
+rec = client.records.get("datasets/1234", include_requests=True)
+```
+
+Then, you can create a request:
+
+```python
+req = rec.requests.create("publish", {"version": "v1"}, submit=True)
+```
+
+If you pass submit=True, the request will be submitted immediately.
+Otherwise, you need to call the `submit` method on the request object.
+
+### Updating request payload
+
+To update the metadata of a request, you need to get the request first:
+
+```python
+client = NRPInvenioClient.from_config()
+rec = client.records.get("datasets/1234", include_requests=True)
+req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
+req.payload["version"] = "v2"
+req.save()
+```
+
+
+### Checking the status of a request
+
+To check the status of a request, you need to get the request first and then get its status:
+
+```python
+client = NRPInvenioClient.from_config()
+rec = client.records.get("datasets/1234", include_requests=True)
+req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
+print(req.status)
+
+# after a pause
+req.refresh()
+print(req.status)
+```
+
+### Cancelling the request
+
+To cancel a request, you need to get the request first and then call the `cancel` method on it:
+
+```python
+client = NRPInvenioClient.from_config()
+rec = client.records.get("datasets/1234", include_requests=True)
+req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
+req.cancel()
+```
+
+You might provide a reason for the cancellation (json object) as an argument to the `cancel` method.
+
+### Accepting the request
+
+To accept a request, you need to get the request first and then call the `accept` method on it:
+
+```python
+client = NRPInvenioClient.from_config()
+rec = client.records.get("datasets/1234", include_requests=True)
+req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
+req.accept()
+```
+
+You might provide a reason for the acceptance (json object) as an argument to the `accept` method.
+
+### Declining the request
+
+To decline a request, you need to get the request first and then call the `decline` method on it:
+
+```python
+client = NRPInvenioClient.from_config()
+rec = client.records.get("datasets/1234", include_requests=True)
+req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
+req.decline()
+```
+
+You might provide a reason for the decline (json object) as an argument to the `decline` method.

@@ -458,6 +458,20 @@ nrp-cmd delete record <pid>
 
 where the `pid` is the record identifier in any of the supported formats, as defined above.
 
+### Validating a record
+
+To validate a record, invoke
+
+```bash
+nrp-cmd validate record <pid>
+```
+
+The command will perform a validation of the record and output the validation errors to stdout.
+If the record is invalid, the command will return a non-zero exit code.
+
+**Note:** the validation is performed by saving the record, so internal revision number is
+increased by one. This implementation might change in the future.
+
 ## Files
 
 ### Listing files on a record
@@ -571,3 +585,197 @@ To delete a file, invoke
 ```bash
 nrp-cmd delete file <pid> <file-key>
 ```
+
+## Publish and edit published document
+
+### Publishing a draft
+
+To publish a draft, invoke
+
+```bash
+nrp-cmd publish draft <pid> [version]
+```
+
+where the `pid` is the record identifier in any of the supported formats, as defined above.
+The command will output the published record to stdout.
+
+If you use a variable instead of the pid, the variable will be updated with the new identifier.
+
+**Note:** the record is validated before publishing. If the validation fails, the command will fail
+and print the validation errors instead of the record.
+
+**Note:** some repositories might prevent you to publish a draft directly.
+In this case, you need to create a request to publish the draft.
+
+### Editing published record
+
+To edit a published record, invoke
+
+```bash
+nrp-cmd edit record <pid>
+```
+
+where the `pid` is the record identifier in any of the supported formats, as defined above.
+The command will create draft record and output it to stdout.
+
+If you use a variable instead of the pid, the variable will be updated with the new identifier.
+
+## Requests
+
+### Listing requests on a record
+
+To list requests on a record, invoke
+
+```bash
+nrp-cmd list requests <pid>
+```
+
+where the `pid` is the record identifier in any of the supported formats, as defined above.
+
+```yaml
+documents_publish_draft:
+  type_id: documents_publish_draft
+  links:
+    actions:
+      create: https://127.0.0.1:5000/api/docs/b465x-wz855/draft/requests/documents_publish_draft
+  requests:
+  - id: 0c224d67-f8a1-4a51-bf15-a75bfd53ceb2
+    created: '2024-03-16T16:36:42.538694+00:00'
+    updated: '2024-03-16T16:36:42.545675+00:00'
+    links:
+      actions:
+        submit: https://127.0.0.1:5000/api/requests/0c224d67-f8a1-4a51-bf15-a75bfd53ceb2/actions/submit
+      self: https://127.0.0.1:5000/api/requests/extended/0c224d67-f8a1-4a51-bf15-a75bfd53ceb2
+      comments: https://127.0.0.1:5000/api/requests/extended/0c224d67-f8a1-4a51-bf15-a75bfd53ceb2/comments
+      timeline: https://127.0.0.1:5000/api/requests/extended/0c224d67-f8a1-4a51-bf15-a75bfd53ceb2/timeline
+    revision_id: 2
+    type: documents_publish_draft
+    title: ''
+    number: '2'
+    status: created
+    is_closed: false
+    is_open: false
+    expires_at: null
+    is_expired: false
+    created_by:
+      user: '1'
+    receiver:
+      group: curator
+    topic:
+      documents_draft: b465x-wz855
+```
+
+### Creating a request
+
+To create a request, invoke
+
+```bash
+nrp-cmd create request <pid> <type> <metadata> [--submit] [@variable]
+```
+
+where the `pid` is the record identifier in any of the supported formats, as defined above,
+`type` is the type of the request and `metadata` is either a json string beginning with `{`
+containing the metadata, or path on the filesystem to a file containing the metadata in either json or yaml format.
+
+You can store the identifier of the created request in a variable by appending `@variable` to the command.
+It will store the `<pid>/<request_id>` into the variable, so later on you'll use this single variable
+instead of pid and request_id.
+
+If you specify the `--submit` option, the request will be submitted immediately after creation.
+
+### Getting a request
+
+To get a request, invoke
+
+```bash
+nrp-cmd get request <pid> <request-id>
+
+# or
+
+nrp-cmd get request @variable
+```
+
+where the `pid` is the record identifier in any of the supported formats, as defined above and
+`request-id` is the identifier of the request. The command will output the request to stdout.
+The command takes output file and format options as well, see the `get record` command for details.
+
+
+### Updating a request with a new metadata
+
+If the request has not been submitted, you can update the metadata of the request by invoking
+
+```bash
+nrp-cmd update request <pid> <request-id> <metadata>
+
+# or
+
+nrp-cmd update request @variable <metadata>
+```
+
+where the `pid` is the record identifier in any of the supported formats, as defined above,
+`request-id` is the identifier of the request and `metadata` is either a json string beginning
+with `{` containing the metadata, or path on the filesystem to a file containing the metadata
+in either json or yaml format.
+
+### Submitting a request
+
+To submit a request, invoke
+
+```bash
+nrp-cmd submit request <pid> <request-id> [<message>]
+
+# or
+
+nrp-cmd submit request @variable [<message>]
+```
+
+where the `pid` is the record identifier in any of the supported formats
+as defined above and `request-id` is the identifier of the request.
+You can pass a message to the submit command, which will be stored in the request.
+
+### Cancelling a request
+
+To cancel a request, invoke
+
+```bash
+nrp-cmd cancel request <pid> <request-id> [<message>]
+
+# or
+
+nrp-cmd cancel request @variable [<message>]
+```
+
+where the `pid` is the record identifier in any of the supported formats as defined above
+and `request-id` is the identifier of the request.
+You can pass a message to the cancel command, which will be stored in the request.
+
+### Accepting a request
+
+To accept a request, invoke
+
+```bash
+nrp-cmd accept request <pid> <request-id> [<message>]
+
+# or
+
+nrp-cmd accept request @variable [<message>]
+```
+
+where the `pid` is the record identifier in any of the supported formats as defined above
+and `request-id` is the identifier of the request. You can pass a message to the accept command,
+which will be stored in the request.
+
+### Declining a request
+
+To decline a request, invoke
+
+```bash
+nrp-cmd decline request <pid> <request-id> [<message>]
+
+# or
+
+nrp-cmd decline request @variable [<message>]
+```
+
+where the `pid` is the record identifier in any of the supported formats as defined above and `request-id` is the identifier of the request.
+You can pass a message to the decline command, which will be stored in the request.
