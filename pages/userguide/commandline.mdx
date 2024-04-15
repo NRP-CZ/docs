@@ -437,7 +437,7 @@ If you'd like to completely replace the metadata of the record, use the `--repla
 The command will output the updated record to stdout, for example in yaml:
 
 ```yaml
-# nrp-command update record @blah '{"metadata":{"title": "blah2"}}'
+# nrp-cmd update record @blah '{"metadata":{"title": "blah2"}}'
 
 mid: draft/documents/z2rrt-pz252
 # ... as above
@@ -485,7 +485,7 @@ nrp-cmd list files <pid>
 where the `pid` is the record identifier in any of the supported formats, as defined above.
 
 ```yaml
-# nrp-command list files @blah
+# nrp-cmd list files @blah
 
 bucket_id: 73c3d9ec-e4f2-4109-9212-de9e85ecd302
 checksum: md5:d70b90d02e92e8ccb83100a324ac0f29
@@ -511,7 +511,7 @@ metadata:
 Alternatively, you can use the `--files` option when getting a record and then taking the files section from the output:
 
 ```yaml
-# ❯ nrp-command get record @blah --files
+# ❯ nrp-cmd get record @blah --files
 
 mid: draft/documents/z2rrt-pz252
 id: z2rrt-pz252
