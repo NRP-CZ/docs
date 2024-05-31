@@ -1,0 +1,23 @@
+# External authority provider
+
+For cases when autosuggestions and addition of items to a specific vocabulary from some external authority
+source is needed, configure the `authority` provider field in your `INVENIO_VOCABULARY_TYPE_METADATA` for
+a specific vocabulary.
+
+For example, the following will allow suggestion of additional institutions from external ROR authority provider:
+
+```python filename="invenio.cfg" copy
+from oarepo_vocabularies.authorities import RORProviderV2
+
+INVENIO_VOCABULARY_TYPE_METADATA = {
+    "institutions-backed-by-ror": {
+        "name": {"cs": "Instituce", "en": "Institutions"},
+        "authority": RORProviderV2,
+        "props": {
+            ...
+        },
+    },
+```
+
+When some custom authority provider not bundled as part of the `oarepo-vocabularies` library is needed, follow
+the [External Authority provider development](/develop/authority) guide on how to create one.

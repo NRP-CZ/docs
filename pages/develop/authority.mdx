@@ -1,4 +1,5 @@
 import {Difficulty} from "@/components/difficulty";
+import {Steps} from "nextra/components";
 
 # External authority provider <Difficulty level="intermediate" />
 
@@ -14,19 +15,24 @@ integration.
 
 ## Prerequisites
 
-The following documentation assumes the reader has a decent knowledge of Python & REST APIs.
+The following documentation assumes a decent knowledge of Python, REST APIs and React.
 
-## Provider class
+## Implementation
 
 To implement a custom authority provider, you will need to create your provider class,
 implementing alteast the methods from the `AuthorityProvider` base class, for example:
 
 ```python
+from oarepo_vocabularies.authorities.providers import AuthorityProvider
+
 class MyProvider(AuthorityProvider):
     def search(self, identity, params, **kwargs):
         """
-        Search the external authority service by the given text query and return
-        a tuple: ```(items, total?, page_size?)```
+        Search the external authority service by the given text query.
+
+        @param identity current user identity
+        @param params   query parameters dict in form of {"q": string, "page": number, ...}
+        @returns        a tuple of: (items, total?, page_size?)
         """
 
         # TODO: do any necessary network requests to the authority APIs here
@@ -52,8 +58,8 @@ class MyProvider(AuthorityProvider):
         return to_vocabulary_item(result)
 ```
 
-Note that the `AuhtorityProvider` class is responsible from contacting the external authority APIs, and
-converting returned records to vocabulary record format of:
+Note that the `AuhtorityProvider` class is responsible for querying the external authority APIs, and
+converting returned records to acceptable vocabulary item format of:
 
 ```json
 {
@@ -67,3 +73,30 @@ converting returned records to vocabulary record format of:
             "relatedURI": {"my_id_type": "https://myexternalauthority/recordid123"}
 }
 ```
+
+## Usage
+
+<Steps>
+### Assign authority to vocabulary
+    First, you need to enable the newly created authority provider on some vocabulary.
+    For a complete guide, you can follow the [External authority for Vocabularies](/customize/vocabularies/authority)
+documentation.
+
+### Configure form inputs to suggest from authority
+    To enable auto-suggestion feature, allowing suggestion & vocabulary additions from external authority,
+add the following props to your `<VocabularySelectField>` inputs:
+
+```jsx
+<VocabularySelectField
+    type="institutions"
+    externalApiModalTitle={"Search in My Authority records"}
+    externalApiButtonContent={i18next.t("Search in My Authority records")}
+    externalAuthority={true}
+    // other props as usual ...
+/>
+```
+
+    Setting the `externalAuthority` prop will tell the select field to suggest e.g. items from the `institutions`
+    vocabulary as it normally would, but when no item is found for the query, it will provide users
+    an option to search for an item using an external authority provider you configured in the first step above.
+</Steps>
