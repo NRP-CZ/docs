@@ -1,0 +1,69 @@
+import {Difficulty} from "@/components/difficulty";
+
+# External authority provider <Difficulty level="intermediate" />
+
+An External Authority Provider is a component for integrating custom external authorities with Invenio.
+By developing an external authority provider, you can seamlessly incorporate vocabulary-compatible records
+from external sources such as Research Organization Registry (ROR) or Digital Object Identifier (DOI) system into
+Invenio. This integration enables Invenio to leverage authoritative and standardized data from these external sources,
+ensuring consistency, accuracy, and interoperability within your digital repository.
+
+This documentation will guide you through the process of creating
+and configuring an external authority provider, detailing the necessary steps and considerations for successful
+integration.
+
+## Prerequisites
+
+The following documentation assumes the reader has a decent knowledge of Python & REST APIs.
+
+## Provider class
+
+To implement a custom authority provider, you will need to create your provider class,
+implementing alteast the methods from the `AuthorityProvider` base class, for example:
+
+```python
+class MyProvider(AuthorityProvider):
+    def search(self, identity, params, **kwargs):
+        """
+        Search the external authority service by the given text query and return
+        a tuple: ```(items, total?, page_size?)```
+        """
+
+        # TODO: do any necessary network requests to the authority APIs here
+        results = my_external_api.search(params)
+
+        # TODO: transform result items to vocabulary format
+        items = [to_vocabulary_item(item) for item in results]
+
+        return items, 2, 10
+
+    def get(self, identity, item_id, *, uow, value, **kwargs):
+        """
+        Gets vocabulary item by id. Returns the item as JSON or KeyError if the item could not be found.
+        @param item_id  value['id']
+        @param uow      actual unit of work (if you need to create something inside the db, do it inside this uow)
+        @param value    the value passed from the client
+        """
+
+        # TODO: do any necessary network requests to the authority APIs here
+        result = my_external_api.get(item_id)
+
+        # TODO: transform result to vocabulary format
+        return to_vocabulary_item(result)
+```
+
+Note that the `AuhtorityProvider` class is responsible from contacting the external authority APIs, and
+converting returned records to vocabulary record format of:
+
+```json
+{
+            "id": "my_id_type:recordid123",
+            "title": "My external record",
+            "tags": ["...", ...],
+            "props": {
+                # prop values must be strings
+            },
+            # NOTE: This attribute requires RelatedURICF Vocabulary custom field enabled.
+            "relatedURI": {"my_id_type": "https://myexternalauthority/recordid123"}
+}
+```
