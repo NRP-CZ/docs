@@ -7,5 +7,8 @@
   },
   "client": {
     "title": "Python client library"
+  },
+  "authority": {
+    "title": "External authorities"
   }
 }
