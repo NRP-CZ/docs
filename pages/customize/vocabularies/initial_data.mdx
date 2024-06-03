@@ -1,0 +1,82 @@
+import {Difficulty} from '@/components/difficulty'
+
+# Initial data for vocabularies <Difficulty level="easy" />
+
+To import initial data into vocabularies, create a fixture and call importing the fixture.
+
+## Fixture catalogue file
+
+The vocabularies that will be imported are defined in a fixture catalogue file. The file is located at
+`fixtures/catalogue.yaml` and contains a list of vocabularies to be imported.
+
+```yaml
+Colors:
+- source: files/Colors.yaml
+- writer: vocabulary
+  vocabulary: Colors
+  pid_type: v-colo
+  title:
+    cs: Barvy a optické vlastnosti
+    en: Colors and Optical Properties
+```
+
+The `Colors:` defines the name of the item inside the catalogue.yaml (can be used for overriding the default fixture - see below).
+
+The next line specifies, that the vocabulary content will be loaded from the file `files/Colors.yaml`. The `writer` line
+defines that the content of the file will be vocabulary records and thus the vocabulary service will be used.
+Then you need to define the target vocabulary (Colors in this case, must be unique) and pid type
+(up to 6 characters, must be unique). The last line defines the title of the vocabulary in different languages.
+
+## Vocabulary file
+
+Vocabulary file is a YAML multi-documents file containing the vocabulary records. The file is located at `fixtures/files/Colors.yaml`.
+
+```yaml
+id: blue
+title:
+  en: Blue
+  cs: Modrá
+---
+id: red
+title:
+  en: Red
+  cs: Červená
+```
+
+Each document in the file represents a single vocabulary record. The first line specifies the record id, which must be unique
+within the vocabulary. The last section specifies the title of the record in different languages. You might add text props,
+keywords or custom fields here as well.
+See [Invenio vocabularies schema](https://github.com/inveniosoftware/invenio-vocabularies/blob/master/invenio_vocabularies/records/jsonschemas/vocabularies/vocabulary-v1.0.0.json)
+for more information.
+
+**Note:** The vocabulary file must be a yaml, json or excel file. The yaml/json must have the structure as above,
+if you use an excel file the structure is more complicated - see [Czech NR vocabularies](https://github.com/Narodni-repozitar/nr-vocabularies/tree/main/nr_vocabularies/fixtures)
+for examples.
+
+## Overriding the default fixture
+
+If you use the nr-vocabularies package (installed by default if you use nr-data or nr-docs metadata model),
+the required vocabularies have already been installed for you. In some cases you might want to override them.
+To do so, change the following section inside pyproject.toml to:
+
+```toml
+
+[project.entry-points."oarepo.fixtures"]
+100-uct-fixtures = "fixtures"
+```
+
+The added prefix `100-` will ensure that the fixture takes precedence.
+
+Then, put your overrides to `fixtures/catalogue.yaml`:
+
+```yaml
+vocabulary-institutions:
+  - source: ./institutions.yaml
+  - writer: vocabulary
+    vocabulary: institutions
+    pid_type: v-i
+    title:
+      cs: Instituce
+      en: Institutions
+```
+

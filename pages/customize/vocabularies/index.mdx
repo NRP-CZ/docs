@@ -1,0 +1,25 @@
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+
+
+# Vocabularies
+
+NRP uses an extension of Invenio vocabularies, which are used to provide controlled vocabularies for metadata fields.
+The controlled vocabularies are used to ensure consistency and quality of the metadata and are used in the record
+deposition form, and in the record detail page.
+
+Extensions to standard Invenio vocabularies include:
+
+* **Editable vocabularies**: Allow people to create new vocabulary items.
+* **Custom vocabulary fields**: Provide custom fields inside the definition of vocabulary items
+* **Hierarchy in vocabularies**: Define a hierarchy between vocabulary items.
+
+Vocabularies are referenced from metadata schemas and thus a new vocabulary can be created only
+during the development/deployment of a new metadata schema. There are no tools to add and use
+a new vocabulary during runtime.
+
+<Cards>
+    <Card title='Initial data' arrow href="/customize/vocabularies/initial_data">Create initial data for vocabularies and install them.</Card>
+    <Card title='Hierarchy in vocabularies' arrow href="/customize/vocabularies/hierarchy">Define and use vocabularies which contain hierarchies.</Card>
+    <Card title='Editable vocabularies' arrow href="/customize/vocabularies/editable">Define and use editable vocabularies.</Card>
+</Cards>

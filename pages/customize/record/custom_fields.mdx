@@ -1,0 +1,346 @@
+import {Difficulty} from '@/components/difficulty'
+
+# Custom fields <Difficulty level="easy" />
+
+Custom fields are a way to add additional data to a metadata schema.
+This is useful when you want to add additional data to a pre-defined schema
+(such as nr-data, nr-documents, datacite or vocabularies).
+
+Custom fields are defined inside the `invenio.cfg` configuration file and
+might be added anytime to the metadata schema. To make the changes effective,
+you need to:
+
+1. Add the custom fields to the `invenio.cfg` file.
+2. Run `nrp translations` to generate the translations for the new fields.
+3. Edit `i18n/translations/<language>/LC_MESSAGES/messages.po` to add the translations for the new fields.
+4. Run `nrp translations` again to compile the translations.
+5. Run the `invenio oarepo cf init` command to update the search indices.
+6. Restart the server.
+
+To check that custom fields have been initialized properly, have a look at
+the search index inside the Opensearch server. You should see the new fields
+in the index's mapping.
+
+
+## Custom field names
+
+Although not required, it is recommended to prefix the custom field
+with your own prefix. This way you can avoid conflicts with other custom fields
+from other organizations. Using the prefix also simplifies serialization to
+the JSON-LD format.
+
+## Field definition
+
+### Configuration
+
+Use the following configuration keys to define custom fields:
+
+| metadata schema | `invenio.cfg` key |
+|---------------|-----------------|
+| nr-data       | `DATA_CF` |
+| nr-documents  | `DOCUMENTS_CF` |
+| datacite      | `DATACITE_CF` |
+| vocabularies  | `VOCABULARIES_CF` |
+
+The value of the configuration key is a list of custom fields.
+
+```python
+
+from invenio_records_resources.services.custom_fields.text import KeywordCF
+
+DATA_CF = [
+    KeywordCF("myorg:instrument", multiple=False),
+    ...
+]
+```
+
+The first argument to the custom field is the name of the field.
+To specify an array of values, set the `multiple` argument to `True`.
+
+The custom field performs a validation of the input data via the marshmallow
+framework. To specify the validation rules, you can pass the `field_args`
+argument (a dictionary) to the custom field. See
+[marshmallow documentation](https://marshmallow.readthedocs.io/en/stable/quickstart.html#validation)
+for more information.
+
+
+```python
+from marshmallow.validate import Length
+
+DATA_CF = [
+    KeywordCF("myorg:instrument", multiple=False, field_args=dict(validate=Length(min=1, max=100))),
+    ...
+]
+```
+
+
+### Built-in custom field types
+
+The following custom field types are built inside the Invenio platform:
+
+| Field type | Import |
+|------------|---------------------------------------------------------------------------------------|
+| KeywordCF | `from invenio_records_resources.services.custom_fields.text import KeywordCF` |
+| TextCF | `from invenio_records_resources.services.custom_fields.text import TextCF` |
+| BooleanCF | `from invenio_records_resources.services.custom_fields.boolean import BooleanCF` |
+| EDTFDateStringCF | `from invenio_records_resources.services.custom_fields.date import EDTFDateStringCF` |
+| ISODateStringCF | `from invenio_records_resources.services.custom_fields.date import ISODateStringCF` |
+| IntegerCF | `from invenio_records_resources.services.custom_fields.number import IntegerCF` |
+| DoubleCF | `from invenio_records_resources.services.custom_fields.number import DoubleCF` |
+| VocabularyCF | `from invenio_vocabularies.services.custom_fields import VocabularyCF` |
+
+**Notes:**
+* The `KeywordCF` custom field is used to store a list of texts that are not parsed on the server side.
+  An example might be an instrument code, person name, identifier, etc.
+
+* The `TextCF` custom field is used to store a text value that can be searched with a fulltext search.
+
+* The `ISODateStringCF` custom field is used to store a strict date.
+
+* The `EDTFDateStringCF` custom field is used to store a date in the EDTF format, that is, it can store
+  a partial date (such as only a year, a year and month, etc.).
+
+* The `VocabularyCF` custom field is used to store a value from a controlled vocabulary.
+  Pass `vocabulary_id="<vocabulary id>"`, where `<vocabulary id>` is the id of the vocabulary.
+  If the vocabulary is small, pass `dump_options=True` to speed up the UI.
+
+
+## Deposit form
+
+### Configuration
+
+
+Use the following configuration keys to define how the custom fields will be rendered:
+
+| metadata schema | `invenio.cfg` key |
+|---------------|-----------------|
+| nr-data       | `DATA_CF_UI` |
+| nr-documents  | `DOCUMENTS_CF_UI` |
+| datacite      | `DATACITE_CF_UI` |
+| vocabularies  | `VOCABULARIES_CF_UI` |
+
+The value of the configuration key is a list of UI sections
+
+```python
+
+DATA_CF_UI = [
+    {
+        "section": _("Instrument"),
+        "fields": [
+            dict(
+                field="myorg:instrument",
+                ui_widget="Input",
+                props=dict(
+                    label="Instrument",
+                    placeholder="Serial number ...",
+                    icon="pencil",
+                    description="Specify the serial number of the instrument...",
+                )
+            ),
+        ]
+    }
+]
+```
+
+### Built-in UI widgets
+
+The following UI widgets are built inside the Invenio platform:
+
+| Widget | Usage |
+|--------|-------|
+| Input | Input box |
+| TextArea | Long, unformatted text |
+| RichInput | Formatted multiline text |
+| Dropdown | Dropdown list (for vocabularies with dump_options=True) |
+| AutocompleteDropdown | Dropdown list with autocomplete (for vocabularies with dump_options=False) |
+
+
+## Landing page
+
+Custom fields are rendered on the landing page automatically. You can either
+override the whole section of the landing page or you can override a rendering
+of a single custom field.
+
+### Overriding the whole custom fields section <Difficulty level="intermediate" />
+
+To override the whole section, add a jinjax component with the following file name
+to the ui/templates directory:
+
+| metadata schema | file name |
+|---------------|-----------------|
+| nr-data       | `NRDataCF.jinja` |
+| nr-documents  | `NRDocumentsCF.jinja` |
+| datacite      | `NRDataCiteCF.jinja` |
+| vocabularies  | `NRVocabulariesCF.jinja` |
+
+### Overriding a single custom field <Difficulty level="intermediate" />
+
+To override a single custom field, create a jinjax component and set the name of the component
+to the ui configuration key of the custom field:
+
+```python
+DATA_CF_UI = [
+    {
+        "section": _("Instrument"),
+        "fields": [
+            dict(
+                field="instrument",
+                ui_widget="Input",
+                landing_page_component="InstrumentField",
+                props=dict(
+                    label="Instrument",
+                    placeholder="Serial number ...",
+                    icon="pencil",
+                    description="Specify the serial number of the instrument...",
+                )
+            ),
+        ]
+    }
+]
+```
+
+`InstrumentField.jinja:`
+
+```jinja
+{# def field_value, field_cfg #}
+
+{{ field_value }}
+```
+
+
+## Complex custom field types <Difficulty level="intermediate" />
+
+If you need to create a custom field that is more complex than the built-in types, you can use the "ComplexCF" class:
+
+```python
+from oarepo_ui.services.custom_fields import ComplexCF
+
+DATA_CF = [
+    ComplexCF("myorg:instrument", [
+        KeywordCF("maker"),
+        KeywordCF("serial_number"),
+    ])
+]
+```
+
+Inside the UI configuration, you need to choose the "ComplexWidget" widget and specify the nested fields:
+
+```python
+DATA_CF_UI = [
+    {
+        "section": _("Instrument"),
+        "fields": [
+            dict(
+                field="myorg:instrument",
+                ui_widget="ComplexWidget",
+                props=dict(
+                    label="Instrument",
+                    description="Specify the instrument...",
+                    nested = [
+                        dict(
+                            field="maker",
+                            ui_widget="Input",
+                            props=dict(
+                                label="Maker",
+                                placeholder="...",
+                                icon="pencil",
+                                description="...",
+                            )
+                        ),
+                        dict(
+                            field="serial_number",
+                            ui_widget="Input",
+                            props=dict(
+                                label="Serial number",
+                                placeholder="...",
+                                icon="pencil",
+                                description="...",
+                            )
+                        )
+                    ]
+                )
+            )
+        ]
+    }
+]
+```
+
+## Multi-valued custom fields <Difficulty level="intermediate" />
+
+If you need to create an array of custom fields, pass the `multiple` argument to the custom field definition.
+Both simple-valued and complex fields are supported.
+
+```python
+from invenio_records_resources.services.custom_fields.text import KeywordCF
+
+DATA_CF = [
+    KeywordCF("myorg:internal", multiple=True),
+    ComplexCF("myorg:instrument", [
+        KeywordCF("maker"),
+        KeywordCF("serial_number"),
+    ])
+]
+```
+
+In the UI configuration, you need to choose the "ArrayField" widget and specify the item widget:
+
+```python
+
+DATA_CF_UI = [
+    {
+        "section": _("Internal codes"),
+        "fields": [
+            dict(
+                field="myorg:internal",
+                ui_widget="ArrayField",
+                props=dict(
+                    label="Internal codes",
+                    item_widget="Input",
+                    item_props=dict(
+                        label="Code",
+                        placeholder="Internal code ...",
+                        icon="pencil"
+                    )
+                )
+            )
+        ]
+    },
+    {
+        "section": _("Instruments"),
+        "fields": [
+            dict(
+                field="myorg:instrument",
+                ui_widget="ArrayField",
+                props=dict(
+                    label="Instruments",
+                    item_widget="ComplexWidget",
+                    item_props=dict(
+                        nested = [
+                            dict(
+                                field="maker",
+                                ui_widget="Input",
+                                props=dict(
+                                    label="Maker",
+                                    placeholder="...",
+                                    icon="pencil",
+                                    description="...",
+                                )
+                            ),
+                            dict(
+                                field="serial_number",
+                                ui_widget="Input",
+                                props=dict(
+                                    label="Serial number",
+                                    placeholder="...",
+                                    icon="pencil",
+                                    description="...",
+                                )
+                            )
+                        ]
+                    )
+                )
+            )
+        ]
+    }
+]
+```

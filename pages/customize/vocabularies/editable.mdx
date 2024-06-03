@@ -1,0 +1,138 @@
+import {Difficulty} from '@/components/difficulty'
+
+# Editable vocabularies  <Difficulty level="intermediate" />
+
+NRP Invenio repositories have support for editable vocabularies. To activate it, you need to:
+
+* Specify the fields of each vocabulary type, that will be editable
+* Create a permission policy, that will allow users to edit the vocabularies
+
+## Specifying editable fields
+
+To specify UI details for Invenio vocabularies, use the `INVENIO_VOCABULARY_TYPE_METADATA` configuration variable:
+
+```python
+# invenio.cfg
+
+INVENIO_VOCABULARY_TYPE_METADATA = {
+    "languages": {
+        "name": {
+            "cs": "Jazyky",
+            "en": "Languages",
+        },
+        "description": {
+            "cs": "Slovník obsahující definice světových jazyků.",
+            "en": "Language definitions vocabulary.",
+        },
+        "props": {
+            "alpha3CodeENG": {
+                "description": _("ISO 639-2 standard 3-letter language code"),
+                "icon": None,
+                "label": _("Alpha3 code (English)"),
+                "multiple": False,
+                "placeholder": "eng, cze...",
+                "search": False,
+            },
+            "alpha3CodeNative": {
+                "description": _("ISO 639-2 standard 3-letter language code"),
+                "icon": None,
+                "label": _("Alpha3 code (native)"),
+                "multiple": False,
+                "options": [],
+                "placeholder": "eng, ces...",
+                "search": False,
+            },
+        },
+        "dump_options": True,
+    },
+    # ...
+}
+```
+
+The `name` and `description` fields are used for the human readable vocabulary type name and description.
+The `props` field is a dictionary of editable string fields, that can be set on the vocabulary item.
+
+*Note:* Custom fields (that is, non-string fields, such as booleans, structures or arrays) can be specified elsewhere
+inside the `invenio.cfg`. See [Vocabulary custom fields](/customize/vocabularies/custom_fields.mdx) for more information.
+
+If you specify `dump_options` to `True`, the vocabulary content will be stored within the editation form,
+so that no API requests will need to be called to get the vocabulary content. This might yield to a better user experience
+but should be used only for small vocabularies.
+
+## Permission policy
+
+To allow users to edit vocabularies, specify a permission policy with `VOCABULARIES_PERMISSIONS_PRESETS` setting.
+The value of the setting is a list of permission policies, that will be used to check the permissions.
+A user is granted an access if any of the policies allows it. The value in the list can be either a string
+or a subclass of `RecordPermissionPolicy`.
+
+```python
+# invenio.cfg
+
+app_config["VOCABULARIES_PERMISSIONS_PRESETS"] = ["authenticated"]
+```
+
+This will allow any authenticated user to edit vocabularies.
+
+## Custom permissions
+
+If you'd like to specify a custom permission policy (for example,
+to allow only a group of users to edit vocabularies), you can create
+your own permission policy class, register it with a custom name and
+use it in the `VOCABULARIES_PERMISSIONS_PRESETS` setting.
+
+This process is described in [Permissions](/customize/record/permissions.mdx).
+
+
+## Fine-grained permissions
+
+The disadvantage of the approach above is that it allows users to edit all the vocabularies.
+If you want to limit the editing to only some vocabularies, you need to use the fine-grained permissions.
+
+### Configuration
+
+```python
+# invenio.cfg
+
+app_config["OAREPO_FINE_GRAINED_VOCABULARIES_PERMISSIONS"] = True
+
+app_config["VOCABULARIES_PERMISSIONS_PRESETS"] = [FineGrainedPermissionPolicy]
+```
+
+The first line turns on the fine-grained permissions, the second sets the permission presets to the custom policy.
+
+### Creating a fine-grained permission policy
+
+Create a file `vocabularies_permissions.py` in your shared/common module with the following content:
+
+```python
+from oarepo_runtime.services.config.permissions_presets import EveryonePermissionPolicy
+
+class FineGrainedPermissionPolicy(EveryonePermissionPolicy):
+    can_create_languages = [SystemProcess(), AnyUser()]
+    can_update_languages = [SystemProcess(), AnyUser()]
+    can_delete_languages = [SystemProcess(), AnyUser()]
+```
+
+This will allow any user to create, update and delete vocabularies of type `languages`. You need to specify the
+can_create, can_update and can_delete permissions for each vocabulary type you want to allow editing. All other
+vocabularies will be read-only.
+
+To allow just a group of people to edit the vocabularies, use the `UserWithRole` permission:
+
+```python
+from oarepo_runtime.services.config.permissions_presets import EveryonePermissionPolicy
+from oarepo_runtime.services import UserWithRole
+
+class FineGrainedPermissionPolicy(EveryonePermissionPolicy):
+    can_create_languages = [SystemProcess(), UserWithRole("curator")]
+```
+
+**Implementation note:** The policy above is applied in two steps:
+
+1. `can_XXXX_vocabulary` permission policy is checked. If it returns False, permission is denied.
+2. Invenio checks the `can_XXXX` permission policy (the generic one). If it returns False, permission is denied.
+
+That's why the base class above is EveryonePermissionPolicy. If you'd like to use a different base class
+(such as ReadOnlyPermissionPolicy), you need to override the `can_XXXX` permission policy to the same value
+as the `can_XXXX_vocabulary` policy.

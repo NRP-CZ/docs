@@ -32,18 +32,19 @@ Declare corresponding [`@font-face`](https://developer.mozilla.org/en-US/docs/We
 
 ### Use your fonts in styles
 
-Now you can use your font in your branding overrides, e.g.:
+Now you can use your font in your branding style overrides.
 
+Here we set a global font face for the whole site:
 ```less filename="ui/branding/semantic-ui/less/branding.less" copy
-/* Here we set a global font face for the whole site */
 html {
     font-family: "MyFont";
     //...
 }
 ```
 
+This font face will be used just for the `Header` component instances (elements having CSS classes `ui header`):
 ```less filename="ui/branding/semantic-ui/less/default/elements/header.overrides" copy
-/* This font face will be used just for the Header component instances */
+/*  */
 .ui.header {
     font-family: "MyHeading";
     //...
