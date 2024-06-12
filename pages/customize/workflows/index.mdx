@@ -1,0 +1,55 @@
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+import { ToDo } from "@/components/todo";
+
+# Workflows
+
+<ToDo />
+
+Every record in the Invenio NRP repository is linked to a workflow at the time
+of its creation.
+If a record is created outside of a community,
+it is automatically linked to a "default" workflow.
+
+However, if a record is created within a community,
+it utilizes the workflow that is associated
+with that particular community.
+
+To track the progress of the record through the workflow,
+a special "status" read-only field is included at the top level
+of the record.
+
+Workflows play a crucial role in managing the records
+in the Invenio NRP repository. They guide users through
+various operations such as creating, updating, accessing,
+or deleting records or their associated files.
+
+Each step in the workflow can have specific permissions and requests,
+which are automatically enforced by the system.
+
+The permissions determine:
+* Who has the authority to access, edit, or delete the record
+* Who can access, upload, or delete the record's files
+
+Requests can be used for example for determining:
+* Who can request a review of the record
+* Who has the authority to approve or reject the record
+* Who can request the publishing of the record
+* Who has the authority to publish the record
+
+Requests are also used to "move" the record from one state to another.
+For example, the review request:
+
+1. Can be created by the owner of the record, when it is in the state "draft"
+2. Can be approved by anyone with a community role "approver".
+3. When the request is submitted, the record moves to the state "being approved"
+4. If it is approved, the record moves to state "approved"
+5. If it is rejected, the record moves back to state "draft"
+
+
+## Creating and managing workflows
+
+<Cards>
+    <Card title='Create workflow' arrow href="/customize/workflows/create">Define workflows inside an invenio.cfg file.</Card>
+    <Card title='Apply workflow' arrow href="/customize/workflows/apply">Select which workflow is default for a community.</Card>
+</Cards>
