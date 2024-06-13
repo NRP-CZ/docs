@@ -1,4 +1,5 @@
 {
     "index": "Workflows",
-    "create": "Create workflow"
+    "create": "Create workflow",
+    "example": "Configuration example"
 }
