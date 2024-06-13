@@ -1,0 +1,133 @@
+# Configuration example
+
+Repository of measurement data with a workflow for creating, approving, and publishing records.
+
+## Roles:
+  * researcher (provides files, creates records)
+  * supervisor (approves metadata of records)
+  * publisher (decides that data should/should not be embargoed and publishes)
+  * community member (another researcher within the same community)
+  * repository member (another researcher from another community)
+  * general audience (anonymous user/any user)
+  * curator (owner of the community, responsible for assigning roles within the community)
+  * repository administrator (creates communities, assigns community owners)
+
+## Workflow:
+TODO: obrazek
+
+## Configuration
+
+```python
+# invenio.cfg
+WORKFLOWS={
+  "default": {
+    'label': _('Default workflow'),
+    'permissions': DefaultWorkflowPermissions,
+    'requests': DefaultWorkflowRequests,
+  }
+}
+```
+
+```python
+# shared/workflows/default/permissions.py
+
+from oarepo_workflows import WorkflowPermissionPolicy
+from oarepo_workflows.permissions import (
+  AnyUser, CommunityMembers, CommunityRole, RecordOwner,
+  SystemProcess, IfInState, IfRestricted
+)
+
+class DefaultWorkflowPermissions(WorkflowPermissionPolicy):
+
+    can_create = [
+        CommunityRole("researcher"),
+    ]
+
+    can_read = [
+        RecordOwner(),
+        CommunityRole("curator"),
+        IfInState("approving", CommunityRole("supervisor")),
+        IfInState("approved", CommunityRole("supervisor"),
+                  CommunityRole("publisher"), CommunityMembers()),
+        IfInState("published",
+            IfRestricted(
+                "visibility",
+                then_=[CommunityMembers()],
+                else_=[AnyUser()],
+            )
+        ),
+        IfInState("deleting", CommunityRole("supervisor"),
+                  RecordOwner(), CommunityRole("curator")),
+    ]
+
+    can_update = [
+        IfInState("draft", RecordOwner(), CommunityRole("supervisor")),
+        IfInState("approving", CommunityRole("supervisor")),
+    ]
+
+    can_delete = [
+        IfInState("draft", RecordOwner(), CommunityRole("supervisor")),
+        IfInState("approving", CommunityRole("supervisor")),
+        IfInState("approved", CommunityRole("supervisor")),
+    ]
+```
+
+Note: `SystemProcess()` is added automatically to all permissions.
+
+## Requests
+
+```python
+# shared/workflows/default/requests.py
+
+from oarepo_workflows import WorkflowRequestPolicy
+from oarepo_workflows.permissions import (
+  RecordOwner, SystemProcess, IfInState
+)
+from oarepo_communities.permissions import CommunityMembers, CommunityRole
+
+class DefaultWorkflowRequests(WorkflowRequestPolicy):
+
+    approve_request = WorkflowRequest(
+        requesters = [
+            IfInState("draft", RecordOwner(),
+                      CommunityRole("supervisor")
+        ],
+        recipients = [CommunityRole("supervisor")],
+        transitions: WorkflowTransitions(
+            submitted = 'approving',
+            approved = 'approved',
+            rejected = 'draft'
+        )
+    )
+
+    publish_request = WorkflowRequest(
+        requesters = [
+            IfInState("approved", AutoRequest())
+        ],
+        recipients = [CommunityRole("publisher")],
+        transitions: WorkflowTransitions(
+            approved = 'published',
+            rejected = 'draft'
+        )
+    )
+
+    edit_request = WorkflowRequest(
+        requesters = [
+            IfInState("published", RecordOwner(),
+                      CommunityRole("supervisor")
+        ],
+        recipients = [AutoApprove()],
+    )
+
+    delete_request = WorkflowRequest(
+        requesters = [
+            IfInState("published", RecordOwner(),
+                       CommunityRole("curator"), CommunityRole("supervisor")
+        ],
+        recipients = [CommunityRole("curator")],
+        transitions: WorkflowTransitions(
+            submitted = 'deleting',
+            rejected = 'published'
+        )
+    )
+```

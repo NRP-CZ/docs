@@ -14,5 +14,9 @@
     "vocabularies": {
         "type": "page",
         "title": "Vocabularies"
+    },
+    "workflow": {
+        "type": "page",
+        "title": "Workflows"
     }
 }
