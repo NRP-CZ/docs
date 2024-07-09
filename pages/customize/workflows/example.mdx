@@ -19,12 +19,14 @@ TODO: obrazek
 
 ```python
 # invenio.cfg
+from oarepo_workflows import Workflow
+
 WORKFLOWS={
-  "default": {
-    'label': _('Default workflow'),
-    'permissions': DefaultWorkflowPermissions,
-    'requests': DefaultWorkflowRequests,
-  }
+  "default": Workflow(
+    label = _('Default workflow'),
+    permission_policy_cls =  DefaultWorkflowPermissions,
+    request_policy_cls = DefaultWorkflowRequests,
+  )
 }
 ```
 

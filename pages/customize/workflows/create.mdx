@@ -16,12 +16,14 @@ The overall definition is as follows:
 from invenio_i18n import lazy_gettext as _
 from shared.workflows import WorkflowNamePermissions, WorkflowNameRequests
 
+from oarepo_workflows import Workflow
+
 WORKFLOWS={
-  'workflow-name': {
-    'label': _('Workflow label'),
-    'permissions': WorkflowNamePermissions,
-    'requests': WorkflowNameRequests,
-  }
+  'workflow-name': Workflow(
+    label = _('Workflow label'),
+    permission_policy_cls = WorkflowNamePermissions,
+    request_policy_cls = WorkflowNameRequests,
+  )
 }
 ```
 
