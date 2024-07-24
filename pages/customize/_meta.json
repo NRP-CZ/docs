@@ -15,8 +15,8 @@
         "type": "page",
         "title": "Vocabularies"
     },
-    "workflow": {
+    "workflows": {
         "type": "page",
-        "title": "Workflows"
+        "title": "Record workflows"
     }
 }

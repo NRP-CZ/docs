@@ -19,5 +19,18 @@ INVENIO_VOCABULARY_TYPE_METADATA = {
     },
 ```
 
+Additionally, make sure you have enabled the `AuthorityComponent` on your record model, e.g.:
+
+```yaml filename="model.yaml"
+record:
+  # ...
+  service-config:
+    components:
+      - "{{oarepo_vocabularies.authorities.components.AuthorityComponent}}"
+      # - ...
+```
+
+If that's not the case, add it and [recompile your model](/develop/model/compile).
+
 When some custom authority provider not bundled as part of the `oarepo-vocabularies` library is needed, follow
 the [External Authority provider development](/develop/authority) guide on how to create one.
