@@ -123,7 +123,7 @@ class DefaultWorkflowRequests(WorkflowRequestPolicy):
             )
         ],
         transitions=WorkflowTransitions(
-            submitted="submitted", approved="published", rejected="draft"
+            submitted="submitted", accepted="published", declined="draft"
         ),
         # if the request is not resolved in 14 days, escalate it to the administrator
         escalations=default_escalation(),
@@ -163,7 +163,7 @@ class DefaultWorkflowRequests(WorkflowRequestPolicy):
 
         # the record comes to the state of retracting when the request is submitted. If the request
         # is approved, the record is deleted, if rejected, it is published again.
-        transitions=WorkflowTransitions(submitted="retracting", rejected="published", approved="deleted"),
+        transitions=WorkflowTransitions(submitted="retracting", declined="published", accepted="deleted"),
 
         # if the request is not resolved in 14 days, escalate it to the administrator
         escalations=default_escalation(),
