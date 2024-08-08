@@ -1,0 +1,209 @@
+import { Callout } from "nextra/components"
+
+# Template rendering with Jinja
+
+Jinja is the powerful templating engine used in Invenio for server-side rendering of HTML pages. This section will guide you through the basics of working with Jinja templates in your Invenio-based repository application, including key concepts, template inheritance, and best practices.
+
+Jinja allows you to create dynamic HTML templates by embedding Python-like expressions and logic directly into your HTML files. It supports variables, loops, conditionals, and more, making it a flexible tool for rendering content on the server side before it reaches the client.
+
+## Template loading
+
+In Invenio-based applications, Jinja templates are loaded from specific directories within your project structure.
+By default, Flask, which powers Invenio, looks for template files in directories named `templates` located at the roots
+of your ui modules (`<project-root>/ui/<module-name>/templates/`) or within individual Flask UI resource blueprints.
+
+This directories should mirror the structure of your views, organizing
+templates into subdirectories where applicable. Additionally, Invenio allows you to
+[override default templates](https://inveniordm.docs.cern.ch/customize/look-and-feel/templates/) provided
+by Invenio modules or other extensions by placing custom templates in the corresponding paths within your templates
+directory. Flask and Jinja automatically resolve these paths, ensuring that your application loads the correct template
+files during rendering.
+
+## Referencing templates
+
+There will be cases when you need to reference a specific template file. This is often done when configuring views,
+error pages, or when extending or including it in another templates.
+
+This is done by providing a relative path following
+the `templates` directory. For instance, if you have a template named `custom_error.html` located in
+`ui/branding/templates/errors/`, you would reference it in your configuration as `"errors/custom_error.html"`. Flask's
+Jinja template loader will automatically locate and load the template based on this path. By centralizing template references
+in your configuration, you can easily swap or update templates without modifying the underlying code, promoting
+flexibility and maintainability in your application.
+
+## Basic syntax
+
+### Variables
+
+You can inject dynamic content into your templates using variables. Variables are enclosed in double curly braces `{{ }}`:
+
+```python copy
+<p>Hello, {{ user.name }}!</p>
+```
+
+This would render as:
+
+```html
+<p>Hello, John Doe!</p>
+```
+Assuming user.name is "John Doe".
+
+### Filters
+Filters allow you to modify variables in your templates. They are applied using the pipe | symbol:
+
+```python copy
+<p>{{ user.name | upper }}</p>
+```
+This would render the user’s name in uppercase:
+
+```html
+<p>JOHN DOE</p>
+```
+
+Control Structures
+Jinja supports control structures like loops and conditionals to control the flow of rendering.
+
+### Loops
+
+Loops are used to iterate over lists or other iterable objects:
+
+```python copy
+<ul>
+  {% for item in items %}
+    <li>{{ item }}</li>
+  {% endfor %}
+</ul>
+```
+This would generate a list item for each element in items.
+
+### Conditionals
+
+Conditionals allow you to include logic in your templates:
+
+```python copy
+{% if user.is_admin %}
+  <p>Welcome, admin!</p>
+{% else %}
+  <p>Welcome, user!</p>
+{% endif %}
+```
+This renders different content based on the value of user.is_admin.
+
+<Callout type="info">
+For more details on Jinja syntax, please refer to the official [Jinja documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/#).
+</Callout>
+
+## Template inheritance
+
+Jinja supports template inheritance, which allows you to define a base template and extend it in other templates. This promotes reuse and consistency across your application.
+
+### Base template
+Define a base template with common structure and blocks that can be overridden:
+
+```html copy
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>{% block title %}My Application{% endblock %}</title>
+</head>
+<body>
+  <header>
+    <h1>{% block header %}Welcome to My App{% endblock %}</h1>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
+```
+
+<Callout type="info">
+Invenio provides a [base page](https://github.com/inveniosoftware/invenio-theme/blob/master/invenio_theme/templates/invenio_theme/page.html),
+that gets inerited/extended by most of other Invenio page templates by default. You can change this base template by
+pointing `BASE_TEMPLATE=invenio_theme/page.html` Invenio configuration option to your own file.
+</Callout>
+
+### Extending the base template
+In your child templates, you can extend the base template and override specific blocks:
+
+```jinja copy
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+  <p>This is the home page content.</p>
+{% endblock %}
+```
+
+This child template will inherit the structure from base.html but replace the title and content blocks.
+
+### Including templates
+
+You can include other templates within a template, which is useful for reusing small pieces of code like navigation bars or footers:
+
+```python copy
+{% include "navbar.html" %}
+```
+This will include the content of navbar.html at the specified location.
+
+## Macros
+
+Macros allow you to define reusable pieces of code within your templates. They are similar to functions in Python:
+
+```python copy
+{% macro render_button(text, url) %}
+  <a href="{{ url }}" class="btn">{{ text }}</a>
+{% endmacro %}
+
+<p>{{ render_button("Click Me", "https://example.com") }}</p>
+```
+
+This macro can be used to render buttons with different text and URLs throughout your application.
+
+## Template context
+
+When the Invenio server renders templates, it passes a context—a dictionary of variables—that Jinja uses as variables
+o populate the template. In Invenio repository project, this typically happens in the UI resource views of the
+corresponding UI modules.
+
+To discover, which context variables are available to a template for a certain page/view,
+you can typically look up the view methods under `<project-root>/ui/<module-name>/__init__.py` file
+(look for methods declared on classes inheriting from `UIResource`). For example:
+
+```python copy
+from flask import render_template
+
+class RecordResource(UIResource):
+    # ...
+    def detail():
+        record = {"title": "Cool record", "metadata": {"author": "Doe, John"}}
+        return render_template('record/detail.html', record=record)
+```
+In this example, the record dictionary is passed to `detail.html` and can be accessed as `record` variable within the template.
+
+## Testing
+
+<Callout type="warning">
+    TODO: document how to unit-test complex Jinja templates & macros rendering. Can/should it be covered by pytest?
+</Callout>
+
+## Best practices
+
+1. ***Keep logic out of templates***:
+Avoid putting complex logic in your templates. Keep your templates focused on presentation and handle business logic in your view functions or models.
+
+2. ***Use template inheritance***:
+Leverage template inheritance to avoid duplication and ensure consistency across your application.
+
+3. ***Organize your templates***:
+Organize your templates in a way that makes sense for your project, using subdirectories if necessary to group related templates.
+
+4. ***Use macros for reusable chunks of HTML***:
+Define macros for commonly used simple chunks of HTML, not needing any complex attributes to be passed (for more complex scenarios,
+[JinjaX](jinjax) might be a better fit).
+
+## Conclusion
+
+Jinja is a powerful tool for rendering dynamic content in your Invenio-based applications. By mastering its syntax and features, you can create flexible, maintainable templates that keep your front-end code organized and efficient. Explore further by integrating Jinja templates with other components in your application, like JinjaX and React, as detailed in subsequent sections of this documentation.
+
