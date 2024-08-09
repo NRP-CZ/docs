@@ -17,7 +17,7 @@ and core NRP developers or anyone wanting to contribute to the project's front-e
 
 ## Table of Contents
 
-### 1. Getting Started
+### Getting Started
 Set up your development environment and start working on an Invenio site UI.
 
 <Cards>
@@ -30,7 +30,20 @@ Running the development server
 </Card>
 </Cards>
 
-### 2. Jinja templating
+### UI Resource views
+
+UI Resource classes are Python classes tied to route views, responsible for fetching data from database and rendering it
+through Jinja templates, ensuring a separation between backend logic and UI presentation.
+
+<Cards>
+<Card title='Resource views' arrow href="/develop/frontend/jinja">
+How to use, create and configure UI resource view classes to feed data and render
+    templates for your routes views.
+</Card>
+</Cards>
+
+
+### Jinja templating
 Learn how to use Jinja for server-side rendered pages, including template inheritance, blocks, variables and more.
 
 <Cards>
@@ -40,7 +53,7 @@ Template inheritance and blocks. Variables, filters and macros in templates.
 </Card>
 </Cards>
 
-### 3. JinjaX: Componentize Jinja Macros
+### JinjaX: Componentize Jinja Macros
 
 When there's a need for complex reusable template chunks, Jinja macros can quickly get messy.
 JinjaX tries to solve this by providing React-like UI components to Jinja templates.
@@ -51,7 +64,7 @@ Why use JinjaX? Creating and reusing components. Best practices for JinjaX compo
 </Card>
 </Cards>
 
-### 4. Embedding React Widgets and applications
+### Embedding React Widgets and applications
 
 Integrate React components and applications into your
 templates to add interactivity and dynamic content to your pages.
@@ -68,7 +81,7 @@ templates to add interactivity and dynamic content to your pages.
 </Card>
 </Cards>
 
-### 5. Asset Management
+### Asset Management
 Manage and optimize your repository project’s assets using Invenio Webpack integration.
 
 <Cards>
@@ -77,7 +90,7 @@ Manage and optimize your repository project’s assets using Invenio Webpack int
     </Card>
 </Cards>
 
-### 6. Customization and Theming
+### Customization and Theming
 
 <Cards>
 <Card title='Customizing the look and feel' arrow href="/customize">
@@ -85,7 +98,7 @@ Manage and optimize your repository project’s assets using Invenio Webpack int
 </Card>
 </Cards>
 
-### 7. Internationalization (i18n)
+### Internationalization (i18n)
 
 Support multiple languages by translating templates and components, and managing locale-specific assets.
 
@@ -95,7 +108,7 @@ Support multiple languages by translating templates and components, and managing
 </Card>
 </Cards>
 
-### 8. Testing and Debugging
+### Testing and Debugging
 
 Test and debug your front-end code with unit-tests for Jinja and React, ensuring a robust application and
 predictable behavior.
@@ -112,7 +125,7 @@ predictable behavior.
 </Card>
 </Cards>
 
-### 9. Advanced Topics
+### Advanced Topics
 - **Performance Optimization** (TODO:)
   - Improving front-end performance
   - Lazy loading and code splitting in React
@@ -126,13 +139,13 @@ predictable behavior.
   - Content Security Policy (CSP) considerations
 - **Form validation** (TODO:)
 
-### 10. Contributing to the Front-End Codebase
+### Contributing to the Front-End Codebase
 - **Contribution Guidelines**
   - How to contribute to NRP Invenio core front-end (TODO:)
   - Code review process (TODO:)
   - Writing and maintaining documentation (TODO:)
 
-### 11. Resources and References
+### Resources and References
 - **Useful Links**
   - [Invenio documentation](https://inveniordm.docs.cern.ch/develop/)
   - [Jinja documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/#)

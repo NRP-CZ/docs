@@ -31,6 +31,27 @@ Jinja template loader will automatically locate and load the template based on t
 in your configuration, you can easily swap or update templates without modifying the underlying code, promoting
 flexibility and maintainability in your application.
 
+To start using these these templates for your custom UI route views, you will need to refer to them from your
+UI ResourceConfig classes `templates` attribute, like this:
+
+```python copy
+class MyViewResourceConfig(UIResourceConfig):
+    template_folder = "templates"
+    url_prefix = "/myview/"
+    blueprint_name = "myview"
+
+    templates = {
+        "homepage": "myview/homepage.html",
+        "about": "myview/about.html",
+    }
+```
+
+This tells the template loader to try to look up your template files under the following paths:
+
+```
+<project-root>/ui/<module-name>/templates/myview/{about,homepage}.html
+```
+
 ## Basic syntax
 
 ### Variables
@@ -119,14 +140,14 @@ Define a base template with common structure and blocks that can be overridden:
 
 <Callout type="info">
 Invenio provides a [base page](https://github.com/inveniosoftware/invenio-theme/blob/master/invenio_theme/templates/invenio_theme/page.html),
-that gets inerited/extended by most of other Invenio page templates by default. You can change this base template by
+that gets inherited/extended by most of other Invenio page templates by default. You can change this base template by
 pointing `BASE_TEMPLATE=invenio_theme/page.html` Invenio configuration option to your own file.
 </Callout>
 
 ### Extending the base template
 In your child templates, you can extend the base template and override specific blocks:
 
-```jinja copy
+```python copy
 {% extends "base.html" %}
 
 {% block title %}Home Page{% endblock %}
