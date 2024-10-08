@@ -18,6 +18,12 @@ from shared.workflows import WorkflowNamePermissions, WorkflowNameRequests
 
 from oarepo_workflows import Workflow
 
+# if using communities (default in most repositories).
+COMMUNITIES_ROLES = [
+    dict(name="curator", title=_("Curator"), description=_("Curator of the community")),
+    # ... other community roles that are used inside any of the workflows are here
+]
+
 WORKFLOWS={
   'workflow-name': Workflow(
     label = _('Workflow label'),
@@ -114,7 +120,12 @@ from oarepo_workflows import (
 )
 from oarepo_runtime.services.permissions import UserWithRole, RecordOwners
 from oarepo_requests.services.permissions import IfRequestedBy
-from oarepo_communities.services.permissions import CommunityRole
+from oarepo_communities.services.permissions import (
+    CommunityRole,
+    DefaultCommunityRole,
+    CommunityMembers,
+    DefaultCommunityMembers
+)
 
 
 class WorkflowNameRequests(WorkflowRequestPolicy):
