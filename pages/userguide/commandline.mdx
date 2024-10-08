@@ -43,7 +43,7 @@ Bulk changes to records:
 
 ```bash
 # get all records with publisher being 'myorg'
-nrp-cmd scan records "publisher:myorg" @ids
+nrp-cmd scan records "metadata.publisher:myorg" @ids
 
 # download them together with files to the current directory as a backup
 nrp-cmd download record @ids
