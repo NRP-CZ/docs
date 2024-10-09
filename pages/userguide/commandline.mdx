@@ -587,8 +587,6 @@ increased by one. This implementation might change in the future.
 
 ## Files
 
-<ToDo/> Not yet implemented
-
 ### Listing files on a record
 
 To list files on a record, invoke
@@ -598,6 +596,8 @@ nrp-cmd list files <pid>
 ```
 
 where the `pid` is the record identifier in any of the supported formats, as defined above.
+You can use the `@variable` to get the record url from the variable.
+Also, all options from the `get record` command are supported.
 
 ```yaml
 # nrp-cmd list files @blah
@@ -671,6 +671,11 @@ from the file's metadata (for example, `{title}.pdf` will save the file as title
 use the `{ext}` placeholder.
 
 To download all files, use the `*` as the `file-key`. Do not forget to escape it in the shell.
+
+Note: If you download all files, it is preferable to use `nrp-cmd download record ...` command instead.
+You will get all the metadata and it might be useful for provenance tracking.
+
+# Everything after this is TODO for both implementation and checking
 
 ### Updating file metadata
 
