@@ -675,6 +675,17 @@ To download all files, use the `*` as the `file-key`. Do not forget to escape it
 Note: If you download all files, it is preferable to use `nrp-cmd download record ...` command instead.
 You will get all the metadata and it might be useful for provenance tracking.
 
+### Uploading a file
+
+To upload a file, invoke
+
+```bash
+nrp-cmd upload file <pid> <file> [<metadata>]
+```
+
+where the `pid` is the record identifier in any of the supported formats, as defined above.
+If the metadata is not passed, the file will be uploaded with empty metadata.
+
 # Everything after this is TODO for both implementation and checking
 
 ### Updating file metadata
