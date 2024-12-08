@@ -69,13 +69,17 @@ Note: these parameters need to be set up both for the "web" service and the back
 Add the following section to `invenio.cfg`:
 
 ```python
-from oarepo_oidc_einfra import EINFRA_LOGIN_APP
+if os.environ.get("INVENIO_REMOTE_AUTH_ENABLED", "no").lower() in ("true", "yes", "1"):
+    from oarepo_oidc_einfra import EINFRA_LOGIN_APP
 
-OAUTHCLIENT_REMOTE_APPS = {
-    "e-infra": EINFRA_LOGIN_APP
-}
+    OAUTHCLIENT_REMOTE_APPS = {
+        "e-infra": EINFRA_LOGIN_APP
+    }
+else:
+    OAUTHCLIENT_REMOTE_APPS = {}
 ```
 
-Note: An empty `OAUTHCLIENT_REMOTE_APPS` might already be present there.
+Note: If an empty `OAUTHCLIENT_REMOTE_APPS` is already present there, replace it with 
+the config above.
 
 
