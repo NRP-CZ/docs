@@ -36,6 +36,7 @@ Make sure you set up the following environment variables (or pass those in secre
 
 | Variable | Value description |
 |-----|------|
+| INVENIO_REMOTE_AUTH_ENABLED | "true" |
 | INVENIO_SERVER_NAME | The server name, such as `myrepo.org` |
 | INVENIO_EINFRA_SERVICE_USERNAME | Username of the repository service account |
 | INVENIO_EINFRA_SERVICE_PASSWORD | Password of the repository service account |
@@ -43,6 +44,23 @@ Make sure you set up the following environment variables (or pass those in secre
 | INVENIO_EINFRA_COMMUNITIES_GROUP_ID | ID of the communities group. It is a number that is displayed in the console next to the name of the group after `#` ![](./images/community_id.png) |
 | INVENIO_EINFRA_REPOSITORY_FACILITY_ID | ID of the repository facility. In the console, head to facilities, display the facility and copy the ID displayed next to the facility name ![](./images/facility_id.png) |
 | INVENIO_EINFRA_SYNC_SERVICE_NAME | Name of the synchronization service, displayed on "services status" under the facility page ![](./images/sync_service_name.png) |
+
+For exports from AAI:
+
+| Variable | Description |
+|---|---|
+| INVENIO_EINFRA_USER_DUMP_S3_ACCESS_KEY | Access key to the S3 bucket where AAI puts dumps |
+| INVENIO_EINFRA_USER_DUMP_S3_SECRET_KEY | Secret key to the S3 bucket where AAI puts dumps |
+| INVENIO_EINFRA_USER_DUMP_S3_ENDPOINT | S3 endpoint, for example https://s3.cl4.du.cesnet.cz |
+| INVENIO_EINFRA_USER_DUMP_S3_BUCKET | Name of the S3 bucket |
+
+For OIDC:
+
+| Variable | Description |
+|---|---|
+| INVENIO_EINFRA_CONSUMER_KEY | OIDC key |
+| INVENIO_EINFRA_CONSUMER_SECRET | OIDC secret |
+
 
 Note: these parameters need to be set up both for the "web" service and the background celery workers
 
