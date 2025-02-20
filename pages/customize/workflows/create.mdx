@@ -18,6 +18,12 @@ from shared.workflows import WorkflowNamePermissions, WorkflowNameRequests
 
 from oarepo_workflows import Workflow
 
+# if using communities (default in most repositories).
+COMMUNITIES_ROLES = [
+    dict(name="curator", title=_("Curator"), description=_("Curator of the community")),
+    # ... other community roles that are used inside any of the workflows are here
+]
+
 WORKFLOWS={
   'workflow-name': Workflow(
     label = _('Workflow label'),
@@ -53,7 +59,7 @@ class WorkflowNamePermissions(WorkflowPermissionPolicy):
     can_search = [AnyUser(), SystemProcess()]
 
     can_read = [
-        RecordOwner(),
+        RecordOwners(),
         CommunityRole("curator"),
         IfInState("approving", CommunityRole("approver")),
         IfInState("approved", CommunityRole("approver"), CommunityRole("publisher")),
@@ -68,12 +74,12 @@ class WorkflowNamePermissions(WorkflowPermissionPolicy):
     ]
 
     can_update = [
-        IfInState("draft", RecordOwner(), CommunityRole("curator")),
+        IfInState("draft", RecordOwners(), CommunityRole("curator")),
         SystemProcess()
     ]
 
     can_delete = [
-        IfInState("draft", RecordOwner(), CommunityRole("curator")),
+        IfInState("draft", RecordOwners(), CommunityRole("curator")),
         # published record can not be deleted directly by anyone else than system
         SystemProcess()
     ]
@@ -89,11 +95,11 @@ A request configuration consists of:
 * permission generator - who can approve the action (the recipient of the request)
 * state transitions:
   * submitted: the state to move the record when the request is submitted
-  * approved: the state to move the record when the request is approved
-  * rejected: the state to move the record when the request is rejected
+  * accepted: the state to move the record when the request is approved
+  * declined: the state to move the record when the request is rejected
 
 States can be omitted if the record should not change the state when the request
-is submitted/approved/rejected. An example of such a request is a request to access
+is submitted/accepted/declined. An example of such a request is a request to access
 embargoed files - the state of the record will not change, but the approval of the
 request will allow the user to access the files.
 
@@ -104,20 +110,48 @@ Note: in the current invenio implementation, only the first recipient will be us
 
 ```python
 # shared code or invenio.cfg
-from oarepo_workflows import WorkflowRequestPolicy, WorkflowRequest, WorkflowTransitions
+from oarepo_workflows import (
+    WorkflowRequestPolicy,
+    IfInState,
+    WorkflowRequest,
+    WorkflowTransitions,
+    AutoApprove,
+    WorkflowRequestEscalation,
+)
+from oarepo_runtime.services.permissions import UserWithRole, RecordOwners
+from oarepo_requests.services.permissions import IfRequestedBy
+from oarepo_communities.services.permissions import (
+    CommunityRole,
+    DefaultCommunityRole,
+    CommunityMembers,
+    DefaultCommunityMembers
+)
+
 
 class WorkflowNameRequests(WorkflowRequestPolicy):
     """Specific requests here"""
     delete_request = WorkflowRequest(
         requesters = [
-            IfInState("published", RecordOwner())
+            IfInState("published", [RecordOwners(), CommunityRole("curator")]),
         ],
-        recipients = [CommunityRole("curator")],
-        transitions: WorkflowTransitions(
+        recipients = [
+            IfRequestedBy(
+                CommunityRole("curator"),
+                then_=[AutoApprove()],
+                else_=[CommunityRole("curator")],
+            )
+        ],
+        transitions = WorkflowTransitions(
             submitted = 'deleting',
-            approved = 'deleted',
-            rejected = 'draft'
+            accepted = 'deleted',
+            declined = 'draft'
         )
+        escalations = [
+            WorklfowEscalation(
+                after=timedelta(days=14),
+                recipients=[UserWithRole("administrator")]
+            )
+        ]
     )
 ```
 
@@ -149,12 +183,13 @@ Currently supported permission generators that can be used in recipients section
 |----------------------|-------------|
 | `CommunityMembers()` | all members of the community |
 | `CommunityRole(role_name: str)` | the user must have the role in the community |
-| `RecordOwner()` | the user must be the owner of the record |
+| `RecordOwners()` | the user must be the owner of the record |
 | `IfInState(state_name: str, *permission_generators)` | If the record is in given state, use the specified permission generators |
+| `IfRequestedBy(generator, if_true, if_false)` | If the request is created by the user with the specified permission, use the specified permission generators |
 | `SystemProcess()` | the system process can approve the request and no one else |
 | `Administrator()` | repository administrator |
 
-All these permissions generators should be imported from `oarepo_workflows` module.
+All these permissions generators apart from `IfRequestedBy` should be imported from `oarepo_workflows` module.
 Please do not use generic invenio permission generators as they are not supported.
 
 

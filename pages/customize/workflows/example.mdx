@@ -33,44 +33,55 @@ WORKFLOWS={
 ```python
 # shared/workflows/default/permissions.py
 
-from oarepo_workflows import WorkflowPermissionPolicy
-from oarepo_workflows.permissions import (
-  AnyUser, CommunityMembers, CommunityRole, RecordOwner,
-  SystemProcess, IfInState, IfRestricted
-)
-
 class DefaultWorkflowPermissions(WorkflowPermissionPolicy):
-
     can_create = [
-        CommunityRole("researcher"),
+        CommunityRole("editor"),
     ]
 
     can_read = [
-        RecordOwner(),
+        RecordOwners(),
+        # curator can see the record in any state
         CommunityRole("curator"),
-        IfInState("approving", CommunityRole("supervisor")),
-        IfInState("approved", CommunityRole("supervisor"),
-                  CommunityRole("publisher"), CommunityMembers()),
-        IfInState("published",
-            IfRestricted(
-                "visibility",
-                then_=[CommunityMembers()],
-                else_=[AnyUser()],
-            )
+        # administrator can see everything
+        UserWithRole("administrator"),
+        # if the record is published and restricted, only members of the community can see it,
+        # otherwise, any user can see it
+        IfInState(
+            "published",
+            then_=[
+                IfRestricted(
+                    "visibility",
+                    then_=[CommunityMembers()],
+                    else_=[AnyUser()],
+                )
+            ],
         ),
-        IfInState("deleting", CommunityRole("supervisor"),
-                  RecordOwner(), CommunityRole("curator")),
+
+        IfInState("retracting", then_=[RecordOwners(), CommunityRole("curator")]),
     ]
 
     can_update = [
-        IfInState("draft", RecordOwner(), CommunityRole("supervisor")),
-        IfInState("approving", CommunityRole("supervisor")),
+        IfInState(
+            "draft",
+            then_=[
+                RecordOwners(),
+                CommunityRole("curator"),
+                UserWithRole("administrator"),
+            ],
+        ),
+        # if not draft, can not be directly updated by any means, must use request
     ]
 
     can_delete = [
-        IfInState("draft", RecordOwner(), CommunityRole("supervisor")),
-        IfInState("approving", CommunityRole("supervisor")),
-        IfInState("approved", CommunityRole("supervisor")),
+        # draft can be deleted, published record must be deleted via request
+        IfInState(
+            "draft",
+            then_=[
+                RecordOwners(),
+                CommunityRole("curator"),
+                UserWithRole("administrator"),
+            ],
+        ),
     ]
 ```
 
@@ -87,49 +98,90 @@ from oarepo_workflows.permissions import (
 )
 from oarepo_communities.permissions import CommunityMembers, CommunityRole
 
+
+def default_escalation():
+    return [
+        WorkflowRequestEscalation(
+            after=timedelta(days=14), recipients=[UserWithRole("administrator")]
+        )
+    ]
+
+
 class DefaultWorkflowRequests(WorkflowRequestPolicy):
 
-    approve_request = WorkflowRequest(
-        requesters = [
-            IfInState("draft", RecordOwner(),
-                      CommunityRole("supervisor")
-        ],
-        recipients = [CommunityRole("supervisor")],
-        transitions: WorkflowTransitions(
-            submitted = 'approving',
-            approved = 'approved',
-            rejected = 'draft'
-        )
-    )
-
     publish_request = WorkflowRequest(
-        requesters = [
-            IfInState("approved", AutoRequest())
+        # if the record is in draft state, the owner or curator can request publishing
+        requesters=[
+            IfInState("draft", then_=[RecordOwners(), CommunityRole("curator")])
         ],
-        recipients = [CommunityRole("publisher")],
-        transitions: WorkflowTransitions(
-            approved = 'published',
-            rejected = 'draft'
-        )
+        recipients=[
+            # if the requester is the curator of the community, auto approve the request
+            IfRequestedBy(
+                CommunityRole("curator"),
+                then_=[AutoApprove()],
+                else_=[CommunityRole("curator")],
+            )
+        ],
+        transitions=WorkflowTransitions(
+            submitted="submitted", accepted="published", declined="draft"
+        ),
+        # if the request is not resolved in 14 days, escalate it to the administrator
+        escalations=default_escalation(),
     )
 
     edit_request = WorkflowRequest(
-        requesters = [
-            IfInState("published", RecordOwner(),
-                      CommunityRole("supervisor")
+        requesters=[
+            IfInState("published", then_=[RecordOwners(), CommunityRole("curator")])
         ],
-        recipients = [AutoApprove()],
+        # the request is auto-approve, we do not limit the owner of the record to create a new
+        # draft version. It will need to be approved by the curator though.
+        recipients=[AutoApprove()],
     )
 
     delete_request = WorkflowRequest(
-        requesters = [
-            IfInState("published", RecordOwner(),
-                       CommunityRole("curator"), CommunityRole("supervisor")
+        # if the record is draft, it is covered by the delete permission
+        # if published, only the owner or curator can request deleting
+        requesters=[
+            IfInState(
+                "published",
+                then_=[
+                    RecordOwners(),
+                    CommunityRole("curator"),
+                    UserWithRole("administrator"),
+                ],
+            )
         ],
-        recipients = [CommunityRole("curator")],
-        transitions: WorkflowTransitions(
-            submitted = 'deleting',
-            rejected = 'published'
-        )
+        # if the requester is the curator of the community, auto approve the request,
+        # otherwise, the request is sent to the curator
+        recipients=[
+            IfRequestedBy(
+                CommunityRole("curator"),
+                then_=[AutoApprove()],
+                else_=[CommunityRole("curator")],
+            )
+        ],
+
+        # the record comes to the state of retracting when the request is submitted. If the request
+        # is approved, the record is deleted, if rejected, it is published again.
+        transitions=WorkflowTransitions(submitted="retracting", declined="published", accepted="deleted"),
+
+        # if the request is not resolved in 14 days, escalate it to the administrator
+        escalations=default_escalation(),
+    )
+
+    assign_doi = WorkflowRequest(
+        requesters=[
+            RecordOwners(),
+            CommunityRole("curator"),
+            UserWithRole("administrator"),
+        ],
+        recipients=[
+            IfRequestedBy(
+                UserWithRole("administrator"),
+                then_=[AutoApprove()],
+                else_=[CommunityRole("curator")],
+            )
+        ],
+        escalations=default_escalation(),
     )
 ```
