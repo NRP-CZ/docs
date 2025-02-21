@@ -44,12 +44,17 @@ For a complete list of possible LESS styling variables, please refer to:
 You can also define your own variables here and use it later in your custom styling rules.
 
 ## Global Stylesheet
-The `branding.less` file is used for global styling rules, such as any font faces or CSS reset styles, that should be applied once and before any other component-specific styles:
+
+The `site.overrides` is used for global styling rules, such as any font faces or CSS reset styles, that should be applied once and before any other component-specific style
+overrides:
 
 <FileTree>
   <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
     <FileTree.Folder name="less" defaultOpen>
-      <FileTree.File name="branding.less" active={true} />
+      <FileTree.Folder name="globals" defaultOpen>
+        <FileTree.File name="site.variables" active={false} />
+        <FileTree.File name="site.overrides" active={true} />
+      </FileTree.Folder>
     </FileTree.Folder>
   </FileTree.Folder>
 </FileTree>
@@ -218,25 +223,3 @@ You can further combine the two customization approaches described here. Create 
   // ... same declarations as above
 ```
 </Steps>
-
-## Default Component Styles
-
-The `site.overrides` file allows you to define or override default LESS style rules that gets inherited by every existing UI component:
-
-<FileTree>
-  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
-    <FileTree.Folder name="less" defaultOpen>
-      <FileTree.Folder name="globals" defaultOpen>
-        <FileTree.File name="site.variables" active={false} />
-        <FileTree.File name="site.overrides" active={true} />
-      </FileTree.Folder>
-    </FileTree.Folder>
-  </FileTree.Folder>
-</FileTree>
-
-<Callout type="warning" emoji="⚠️">
-Be cautious when using this file, as any rules added here will included into page as a base stylesheet for each and every existing UI component,
-increasing the page load time.
-People commonly confuse this file with the [global stylesheet](#global-stylesheet), which gets included into page only once. Using the global
-stylesheet is the preferred way to apply any page or site-wide styling.
-</Callout>
