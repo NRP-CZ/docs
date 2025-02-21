@@ -1,0 +1,75 @@
+import { Difficulty } from "@/components/difficulty";
+import { Callout, FileTree } from "nextra/components";
+
+# Templating <Difficulty level="beginner" />
+
+Templating is used to customize mainly a large portions of the user interface and/or
+to change page layouts, or to create a completely new pages for the Invenio repository.
+
+## Prerequisites
+
+Before diving into templating, it's recommended that you have an understanding of [Jinja](https://jinja.palletsprojects.com/en/stable/),
+which is the templating language of choice for Invenio repositories.
+
+## Changing The Templates
+
+What templates are used to render which pages, is determined mostly by [Invenio site configuration](/customize/branding/theme#modifying-invenio-configuration).
+It is a common convention that configuration options regarding the templates usually contains the `_TEMPLATE` suffix in the name.
+
+Jinja templates are `.html` files with Jinja syntax. Any custom templates should be created and placed under the registered `templates` folder.
+
+## Template Inheritance And Composition
+
+It is a common practice to compose the final page from one or more templates by leveraging Jinja's [Template inheritance](https://jinja.palletsprojects.com/en/stable/templates/#template-inheritance) mechanism.
+
+Usually you would have a [base page template](https://github.com/inveniosoftware/invenio-theme/blob/master/invenio_theme/templates/invenio_theme/page.html), which provides just the overall page layout and a few extension points (e.g.: `{% block header %}`).
+Other templates inheriting from it (`{% extends "base.html" %}`) could then extend the base template by providing their own content for the extension points. (e.g. by providing a header text for the `header` block).
+
+## Referencing Templates
+
+Template references (either in Invenio site config, or when referenced from other templates) are resolved as paths **relative** to the registered `templates` folders.
+For example with this file structure:
+
+<FileTree>
+  <FileTree.Folder name="myrepo" defaultOpen>
+    <FileTree.Folder name="ui" defaultOpen>
+        <FileTree.Folder name="branding" defaultOpen>
+            <FileTree.Folder name="semantic-ui" defaultOpen>
+              <FileTree.Folder name="templates" defaultOpen>
+                <FileTree.Folder name="custom" defaultOpen>
+                    <FileTree.File name="myfooter.html"/>
+                </FileTree.Folder>
+                </FileTree.Folder>
+            </FileTree.Folder>
+        </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+wherever I'd like to use `myfooter.html` template, I would refer to it as `custom/myfooter.html`.
+
+## Example
+
+<Callout type="info">
+TODO: this part needs more work.
+</Callout>
+
+
+## Advanced Templating with JinjaX <Difficulty level="advanced" />
+
+In NRP-based Invenio repositories, apart from using regular Jinja macros, it is possible to
+create a reusable Jinja snippets / components with a clearly defined interface of accepted
+properties (usage is similar to React UI components) by using the [JinjaX](https://github.com/jpsca/jinjax) extension.
+
+You can recongnize JinjaX components by the camel-cased filename, `.jinja` file extension and usually the:
+```jinja
+{# def message="hello world!", ... #}
+```
+properties definition header.
+
+<Callout type="info">
+TODO: this part needs more work.
+- how to register my JinjaX components
+- how to discover which JinjaX components are available to me
+- how to reference JinjaX component
+</Callout>
