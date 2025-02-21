@@ -1,15 +1,10 @@
 import { Difficulty } from "@/components/difficulty";
-import { Callout, FileTree } from "nextra/components";
+import { Callout, FileTree, Cards, Card } from "nextra/components";
 
 # Templating <Difficulty level="intermediate" />
 
 Templating is used to customize mainly a large portions of the user interface and/or
 to change page layouts, or to create a completely new pages for the Invenio repository.
-
-## Prerequisites
-
-Before diving into templating, it's recommended that you have an understanding of [Jinja](https://jinja.palletsprojects.com/en/stable/),
-which is the templating language of choice for Invenio repositories.
 
 ## Changing The Templates
 
@@ -58,7 +53,7 @@ TODO: this part needs more work.
 ## Advanced Templating with JinjaX
 
 In NRP-based Invenio repositories, apart from using regular Jinja macros, it is possible to
-create a reusable Jinja snippets / components with a clearly defined interface of accepted
+use and create a reusable Jinja snippets / components with a clearly defined interface of accepted
 properties (usage is similar to React UI components) by using the [JinjaX](https://github.com/jpsca/jinjax) extension.
 
 You can recongnize JinjaX components by the camel-cased filename, `.jinja` file extension and usually the:
@@ -73,3 +68,15 @@ TODO: this part needs more work.
 - how to discover which JinjaX components are available to me
 - how to reference JinjaX component
 </Callout>
+
+This article only describes, how you can customize or change the templates used across the
+repository site. If you wish to learn more about development of own custom templates and JinjaX
+components, have a look at:
+
+<Cards>
+  <Card
+    title="Front-end Development"
+    href="/develop/frontend"
+  />
+</Cards>
+
