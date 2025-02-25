@@ -1,49 +1,217 @@
-# Invenio NRP training
+# InstallFest NRP Invenio
 
-# Introduction
+Cíle školení:
 
+* Nainstalovat si invenio
+* Vytvořit nový model
+* Seznámit se s cmdline nástroji
+* Seznámit se s UI konfigurací
 
-# Installation
+Nebudeme dnes řešit:
 
-* nrp devtools branch rdm-12 curl
-```
+* Napojení na AAI
+* Harvestování do/z repozitáře
+* Konfiguraci pro produkční nasazení
+
+## Úvod
+
+TODO: prezentace
+
+## Prerekvizity
+
+Invenio pro svůj běh potřebuje posix systém (linux, macos) a několik závislostí.
+Je potřeba mít nainstalované závislosti z [Getting started](/get_started).
+TODO: update get_started.mdx
+
+## Instalace
+
+Instalaci zajišťuje skript `nrp-installer.sh`, který stáhnete z githubu a spustíte s názvem repozitáře, který chcete vytvořit. `rdm-12` je aktuální větev podporované verze Invenio. Na konci Q3 se očekává vydání Invenio RDM 13, všechny oborové repozitáře by pak měly začínat s touto verzí.
+
+```bash
+cd demo
+
 curl -sSL https://raw.githubusercontent.com/oarepo/nrp-devtools/rdm-12/nrp-installer.sh >nrp-installer.sh
 ```
 
+```bash
+export REPO=$PWD/my-repo
+
+bash nrp-installer.sh $REPO
 ```
-bash nrp-installer.sh my-repo
+
+TODO: do generic parameters prihodit support contact? (co se zobrazuje ve footeru?)
+
+```
+🎤 Human readable name of the repository
+   Demo repository
+🎤 Description of the repository
+    (Finish with 'Alt+Enter' or 'Esc then Enter')
+> My Demo Repository
+ 
+🎤 List of languages to use in the repository,
+2 letter code separated by either comma or space
+   cs de
+
+...
+
+Your repository is now initialized. 
+
+To test it out, start the repository in development mode
+via ./nrp develop and head to https://127.0.0.1:5000/
+to check that everything has been installed correctly.
+
+Then add metadata models via ./nrp model create <model_name>,
+edit the model and compile it via ./nrp model compile <model_name>.
+
+To generate a default UI for the model, run ./nrp ui detail <model_name>.
 ```
 
-TODO: verze do metadat
+## První kompilace a spuštění
 
-cd my-repo
-
-./nrp check-requirements ???
+```bash
+cd $REPO
 
 ./nrp develop
 
-vytvoreni uzivatele jako ownera genericke komunity
-+ mozna nejakeho normalniho uzivatele
+```
 
-todo: genericka komunita ve fixtures
+```
 
-TODO: anyone user can make a community on /communities
+Development server is running
 
-workflows
+1 or server     - restart python server
+2 or ui         - restart webpack server
+0 or stop       - stop the server (Ctrl-C also works)
 
-# Configuration
+```
 
-ui konfigurace - how to change logo, colors
+### Kontrola
 
-# Novy model
+Otevřete prohlížeč a zadejte adresu `https://127.0.0.1:5000/`. Měli byste vidět hlavní stránku repozitáře.
 
-1. nrp model create
+## Import počátečních slovníků a dat
 
-yaml
+Nechte server běžet a v novém terminálu spusťte:
 
-2. nrp model compile
+```bash
+REPO=....
 
-?? smazat databazi?
+cd $REPO
+source .venv/bin/activate
+invenio oarepo fixtures load ./fixtures --verbose
+```
+
+V prohlížeči klikněte na `Communities` a ujistěte se, že je tam komunita `Generic`.
+
+## Vytvoření uživatele
+
+Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic`. Následující příkaz bude chtít zadání hesla nového uživatele, je třeba zadat alespoň 6 znaků.
+
+```bash
+invenio users create -a -c "spravce@e-infra.cz" --profile '{"full_name": "Velký Správce"}'
+
+invenio access allow administration-access user spravce@e-infra.cz
+
+invenio access allow administration-moderation user spravce@e-infra.cz
+```
+
+```bash
+invenio oarepo communities members add generic "spravce@e-infra.cz" owner
+```
+
+A následně vytvořte uživatele `clen@e-infra.cz` a nastavte mu roli "member" ve stejné komunitě.
+
+### Kontrola
+
+Přihlaste se do repozitáře jako správce. Měli byste vidět v menu položku `Communities` a v nich možnost vytvářet nové komunity. Jako člen tlačítko pro vytvoření komunity neuvidíte.
+
+## Konfigurace UI - Branding
+
+Nyní je možné přizpůsobit základní UI repozitáře formou nastavení loga, výměny textů a barevnosti.
+
+Detailnější dokumentace je k dispozici pod sekci [Branding](https://nrp-cz.github.io/docs/customize/branding/styling)
+
+### Nastavení loga
+
+* Stáhneme si nové logo z [training-assets](./training-assets/my-logo.svg).
+
+* Použijeme následující postup:
+<https://nrp-cz.github.io/docs/customize/branding/logo>
+
+* Aby se změny projevily, je třeba restartovat development server
+
+```
+0 or stop
+./nrp develop
+```
+
+### Změna barevnosti
+
+TODO: colors
+
+### Změna pozadí repozitáře
+
+TODO: background
+
+## Přidání modelu
+
+V jednom NRP repozitáři je možno mít více typů záznamů, každý typ s jinou množinou metadat. Příkladem je kombinovaný repozitář, kde jsou záznamy o datasetech, publikacích a projektech - každý typ záznamu má jinou strukturu metadat.
+
+Definice typu záznamu se nazývá model. Model se skládá z názvu, popisu, struktury metadat a systémových informací, které jsou použity k vygenerování kódu Invenio repozitáře. Struktura metadat je definována v notaci odvozené od JSON schématu a může obsahovat validační pravidla, popisy a další informace.
+
+**Pozor: před vytvářením modelu je nutno zastavit repozitář, protože modelový kód se generuje do zdrojových souborů a ty nemohou být změněny za běhu.**
+
+### Vytvoření modelu
+
+```bash
+./nrp model create datasets
+```
+
+Tento příkaz vytvoří nový model s názvem `datasets` a vygeneruje k němu i prázdné uživatelské rozhraní.
+
+Poznámka: Až bude připraven CCMM (Czech Core Metadata Model), tento krok bude zahrnovat i rozhodnutí, jestli model bude odvozen od CCMM nebo bude kompletně vlastní.
+
+Vygenerovaná struktura modelu je uložena v adresáři `./models` v souborech `datasets.yaml` a `datasets-metadata.yaml`. YAML formát je zvolen pro jednoduchost editace, čitelnost a možnost přidávat poznámky / komentáře.
+
+###  Kompilace modelu
+
+Jádro invenia neumí pracovat s takto definovaným modelem. Je třeba jej zkompilovat do python zdrojového
+kódu, který bude obsahovat třídy a metody pro práci s modelem.
+
+```bash
+./nrp model compile datasets
+```
+
+### Databázová migrace
+
+Invenio používá postgresql databázi. Pro nový model je třeba vytvořit několik databázových tabulek, které budou obsahovat data záznamů. Tento krok se nazývá databázová migrace.
+
+Invenio pro databázové migrace používá nástroj alembic. Pro vytvoření migrace je třeba spustit následující příkaz:
+
+```bash
+./nrp alembic
+```
+
+Tento příkaz provede několik kroků:
+
+1. `invenio alembic upgrade heads` - zaktualizuje databázi podle aktuálních alembic skriptů
+2. `invenio alembic revision` - porovná zdrojový kód s aktuálním databázovým schematem a vygeneruje nový alembic skript
+3. Alembic nástroj není dokonalý a vygenerovaný skript není funkční - `./nrp alembic` se jej pokusí opravit
+4. `invenio alembic upgrade heads` - aplikuje změny do databáze
+
+Pokud by krok 4 neprošel, je třeba zkontrolovat vygenerovaný alembic skript a opravit jej ručně a následně zavolat `invenio alembic upgrade heads`.
+
+### Zavedení nového indexu
+
+Invenio používá Opensearch pro vyhledávání. Pro nový model je třeba vytvořit nový index, který bude obsahovat data záznamů tohoto modelu.
+
+TODO: index
+
+```bash
+./nrp index
+```
+
+### Nyní je model připraven k použití
 
 2. ./nrp develop
 
