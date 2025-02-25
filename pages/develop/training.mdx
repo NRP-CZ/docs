@@ -125,13 +125,13 @@ A následně vytvořte uživatele `clen@e-infra.cz` a nastavte mu roli "member" 
 
 Přihlaste se do repozitáře jako správce. Měli byste vidět v menu položku `Communities` a v nich možnost vytvářet nové komunity. Jako člen tlačítko pro vytvoření komunity neuvidíte.
 
-# Konfigurace UI - Branding
+## Konfigurace UI - Branding
 
 Nyní je možné přizpůsobit základní UI repozitáře formou nastavení loga, výměny textů a barevnosti.
 
 Detailnější dokumentace je k dispozici pod sekci [Branding](https://nrp-cz.github.io/docs/customize/branding/styling)
 
-## Nastavení loga
+### Nastavení loga
 
 * Stáhneme si nové logo z [training-assets](./training-assets/my-logo.svg).
 
@@ -145,15 +145,40 @@ Detailnější dokumentace je k dispozici pod sekci [Branding](https://nrp-cz.gi
 ./nrp develop
 ```
 
-TODO: colors, background
+### Změna barevnosti
+
+TODO: colors
+
+### Změna pozadí repozitáře
+
+TODO: background
 
 ## Přidání modelu
 
-1. nrp model create
+V jednom NRP repozitáři je možno mít více typů záznamů, každý typ s jinou množinou metadat. Příkladem je kombinovaný repozitář, kde jsou záznamy o datasetech, publikacích a projektech - každý typ záznamu má jinou strukturu metadat.
 
-yaml
+Definice typu záznamu se nazývá model. Model se skládá z názvu, popisu, struktury metadat a systémových informací, které jsou použity k vygenerování kódu Invenio repozitáře. Struktura metadat je definována v notaci odvozené od JSON schématu a může obsahovat validační pravidla, popisy a další informace.
 
-2. nrp model compile
+### Vytvoření modelu
+
+```bash
+./nrp model create datasets
+```
+
+Tento příkaz vytvoří nový model s názvem `datasets` a vygeneruje k němu i prázdné uživatelské rozhraní.
+
+Poznámka: Až bude připraven CCMM (Czech Core Metadata Model), tento krok bude zahrnovat i rozhodnutí, jestli model bude odvozen od CCMM nebo bude kompletně vlastní.
+
+Vygenerovaná struktura modelu je uložena v adresáři `./models` v souborech `datasets.yaml` a `datasets-metadata.yaml`. YAML formát je zvolen pro jednoduchost editace, čitelnost a možnost přidávat poznámky / komentáře.
+
+###  Kompilace modelu
+
+Jádro invenia neumí pracovat s takto definovaným modelem. Je třeba jej zkompilovat do python zdrojového
+kódu, který bude obsahovat třídy a metody pro práci s modelem.
+
+```bash
+./nrp model compile datasets
+```
 
 ?? smazat databazi?
 
