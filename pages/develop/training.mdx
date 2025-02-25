@@ -105,24 +105,25 @@ V prohlížeči klikněte na `Communities` a ujistěte se, že je tam komunita `
 
 ## Vytvoření uživatele
 
-Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic`.
+Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic`. Následující příkaz bude chtít zadání hesla nového uživatele, je třeba zadat alespoň 6 znaků.
 
 ```bash
-invenio users create -a -c "manazer@e-infra.cz" --profile '{"full_name": "Velký Manažer"}'
+invenio users create -a -c "spravce@e-infra.cz" --profile '{"full_name": "Velký Správce"}'
 
-invenio access allow administration-access user manazer@e-infra.cz
-invenio access allow administration-moderation user manazer@e-infra.cz
+invenio access allow administration-access user spravce@e-infra.cz
+
+invenio access allow administration-moderation user spravce@e-infra.cz
 ```
 
 ```bash
-invenio oarepo communities members add generic "manager@e-infra.cz" owner
+invenio oarepo communities members add generic "spravce@e-infra.cz" owner
 ```
 
 A následně vytvořte uživatele `clen@e-infra.cz` a nastavte mu roli "member" ve stejné komunitě.
 
 ### Kontrola
 
-Přihlaste se do repozitáře jako manažer. Měli byste vidět v menu položku `Communities` a v nich možnost vytvářet nové komunity jako manažer. Jako člen tlačítko pro vytvoření komunity neuvidíte.
+Přihlaste se do repozitáře jako správce. Měli byste vidět v menu položku `Communities` a v nich možnost vytvářet nové komunity. Jako člen tlačítko pro vytvoření komunity neuvidíte.
 
 # Konfigurace UI - Branding
 
@@ -132,23 +133,21 @@ Detailnější dokumentace je k dispozici pod sekci [Branding](https://nrp-cz.gi
 
 ## Nastavení loga
 
-- Stáhneme si nové logo z [training-assets](./training-assets/my-logo.svg).
+* Stáhneme si nové logo z [training-assets](./training-assets/my-logo.svg).
 
-- Použijeme následující postup:
-https://nrp-cz.github.io/docs/customize/branding/logo
+* Použijeme následující postup:
+<https://nrp-cz.github.io/docs/customize/branding/logo>
 
-- Aby se změny projevily, je třeba restartovat development server
+* Aby se změny projevily, je třeba restartovat development server
 
 ```
 0 or stop
 ./nrp develop
 ```
 
-ui konfigurace - how to change logo, colors
+TODO: colors, background
 
-# Novy model
-
-TODO: verze do metadat
+## Přidání modelu
 
 1. nrp model create
 
