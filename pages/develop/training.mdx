@@ -297,9 +297,38 @@ Příkaz vytvoří soubor v `ui/datasets/templates`.
 Spusťte server a otevřete stránku s detailem záznamu
 (odkaz je na `nrp-cmd read record -v @myrec`).
 
-search ui - pridat keywords
+1. search ui - pridat keywords
+do ResultsListItemu {model_name}/semantic-ui/js/{model_name}/search/ResultsListItem.jsx
 
-do deposit formu pridat keywords
+a. Vytáhnout novou hodnotu z výsledku vyhledávání
+
+const keywords = _get(result, "metadata.keywords", []);
+
+b. Zobrazit v odpovídající lokaci
+ {keywords.length > 0 && (
+    <Grid.Row className="ui separated">
+    <span
+        aria-label={i18next.t("Keywords")}
+        title={i18next.t("Keywords")}
+    >
+        {_join(
+        keywords.map((keyword) => keyword),
+        ", "
+        )}
+    </span>
+    </Grid.Row>
+)}
+
+2. Do deposit formuláře přidat klíčová slova
+
+a. Do formuláře ({model_name}/semantic-ui/js/{model_name}/forms/FormFieldsContainer.jsx)
+    import {StringArrayField} from "@js/oarepo_ui/forms"
+b. Přidat na místo, kde se má vstup zobrazit
+   <StringArrayField
+          fieldPath="metadata.keywords"
+          addButtonLabel={i18next.t("Add keyword")}
+          {...getFieldData({ fieldPath: "metadata.keywords" })}
+    />
 
 vyzkouseni "hotoveho" repozitare
 
