@@ -27,6 +27,8 @@ vytvoreni uzivatele jako ownera genericke komunity
 
 todo: genericka komunita ve fixtures
 
+TODO: anyone user can make a community on /communities
+
 workflows
 
 # Configuration
@@ -47,6 +49,11 @@ yaml
 
 uprava modelu - pridat keywords
 
+models/{model_name}-metadata.yaml
+keywords[]:
+    type: fulltext
+
+
 nrp model compile
 
 ./nrp reindex || drop
@@ -60,8 +67,38 @@ cmdline client + vytvoreni zaznamu + API
 vyzkouset ze se zobrazi detail pro zaznam z api
 
 search ui - pridat keywords
+do ResultsListItemu {model_name}/semantic-ui/js/{model_name}/search/ResultsListItem.jsx
+Vytahnout novou hodnotu z vysledku vyhledavani
+
+const keywords = _get(result, "metadata.keywords", []);
+
+zobrazit v odpovidajici lokace
+ {keywords.length > 0 && (
+    <Grid.Row className="ui separated">
+    <span
+        aria-label={i18next.t("Keywords")}
+        title={i18next.t("Keywords")}
+    >
+        {_join(
+        keywords.map((keyword) => keyword),
+        ", "
+        )}
+    </span>
+    </Grid.Row>
+)}
+
+
 
 do deposit formu pridat keywords
+
+a. do formulare ({model_name}/semantic-ui/js/{model_name}/forms/FormFieldsContainer.jsx)
+    import {StringArrayField} from "@js/oarepo_ui/forms"
+b. pridat na miste kde se input ma zobrazit
+   <StringArrayField
+          fieldPath="metadata.keywords"
+          addButtonLabel={i18next.t("Add keyword")}
+          {...getFieldData({ fieldPath: "metadata.keywords" })}
+    />
 
 vyzkouseni "hotoveho" repozitare
 
