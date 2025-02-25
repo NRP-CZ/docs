@@ -94,6 +94,8 @@ Otevřete prohlížeč a zadejte adresu `https://127.0.0.1:5000/`. Měli byste v
 Nechte server běžet a v novém terminálu spusťte:
 
 ```bash
+REPO=....
+
 cd $REPO
 source .venv/bin/activate
 invenio oarepo fixtures load ./fixtures --verbose
@@ -106,18 +108,18 @@ V prohlížeči klikněte na `Communities` a ujistěte se, že je tam komunita `
 Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic`.
 
 ```bash
-invenio users create -a -c "manager@e-infra.cz" --profile '{"full_name": "Velky Manazer"}'
+invenio users create -a -c "manazer@e-infra.cz" --profile '{"full_name": "Velký Manažer"}'
 ```
 
 ```bash
 invenio oarepo communities members add generic "manager@e-infra.cz" owner
 ```
 
-A následně vytvořte uživatele `member@e-infra.cz` a nastavte mu roli "member" ve stejné komunitě.
+A následně vytvořte uživatele `clen@e-infra.cz` a nastavte mu roli "member" ve stejné komunitě.
 
 ### Kontrola
 
-Přihlaste se do repozitáře jako vytvořený uživatel a ujistěte se, že vidíte komunitu `Generic` ve svém dashboardu.
+Přihlaste se do repozitáře jako vytvořený uživatel.
 
 # Configuration
 
