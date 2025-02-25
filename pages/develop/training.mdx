@@ -234,13 +234,14 @@ cmdline client + vytvoreni zaznamu + API
 
 vyzkouset ze se zobrazi detail pro zaznam z api
 
-search ui - pridat keywords
+1. search ui - pridat keywords
 do ResultsListItemu {model_name}/semantic-ui/js/{model_name}/search/ResultsListItem.jsx
-Vytahnout novou hodnotu z vysledku vyhledavani
+
+a. Vytáhnout novou hodnotu z výsledku vyhledávání
 
 const keywords = _get(result, "metadata.keywords", []);
 
-zobrazit v odpovidajici lokace
+b. Zobrazit v odpovídající lokaci
  {keywords.length > 0 && (
     <Grid.Row className="ui separated">
     <span
@@ -257,11 +258,11 @@ zobrazit v odpovidajici lokace
 
 
 
-do deposit formu pridat keywords
+2. Do deposit formuláře přidat klíčová slova
 
-a. do formulare ({model_name}/semantic-ui/js/{model_name}/forms/FormFieldsContainer.jsx)
+a. Do formuláře ({model_name}/semantic-ui/js/{model_name}/forms/FormFieldsContainer.jsx)
     import {StringArrayField} from "@js/oarepo_ui/forms"
-b. pridat na miste kde se input ma zobrazit
+b. Přidat na místo, kde se má vstup zobrazit
    <StringArrayField
           fieldPath="metadata.keywords"
           addButtonLabel={i18next.t("Add keyword")}
