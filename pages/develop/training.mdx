@@ -39,6 +39,8 @@ export REPO=$PWD/my-repo
 bash nrp-installer.sh $REPO
 ```
 
+TODO: do generic parameters prihodit support contact? (co se zobrazuje ve footeru?)
+
 ```
 🎤 Human readable name of the repository
    Demo repository
@@ -70,16 +72,17 @@ To generate a default UI for the model, run ./nrp ui detail <model_name>.
 cd $REPO
 
 ./nrp develop
+
 ```
 
 ```
+
 Development server is running
-
-=======================================
 
 1 or server     - restart python server
 2 or ui         - restart webpack server
 0 or stop       - stop the server (Ctrl-C also works)
+
 ```
 
 ### Kontrola
@@ -103,14 +106,14 @@ V prohlížeči klikněte na `Communities` a ujistěte se, že je tam komunita `
 Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic`.
 
 ```bash
-invenio users create -a -c "ja@me.com" --profile '{"full_name": "Ja I"}'
+invenio users create -a -c "manager@e-infra.cz" --profile '{"full_name": "Velky Manazer"}'
 ```
 
 ```bash
-invenio oarepo communities members add generic "ja@me.com" owner
+invenio oarepo communities members add generic "manager@e-infra.cz" owner
 ```
 
-A následně vytvořte dalšího uživatele a nastavte mu roli "member" ve stejné komunitě.
+A následně vytvořte uživatele `member@e-infra.cz` a nastavte mu roli "member" ve stejné komunitě.
 
 ### Kontrola
 
