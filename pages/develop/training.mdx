@@ -1,39 +1,128 @@
-# Invenio NRP training
+# InstallFest NRP Invenio
 
-# Introduction
+Cíle školení:
 
+* Nainstalovat si invenio
+* Vytvořit nový model
+* Seznámit se s cmdline nástroji
+* Seznámit se s UI konfigurací
 
-# Installation
+Nebudeme dnes řešit:
 
-* nrp devtools branch rdm-12 curl
-```
+* Napojení na AAI
+* Harvestování do/z repozitáře
+* Konfiguraci pro produkční nasazení
+
+## Úvod
+
+TODO: prezentace
+
+## Prerekvizity
+
+Invenio pro svůj běh potřebuje posix systém (linux, macos) a několik závislostí.
+Je potřeba mít nainstalované závislosti z [Getting started](/get_started).
+TODO: update get_started.mdx
+
+## Instalace
+
+Instalaci zajišťuje skript `nrp-installer.sh`, který stáhnete z githubu a spustíte s názvem repozitáře, který chcete vytvořit. `rdm-12` je aktuální větev podporované verze Invenio. Na konci Q3 se očekává vydání Invenio RDM 13, všechny oborové repozitáře by pak měly začínat s touto verzí.
+
+```bash
+cd demo
+
 curl -sSL https://raw.githubusercontent.com/oarepo/nrp-devtools/rdm-12/nrp-installer.sh >nrp-installer.sh
 ```
 
+```bash
+export REPO=$PWD/my-repo
+
+bash nrp-installer.sh $REPO
 ```
-bash nrp-installer.sh my-repo
+
+```
+🎤 Human readable name of the repository
+   Demo repository
+🎤 Description of the repository
+    (Finish with 'Alt+Enter' or 'Esc then Enter')
+> My Demo Repository
+ 
+🎤 List of languages to use in the repository,
+2 letter code separated by either comma or space
+   cs de
+
+...
+
+Your repository is now initialized. 
+
+To test it out, start the repository in development mode
+via ./nrp develop and head to https://127.0.0.1:5000/
+to check that everything has been installed correctly.
+
+Then add metadata models via ./nrp model create <model_name>,
+edit the model and compile it via ./nrp model compile <model_name>.
+
+To generate a default UI for the model, run ./nrp ui detail <model_name>.
 ```
 
-TODO: verze do metadat
+## První kompilace a spuštění
 
-cd my-repo
-
-./nrp check-requirements ???
+```bash
+cd $REPO
 
 ./nrp develop
+```
 
-vytvoreni uzivatele jako ownera genericke komunity
-+ mozna nejakeho normalniho uzivatele
+```
+Development server is running
 
-todo: genericka komunita ve fixtures
+=======================================
 
-workflows
+1 or server     - restart python server
+2 or ui         - restart webpack server
+0 or stop       - stop the server (Ctrl-C also works)
+```
+
+### Kontrola
+
+Otevřete prohlížeč a zadejte adresu `https://127.0.0.1:5000/`. Měli byste vidět hlavní stránku repozitáře.
+
+## Import počátečních slovníků a dat
+
+Nechte server běžet a v novém terminálu spusťte:
+
+```bash
+cd $REPO
+source .venv/bin/activate
+invenio oarepo fixtures load ./fixtures --verbose
+```
+
+V prohlížeči klikněte na `Communities` a ujistěte se, že je tam komunita `Generic`.
+
+## Vytvoření uživatele
+
+Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic`.
+
+```bash
+invenio users create -a -c "ja@me.com" --profile '{"full_name": "Ja I"}'
+```
+
+```bash
+invenio oarepo communities members add generic "ja@me.com" owner
+```
+
+A následně vytvořte dalšího uživatele a nastavte mu roli "member" ve stejné komunitě.
+
+### Kontrola
+
+Přihlaste se do repozitáře jako vytvořený uživatel a ujistěte se, že vidíte komunitu `Generic` ve svém dashboardu.
 
 # Configuration
 
 ui konfigurace - how to change logo, colors
 
 # Novy model
+
+TODO: verze do metadat
 
 1. nrp model create
 
