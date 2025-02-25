@@ -1,0 +1,156 @@
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+
+# Front-end development in Invenio
+
+The following topics cover front-end development in Invenio Framework repository applications.
+It  provides a comprehensive overview of how to build and maintain the front-end components of an Invenio-based
+repository, covering everything from setting up your environment developing and integrating
+custom pages and UI components into a repository site.
+
+Invenio is based on the Flask Python micro framework and as such, it inherits and builds on much of front-end ecosystem from it.
+
+## Intended audience
+
+This guide is intended both for developers that needs to develop new features for their own NRP repository instance
+and core NRP developers or anyone wanting to contribute to the project's front-end ecosystem.
+
+## Table of Contents
+
+### Getting Started
+Set up your development environment and start working on an Invenio site UI.
+
+<Cards>
+<Card title='Prerequisites' arrow href="/get_started#prerequisites">
+</Card>
+<Card title='Setting up your development environment' arrow href="/get_started#local-development">
+Running the development server
+</Card>
+<Card title='Troubleshooting' arrow href="https://inveniordm.docs.cern.ch/develop/getting-started/instance-development/#troubleshooting">
+</Card>
+</Cards>
+
+### UI Resource views
+
+UI Resource classes are Python classes tied to route views, responsible for fetching data from database and rendering it
+through Jinja templates, ensuring a separation between backend logic and UI presentation.
+
+<Cards>
+<Card title='Resource views' arrow href="/develop/frontend/jinja">
+How to use, create and configure UI resource view classes to feed data and render
+    templates for your routes views.
+</Card>
+</Cards>
+
+
+### Jinja templating
+Learn how to use Jinja for server-side rendered pages, including template inheritance, blocks, variables and more.
+
+<Cards>
+<Card title='Working with Jinja templates' arrow href="/develop/frontend/jinja">
+Jinja for server-side rendering. Directory structure and template locations.
+Template inheritance and blocks. Variables, filters and macros in templates.
+</Card>
+</Cards>
+
+### JinjaX: Componentize Jinja Macros
+
+When there's a need for complex reusable template chunks, Jinja macros can quickly get messy.
+JinjaX tries to solve this by providing React-like UI components to Jinja templates.
+
+<Cards>
+<Card title='Creating and using JinjaX components' arrow href="/develop/frontend/jinjax">
+Why use JinjaX? Creating and reusing components. Best practices for JinjaX components.
+</Card>
+</Cards>
+
+### Embedding React Widgets and applications
+
+Integrate React components and applications into your
+templates to add interactivity and dynamic content to your pages.
+
+<Cards>
+<Card title='Introduction to React in Invenio' arrow href="/develop/frontend/react/introduction">
+    Use cases and infrastructure for React widgets and mini-apps in Invenio framework.
+</Card>
+<Card title='Developing React components and apps' arrow href="/develop/frontend/react/components">
+    Creating, structuring, overriding and styling of React components
+</Card>
+<Card title='Integrating React into templates' arrow href="/develop/frontend/react/integration">
+    Embedding React to pages. Passing data from Jinja to React.
+</Card>
+</Cards>
+
+### Asset Management
+Manage and optimize your repository project’s assets using Invenio Webpack integration.
+
+<Cards>
+    <Card title='Webpack Configuration' arrow href="/develop/frontend/webpack">
+        Managing assets and dependencies with Webpack.
+    </Card>
+</Cards>
+
+### Customization and Theming
+
+<Cards>
+<Card title='Customizing the look and feel' arrow href="/customize">
+    Override default templates & components. Customize default theme, branding.
+</Card>
+</Cards>
+
+### Internationalization (i18n)
+
+Support multiple languages by translating templates and components, and managing locale-specific assets.
+
+<Cards>
+<Card title='I18n translations' arrow href="/develop/frontend/i18n">
+    Translating Jinja templates and React components.
+</Card>
+</Cards>
+
+### Testing and Debugging
+
+Test and debug your front-end code with unit-tests for Jinja and React, ensuring a robust application and
+predictable behavior.
+
+<Cards>
+<Card title='Testing Jinja Templates' arrow href="/develop/frontend/testing/jinja">
+    Tools and methods of testing Jinja code. Writing unit tests for Jinja templates.
+</Card>
+<Card title='Testing React Components' arrow href="/develop/frontend/testing/react">
+    Tools and methods of testing React. Writing unit tests for React components.
+</Card>
+<Card title='Debugging Tools and Techniques' arrow href="/develop/frontend/testing/debugging">
+  Debugging problems with Jinja and React. Using developer tools and other techniques.
+</Card>
+</Cards>
+
+### Advanced Topics
+- **Performance Optimization** (TODO:)
+  - Improving front-end performance
+  - Lazy loading and code splitting in React
+  - Caching strategies for static assets
+- **SEO Considerations** (TODO:)
+  - Enhancing search engine optimization for pages
+  - Best practices for metadata and schema.org markup
+- **Security Best Practices** (TODO:)
+  - Securing front-end code
+  - Preventing XSS attacks in Jinja and React
+  - Content Security Policy (CSP) considerations
+- **Form validation** (TODO:)
+
+### Contributing to the Front-End Codebase
+- **Contribution Guidelines**
+  - How to contribute to NRP Invenio core front-end (TODO:)
+  - Code review process (TODO:)
+  - Writing and maintaining documentation (TODO:)
+
+### Resources and References
+- **Useful Links**
+  - [Invenio documentation](https://inveniordm.docs.cern.ch/develop/)
+  - [Jinja documentation](https://jinja.palletsprojects.com/en/3.1.x/templates/#)
+  - [JinjaX documentation](https://jinjax.scaletti.dev/guide/)
+  - [React documentation](https://react.dev/learn)
+  - [Invenio Webpack documentation](https://flask-webpackext.readthedocs.io/en/latest/)
+  - [Flask documentation](https://flask.palletsprojects.com/en/2.3.x/)
+

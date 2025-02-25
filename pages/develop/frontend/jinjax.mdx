@@ -1,0 +1,163 @@
+import { Callout } from 'nextra/components'
+
+# JinjaX components
+
+JinjaX is a tool that allows you to write cleaner, more readable Jinja templates by transforming traditional Jinja
+macros into easy-to-use components. This results in more maintainable and reusable code. This guide will show you how
+to define and use JinjaX components in your Invenio-based application.
+
+## What is a JinjaX component?
+
+A JinjaX component is an abstraction over traditional Jinja macros that provides a more intuitive and declarative
+syntax for reusable template elements. Instead of using Jinja's `{% macro %}` and `{% call %}` syntax, JinjaX allows
+you to define components that can be invoked as if they were custom HTML tags.
+
+Similar to React, every JinjaX component's name is expected to start with a capital letter.
+Component's name corresponds directly to its filename.
+
+## Converting Jinja macros to JinjaX components
+
+### Traditional Jinja macros
+
+Let's start with a traditional Jinja template that uses [macros](jinja#macros):
+
+```python
+{% extends "layout.html" %}
+{% block title %}My title{% endblock %}
+
+{% from "bunch_of_macros.html"
+  import card_macro, another_macro %}
+
+{% block content -%}
+  <div>
+    <h2>Hello {{ mystery or "World?" }}</h2>
+    <div>
+      {% call card_macro(title="So verbose") %}
+        {% for product in products %}
+          {{ another_macro(product) }}
+        {% endfor %}
+      {% endcall %}
+    </div>
+  </div>
+  {% with items=products %}
+    {% include "snippets/pagination.html" %}
+  {% endwith %}
+{%- endblock %}
+```
+
+### JinjaX component syntax
+Here's how you would write the equivalent code using JinjaX components:
+
+```jsx copy
+{#def products, msg="World!" #}
+
+<Layout title="My title">
+  <div>
+    <h2>Hello, {{ msg }}</h2>
+    <div>
+      <Card title="So clean">
+        {% for product in products %}
+          <Product :product="product" />
+        {% endfor %}
+      </Card>
+    </div>
+  </div>
+  <Paginator :items="products" />
+</Layout>
+```
+
+### Key differences
+- **Syntax**: Instead of importing and calling macros, you define and use components directly in the template using a
+syntax that resembles React. This approach is more declarative and easier to read.
+- **Props (attributes)**: JinjaX allows you to pass variables to components as attributes (props), similar to how you
+would pass props in React. For example, `<Card div="So clean">` passes the string "So clean" to the div prop of the Card component.
+- **Self-closing tags**: Components that do not require content between their opening and closing tags can be self-closed
+using `/>`, like `<Product :product="product" />`.
+- **Declarative Layout**: By using components like `<Layout>` and `<Paginator>`, your template structure is more
+aligned with the resulting HTML, making it easier to understand at a glance.
+- **Multiple parent tags**: You can have more than one parent tag element in a component, unlike in React
+
+## Creating JinjaX components
+
+To create a JinjaX component, you define it using Jinja’s standard syntax but with the conventions used in JinjaX.
+JinjaX components are easily distinguished from regular Jinja templates by using `.jinja` file extension.
+
+Here’s an example of how you might define a Card component:
+
+```jsx filename="templates/components/Card.jinja" copy
+{#def title="So clean" #}
+<div {{ attrs.render() }}>
+  <h1>{{ title }}</h1>
+  {{ content }}
+</div>
+```
+
+When used in another template as:
+```jsx
+<Card title="Products" class="mb-10" open>bla</Card>
+```
+
+It will render into a HTML page as:
+```html
+<div class="mb-10" open>
+  <h1>Products</h1>
+  bla
+</div>
+```
+
+<Callout type="info">
+For more details on JinjaX components syntax, please refer to the official
+    [JinjaX documentation](https://jinjax.scaletti.dev/guide/components/#s-declaring-and-using-components).
+</Callout>
+
+## JinjaX components loading
+JinjaX components typically don't need an explicit registration. For most of the pages (except a few Invenio core
+internal pages where it can't be used - e.g. administration dashboard), it shares the
+same [template discovery and loading mechanism](jinja#template-loading) as regular Jinja templates.
+
+Once you place your component in one of templates folders, provided by a correct `.jinja` file extension,
+you can right away start using the component in your templates and other components. There's no need to
+import the component beforehand.
+
+## Referencing JinjaX components
+
+As you saw in the examples before, even the whole layouts or pages can be a JinjaX component.
+To start using these for your UI route views, you need to refer to them from inside your UI ResourceConfig classes
+`templates` attribute, similar to how you configure Jinja templates for each view. The key difference from Jinja here
+is that path separator is `.` instead of `/` when referring to a JinjaX component:
+
+```python copy
+class MyViewResourceConfig(UIResourceConfig):
+    template_folder = "templates"
+    url_prefix = "/myview/"
+    blueprint_name = "myview"
+
+    templates = {
+        "homepage": "myview.Homepage",
+        "about": "myview.About",
+    }
+```
+
+This configuration will try to look up your component files under the following paths:
+
+```
+<project-root>/ui/<module-name>/templates/myview/{About,Homepage}.jinja
+```
+
+## Best practices
+
+1. **Keep Components Simple and Focused**
+Components should encapsulate a single piece of functionality. This makes them easier to reuse and maintain.
+
+2. **Use Descriptive Names**
+Choose names for your components that clearly indicate their purpose, making it easier for others to understand what they do.
+
+3. **Document Your Components**
+Even though JinjaX components are simpler than traditional Jinja macros, adding comments or documentation within your components is still beneficial for future maintenance.
+
+4. **Organize Your Components**
+Store components in a well-organized directory structure. For example, you might have directories like components/forms/, components/layouts/, and components/widgets/.
+
+5. **Declare all acceptable props**:
+Declare all props that are acceptable by a component right at the component's `{# def #}` declaration.
+When you try to pass anything else not declared here, it would cause an error.

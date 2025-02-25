@@ -3,16 +3,19 @@ import { Difficulty } from "@/components/difficulty";
 
 # Styling <Difficulty level="intermediate" />
 
-Style rules are useful for situations, when you need to customize color scheme,
-fonts, sizing or other appearance of existing UI components and elements living in your repository site.
+Styling rules are useful when you need to customize the appearance of existing UI components and elements in your repository site.
+This can include changing the color scheme, fonts, sizing, or other visual aspects.
 
 ## Prerequisites
 
-Before diving any further, it's recommended that you have atleast a basic understanding of **[CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)** (Cascading Style Sheets) and **[LESS](https://lesscss.org/)**.
+Before diving into styling, it's recommended that you have a basic understanding of:
+- **[CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)** (Cascading Style Sheets): a styling language used to control the layout and appearance of web pages.
+- **[LESS](https://lesscss.org/)**: a CSS preprocessor that extends the functionality of CSS with features like variables, nesting, and mixins.
 
-## Global variables
+## Global Variables
 
-The `site.variables` file has been created for you to define/override LESS variables that are used as defaults by all existing UI elements site-wide.
+The `site.variables` file allows you to define or override LESS variables that are used as defaults by all existing UI elements site-wide.
+This file is located in the `ui/branding/semantic-ui/less/globals` folder:
 
 <FileTree>
   <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
@@ -29,30 +32,21 @@ For a complete list of possible LESS styling variables, please refer to:
 
 <Cards>
   <Card
-    title="Invenio Theme global variables reference"
+    title="Invenio Theme Global Variables Reference"
     href="https://github.com/inveniosoftware/invenio-theme/blob/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme/globals/site.variables"
   />
   <Card
-    title="SemanticUI default theme variables reference"
+    title="SemanticUI Default Theme Variables Reference"
     href="https://github.com/Semantic-Org/Semantic-UI/blob/master/src/themes/default/globals/site.variables"
   />
 </Cards>
 
-## Global stylesheet
+You can also define your own variables here and use it later in your custom styling rules.
 
-Any global styling rules (such as font faces, CSS reset styles), which should be applied just once and before any other component-specific styles, should be placed into the `branding.less` file:
+## Global Stylesheet
 
-<FileTree>
-  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
-    <FileTree.Folder name="less" defaultOpen>
-      <FileTree.File name="branding.less" active={true} />
-    </FileTree.Folder>
-  </FileTree.Folder>
-</FileTree>
-
-## Default component styles
-
-The `site.overrides` file has been created for you to define/override default LESS style rules that gets inherited by all existing UI components site-wide.
+The `site.overrides` is used for global styling rules, such as any font faces or CSS reset styles, that should be applied once and before any other component-specific style
+overrides:
 
 <FileTree>
   <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
@@ -65,16 +59,10 @@ The `site.overrides` file has been created for you to define/override default LE
   </FileTree.Folder>
 </FileTree>
 
-<Callout type="warning" emoji="⚠️">
-  You want to keep this file's content minimal. People commonly confuse this
-  file with a [global stylesheet](#global-stylesheet). In reality, any rules
-  here gets duplicated as a base stylesheet for each and every existing UI
-  component, increasing total bundle size.
-</Callout>
 
-## Customize components
+## Customize Components
 
-Appearance of any Semantic UI component can be tweaked by overriding its default variables and/or style rules. Here we demonstrate, how to customize appearance of the [`Button`](https://semantic-ui.com/elements/button.html) component used to display buttons on pages, but the process is the same for any other component.
+To customize the appearance of a UI component, you can override its default variables and/or style rules.
 
 For a full list of UI components usable in a NRP repository site, please refer to:
 
@@ -89,10 +77,12 @@ For a full list of UI components usable in a NRP repository site, please refer t
   />
 </Cards>
 
-## Variable overrides
+ Here's an example of how to customize the  [`Button`](https://semantic-ui.com/elements/button.html) component:
 
-The easiest way to change a component's appearance is to look up the default `{componentType}/{component}.variables` definition
-and find a variable that you need to tweak to get the desired effect. Then override that variable by putting it in the `{componentType}/{component}.variables` file under your [`branding`](/customize/branding/theme#createoverride-files-under-branding-folder) folder.
+### Variable Overrides
+
+Look up the default variable definitions for the component you want to customize under the default `{componentType}/{component}.variables` definition
+and find out a variable that you want to tweak to get the desired effect. Then override that variable by defining it in the `{componentType}/{component}.variables` file under the [`branding`](/customize/branding/theme#creatingoverriding-files-under-the-branding-folder) folder.
 
 <Cards>
   <Card
@@ -105,10 +95,10 @@ and find a variable that you need to tweak to get the desired effect. Then overr
   />
 </Cards>
 
-If we were tasked to tweak the button to have a **shadow** of size `16px` and that cool **rounded borders** with radius of `8px`, we would need to follow the following process:
+If we were tasked to tweak the buttons to have a **shadow** of size `16px` and that cool **rounded borders** with radius of `8px`, we need to go through the following process:
 
 <Steps>
-### Find the right variable names
+#### Find the right variable names
 
 Look up the correct variable names in the default [button.variables](https://github.com/Semantic-Org/Semantic-UI/blob/master/src/themes/default/elements/button.variables) file.
 
@@ -123,13 +113,13 @@ We can see there, that the variables controlling the border radius and shadows a
 ```
 
 <Callout emoji="💡">
-  If unsure, which variable controls which styles/appearance properties or what
+  When unsure about which variable controls what styles/appearance properties or what
   it's being used for, you might need to consult the
   [definition](https://github.com/Semantic-Org/Semantic-UI/tree/master/src/definitions)
   of the component of interest.
 </Callout>
 
-### Create custom variables file
+#### Create .variables file with customizations
 
 In order to override values of these LESS variables, we create a corresponding `button.variables` file inside the [`branding`](/customize/branding/theme#createoverride-files-under-branding-folder) folder structure. We need to respect the theme folder structure imposed by Semantic UI:
 
@@ -149,7 +139,7 @@ As we use the `default` theme and the Button is a [component of type `element`](
 
 </Steps>
 
-## Style overrides
+### Style overrides
 
 For situations, where there is no suitable variable defined on the component you want to tweak, you can completely override or add your own style rules for such a component.
 
@@ -157,7 +147,7 @@ For example, there is no way to affect button's `min-height` attribute using LES
 `min-height` of `2rem`, we need to do the following:
 
 <Steps>
-### Find the rule you want to override
+#### Find the rule you want to override
 Look up styles definition (`.less` file) of your component of interest, e.g. for our [button](
 https://github.com/Semantic-Org/Semantic-UI/blob/master/src/definitions/elements/button.less#L24-L57) (we can see the rule
 controlling `min-height` there, it is `ui.button`):
@@ -184,7 +174,7 @@ controlling `min-height` there, it is `ui.button`):
 }
 ```
 
-### Define custom rules in overrides
+#### Define custom rules in overrides
 
 Using a similar approach to [overriding variables](#create-custom-variables-file), we put our style rules 
 into a custom overrides file. The path needs to respect the theme folder structure imposed by Semantic UI:
@@ -216,7 +206,7 @@ We redefine the `ui.button` class there:
   yet.
 </Callout>
 
-### (optional) Combine with custom variables
+#### (optional) Combine with custom variables
 
 You can further combine the two customization approaches described here. Create a custom LESS variable and reference it from this overriden rule, to make `min-height` easily tweakable like other variable-driven button attributes:
 

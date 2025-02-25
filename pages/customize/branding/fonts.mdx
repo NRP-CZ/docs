@@ -18,7 +18,7 @@ cp {my-font.ttf,my-heading-font.ttf} myrepo/ui/branding/semantic-ui/less/fonts/
 
 Declare corresponding [`@font-face`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face) rules inside your [Global stylesheet](/customize/branding/styling#global-stylesheet):
 
-```less filename="ui/branding/semantic-ui/less/branding.less" copy
+```less filename="ui/branding/semantic-ui/less/global/site.overrides" copy
 @font-face {
   font-family: 'MyFont';
   src: url("~@less/fonts/my-font.ttf");
@@ -35,7 +35,7 @@ Declare corresponding [`@font-face`](https://developer.mozilla.org/en-US/docs/We
 Now you can use your font in your branding style overrides.
 
 Here we set a global font face for the whole site:
-```less filename="ui/branding/semantic-ui/less/branding.less" copy
+```less filename="ui/branding/semantic-ui/less/global/site.overrides" copy
 html {
     font-family: "MyFont";
     //...

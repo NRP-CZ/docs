@@ -2,21 +2,22 @@ import { Tabs, Cards, Card, Steps, FileTree, Callout } from "nextra/components";
 
 # Theme
 
-This guide will help you to customize overall look-and-feel of your NRP repository, so that it better reflects your brand's identity.
-It provides step-by-step instructions for configuring key elements of your brand's theme, including color scheme, typography, slogans and logos.
+This guide will help you tailor the look and feel of your Invenio repository instance to reflect your brand's identity.
+We'll walk you through step-by-step instructions for configuring key elements of your theme, including color schemes, typography, slogans, and logos.
 
 <Callout type="info">
-Theming system used by NRP is based on [Semantic UI theming](https://semantic-ui.com/usage/theming.html) and 
-[Invenio Semantic UI theme](https://github.com/inveniosoftware/invenio-theme/tree/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme) package.
+The theming system used by Invenio is based on <a href="https://semantic-ui.com/usage/theming.html">Semantic UI theming</a>
+and the <a href="https://github.com/inveniosoftware/invenio-theme/tree/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme">Invenio Semantic UI theme</a> package.
 </Callout>
 
-User interface of a typical NRP repository site comprises of configuration-driven page templates and many themed Semantic UI elements and components, which are initially configured to use the `default` Semantic UI theme. User interface appearance can be customized by the methods described below.
+The user interface of a typical Invenio repository site consists of configuration-driven page templates and themed Semantic UI elements,
+which are initially configured to use the default Invenio theme. You can customize the appearance of your site using the methods described below.
 
-## Theming methods
+## Theming Methods
 
-### Modify Invenio configuration
+### Modifying Invenio Configuration
 
-You can customize theme of your site by setting configuration options either in `invenio.cfg` or `variables` file present in the root of your repository project:
+You can customize your site's theme by setting configuration options in either the `invenio.cfg` file or the `variables` file (where each key must be prefixed with `INVENIO_`) located in the root of your repository project:
 
 <FileTree>
   <FileTree.Folder name="myrepo" defaultOpen>
@@ -30,12 +31,12 @@ You can customize theme of your site by setting configuration options either in 
 For a complete list of possible configuration options, please refer to:
 
 <Cards>
-  <Card title="Invenio Theme configuration options reference" href="https://invenio-theme.readthedocs.io/en/latest/configuration.html" />
+  <Card title="Invenio Theme Configuration Options Reference" href="https://invenio-theme.readthedocs.io/en/latest/configuration.html" />
 </Cards>
 
-### Create/override files under branding folder
+### Creating/Overriding Files under the Branding Folder
 
-You can also place your custom files, or customize existing ones, under the `branding` folder created in your project:
+You can also place custom files or customize existing ones under the `branding` folder created in your project:
 
 <FileTree>
   <FileTree.Folder name="myrepo" defaultOpen>
@@ -54,22 +55,22 @@ You can also place your custom files, or customize existing ones, under the `bra
   </FileTree.Folder>
 </FileTree>
 
-When customizing your brand theme, most of the time you'll be spending in the context of `ui/branding/semantic-ui/less` and `templates` folders. 
+When customizing your brand theme, you'll likely spend most of your time working within the `ui/branding/semantic-ui/less` and `templates` folders.
 
-## Theme hierarchy
+## Theme Hierarchy
 
-When it comes to applying any rules and variables, NRP applies the following theme hierarchy:
+Invenio applies the following theme hierarchy when applying any styling rules and variables:
 
 <Steps>
 ### [Semantic UI theme](https://semantic-ui.com/usage/theming.html)
 
-Default theme settings provided by Semantic UI is applied
+Default theme settings provided by Semantic UI are applied.
 
 ### [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html)
 
-Deafult theme settings packaged by the [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html) is applied, extending or overriding pre-existing settings with own values.
+Deafult theme settings packaged by the [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html) are applied, extending or overriding pre-existing settings with custom values.
 
-### [Branding](#createoverride-files-under-branding-folder)
+### [Branding](#creatingoverriding-files-under-the-branding-folder)
 
-Your customizations made in [branding](#createoverride-files-under-branding-folder) folder is applied on top
+Your customizations made in the [branding](#creatingoverriding-files-under-the-branding-folder) folder is applied on top.
 </Steps>
