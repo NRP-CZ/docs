@@ -18,17 +18,21 @@ This setting determines the name of the site to be displayed on the header and u
 <Tabs items={["invenio.cfg", "variables"]}>
   <Tabs.Tab>
 ```python copy
-THEME_SITENAME = _('My new NRP repository!');
+config.configure_generic_parameters(
+    # ...
+    name=_("My new NRP repository!"),
+    # ...
+)
 ```
   </Tabs.Tab>
    <Tabs.Tab>
 ```python copy
-INVENIO_THEME_SITENAME = 'My new NRP repository!';
+INVENIO_REPOSITORY_NAME = 'My new NRP repository!';
 ```
   </Tabs.Tab>
 </Tabs>
 
-### Front page title
+### Title page repository description
 
 The title shown on the front page of the repository site.
 
@@ -36,12 +40,16 @@ The title shown on the front page of the repository site.
 <Tabs items={["invenio.cfg", "variables"]}>
   <Tabs.Tab>
 ```python copy
-THEME_FRONTPAGE_TITLE = _('Welcome to my new NRP repository!');
+config.configure_generic_parameters(
+    # ...
+    description=_("My Repository site description"),
+    # ...
+)
 ```
   </Tabs.Tab>
    <Tabs.Tab>
 ```python copy
-INVENIO_THEME_FRONTPAGE_TITLE = 'Welcome to my new NRP repository!';
+INVENIO_REPOSITORY_DESCRIPTION = 'My Repository site description';
 ```
   </Tabs.Tab>
 </Tabs>
