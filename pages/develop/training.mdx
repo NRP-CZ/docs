@@ -159,6 +159,8 @@ V jednom NRP repozitáři je možno mít více typů záznamů, každý typ s ji
 
 Definice typu záznamu se nazývá model. Model se skládá z názvu, popisu, struktury metadat a systémových informací, které jsou použity k vygenerování kódu Invenio repozitáře. Struktura metadat je definována v notaci odvozené od JSON schématu a může obsahovat validační pravidla, popisy a další informace.
 
+**Pozor: před vytvářením modelu je nutno zastavit repozitář, protože modelový kód se generuje do zdrojových souborů a ty nemohou být změněny za běhu.**
+
 ### Vytvoření modelu
 
 ```bash
@@ -180,7 +182,36 @@ kódu, který bude obsahovat třídy a metody pro práci s modelem.
 ./nrp model compile datasets
 ```
 
-?? smazat databazi?
+### Databázová migrace
+
+Invenio používá postgresql databázi. Pro nový model je třeba vytvořit několik databázových tabulek, které budou obsahovat data záznamů. Tento krok se nazývá databázová migrace.
+
+Invenio pro databázové migrace používá nástroj alembic. Pro vytvoření migrace je třeba spustit následující příkaz:
+
+```bash
+./nrp alembic
+```
+
+Tento příkaz provede několik kroků:
+
+1. `invenio alembic upgrade heads` - zaktualizuje databázi podle aktuálních alembic skriptů
+2. `invenio alembic revision` - porovná zdrojový kód s aktuálním databázovým schematem a vygeneruje nový alembic skript
+3. Alembic nástroj není dokonalý a vygenerovaný skript není funkční - `./nrp alembic` se jej pokusí opravit
+4. `invenio alembic upgrade heads` - aplikuje změny do databáze
+
+Pokud by krok 4 neprošel, je třeba zkontrolovat vygenerovaný alembic skript a opravit jej ručně a následně zavolat `invenio alembic upgrade heads`.
+
+### Zavedení nového indexu
+
+Invenio používá Opensearch pro vyhledávání. Pro nový model je třeba vytvořit nový index, který bude obsahovat data záznamů tohoto modelu.
+
+TODO: index
+
+```bash
+./nrp index
+```
+
+### Nyní je model připraven k použití
 
 2. ./nrp develop
 
