@@ -27,12 +27,28 @@ cd my-repo
 
 ## 3. User accounts & Communities
 
+TODO: genericka komunita ve fixtures
+
 vytvoreni uzivatele jako ownera genericke komunity
 + mozna nejakeho normalniho uzivatele
 
-todo: genericka komunita ve fixtures
+Create the `manager` and `member` user account:
+```
+invenio users create manager@e-infra.cz --password nrp-manager123 --active --confirm
+invenio users create member@e-infra.cz --password nrp-member123 --active --confirm
+```
 
-workflows
+Add the manager user as an owner of the generic community:
+```
+invenio oarepo communities members add generic "manager@e-infra.cz" owner
+```
+
+Add the member user as a regular member of the generic community:
+```
+invenio oarepo communities members add generic "manager@e-infra.cz" member
+```
+
+TODO: vysvetlit ukazat workflows
 
 # Configuration
 
