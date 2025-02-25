@@ -224,13 +224,16 @@ Po kliknutí na vyhledávání už nebude zobrazena informace o chybě, ale dost
 
 ## Nahrání záznamu z příkazové řádky
 
-Pro nahrání záznamu do repozitáře můžeme použít příkazovou řádku. Nejprve si nainstalujme příkaz nrp-cmd:
+Pro nahrání záznamu do repozitáře můžeme použít příkazovou řádku. Nejprve si nainstalujme příkaz nrp-cmd
+v novém okně terminálu:
 
 ```bash
+python -m venv nrp-cmd-venv
+source nrp-cmd-venv/bin/activate
 pip install nrp-cmd
 ```
 
-Příkazová řádka `nrp` umožňuje vytvářet, číst, upravovat a mazat záznamy a soubory. Nejprve zaregistrujeme repozitář:
+Příkazová řádka `nrp-cmd` umožňuje vytvářet, číst, upravovat a mazat záznamy a soubory. Zaregistrujeme repozitář:
 
 ```bash
 nrp-cmd add repository https://127.0.0.1:5000 --no-verify-tls myrepo
@@ -239,17 +242,17 @@ nrp-cmd add repository https://127.0.0.1:5000 --no-verify-tls myrepo
 Nyní můžeme nahrát záznam do repozitáře:
 
 ```bash
-nrp create record '{"title": "My first dataset"}' --set myrec
+nrp-cmd create record '{"title": "My first dataset"}' --community generic --set myrec
 
-nrp read record @myrec
+nrp-cmd get record @myrec
 
-nrp update record @myrec '{"title": "My first dataset - updated"}'
+nrp-cmd update record @myrec '{"title": "My first dataset - updated"}'
 
-nrp read record @myrec
+nrp-cmd get record @myrec
 
-nrp upload file @myrec invenio.cfg
+nrp-cmd upload file @myrec invenio.cfg
 
-nrp list files @myrec
+nrp-cmd list files @myrec
 ```
 
 ## Úprava modelu
@@ -275,7 +278,7 @@ Alembic migrace není potřeba, protože pole uvnitř metadat jsou uložena jako
 invenio index destroy --yes-i-know
 invenio index init
 invenio oarepo cf init
-invenio oarepo communities custom-fields init
+invenio communities custom-fields init
 invenio oarepo index reindex
 invenio oarepo index reindex
 ```
@@ -290,22 +293,56 @@ Následující příkaz vytvoří šablonu UI pro detail záznamu:
 ./nrp ui detail datasets
 ```
 
-Příkaz vytvoří soubor v `ui/datasets/templates`.
+Příkaz vytvoří soubor v `ui/datasets/templates/semantic-ui/datasets/DetailMetadata.jinja`.
 
 ### Kontrola
 
-Spusťte server a otevřete stránku s detailem záznamu
+Spusťte server `./nrp develop --skip-checks` a otevřete stránku s detailem záznamu
 (odkaz je na `nrp-cmd read record -v @myrec`).
 
-1. search ui - pridat keywords
-do ResultsListItemu {model_name}/semantic-ui/js/{model_name}/search/ResultsListItem.jsx
+Pokud přidáte jazyk v editaci, uvidíte, že se špatně zobrazuje. Oprava (v další verzi generátoru se bude takto generovat):
 
-a. Vytáhnout novou hodnotu z výsledku vyhledávání
+```jinja
+<ITableField d={d.languages} level={level}>
+    {% for lang in array(d.languages) %}
+      <IVocabularyItem item={lang} />
+    {% endfor %}
+  </ITableField>
+```
 
+## Úprava UI - přidání klíčových slov do deposit formuláře
+
+Do formuláře `{model_name}/semantic-ui/js/{model_name}/forms/FormFieldsContainer.jsx`
+
+přidejte na začátek následující import:
+
+```javascript
+    import {StringArrayField} from "@js/oarepo_ui/forms"
+```
+
+a na místo, kde se má vstup zobrazit, přidejte:
+
+```javascript
+   <StringArrayField
+          fieldPath="metadata.keywords"
+          addButtonLabel={i18next.t("Add keyword")}
+          {...getFieldData({ fieldPath: "metadata.keywords" })}
+    />
+```
+
+## Úprava UI - zobrazení klíčových slov ve výsledcích vyhledávání
+
+Do souboru `{model_name}/semantic-ui/js/{model_name}/search/ResultsListItem.jsx` přidejte:
+
+* Vytažení hodnoty z výsledku vyhledávání je možné pomocí lodash funkce `_get`. Tato funkce bere tři argumenty: objekt, cestu k hodnotě a výchozí hodnotu, která se použije, pokud cesta neexistuje.
+
+```javascript
 const keywords = _get(result, "metadata.keywords", []);
 
-b. Zobrazit v odpovídající lokaci
- {keywords.length > 0 && (
+* Zobrazte klíčová slova v odpovídající lokaci
+
+```javascript
+{keywords.length > 0 && (
     <Grid.Row className="ui separated">
     <span
         aria-label={i18next.t("Keywords")}
@@ -318,21 +355,4 @@ b. Zobrazit v odpovídající lokaci
     </span>
     </Grid.Row>
 )}
-
-2. Do deposit formuláře přidat klíčová slova
-
-a. Do formuláře ({model_name}/semantic-ui/js/{model_name}/forms/FormFieldsContainer.jsx)
-    import {StringArrayField} from "@js/oarepo_ui/forms"
-b. Přidat na místo, kde se má vstup zobrazit
-   <StringArrayField
-          fieldPath="metadata.keywords"
-          addButtonLabel={i18next.t("Add keyword")}
-          {...getFieldData({ fieldPath: "metadata.keywords" })}
-    />
-
-vyzkouseni "hotoveho" repozitare
-
-preklady ???
-./nrp make translations
-
-ccmm
+```
