@@ -76,7 +76,6 @@ cd $REPO
 ```
 
 ```
-
 Development server is running
 
 1 or server     - restart python server
@@ -129,14 +128,14 @@ Přihlaste se do repozitáře jako správce. Měli byste vidět v menu položku 
 
 Nyní je možné přizpůsobit základní UI repozitáře formou nastavení loga, výměny textů a barevnosti.
 
-Detailnější dokumentace je k dispozici pod sekci [Branding](https://nrp-cz.github.io/docs/customize/branding/styling)
+Detailnější dokumentace je k dispozici pod sekci [Branding](/customize/branding/styling)
 
 ### Nastavení loga
 
 * Stáhneme si nové logo z [training-assets](./training-assets/my-logo.svg).
 
 * Použijeme následující postup:
-<https://nrp-cz.github.io/docs/customize/branding/logo>
+[Logo](/customize/branding/logo)
 
 * Aby se změny projevily, je třeba restartovat development server
 
@@ -156,7 +155,6 @@ změna primárních barev (používaných pro tlačítka)
 b. změna barvy pozadí zápatí
 ui/branding/semantic-ui/less/default/views/page_footer.variables
 @pageFooterBackgroundColor: @pink;
-
 
 ## Přidání modelu
 
@@ -343,6 +341,7 @@ Do souboru `{model_name}/semantic-ui/js/{model_name}/search/ResultsListItem.jsx`
 
 ```javascript
 const keywords = _get(result, "metadata.keywords", []);
+```
 
 * Zobrazte klíčová slova v odpovídající lokaci
 
