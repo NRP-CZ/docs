@@ -10,6 +10,9 @@
 curl -sSL https://raw.githubusercontent.com/oarepo/nrp-devtools/rdm-12/nrp-installer.sh > nrp-installer.sh
 ```
 
+TODO: pridat u languages promptu, ze se nesmi zadavat "en", a oddelovac ","
+TODO: do generic parameters prihodit support contact? (co se zobrazuje ve footeru?)
+
 ```
 bash nrp-installer.sh my-repo
 ```
@@ -27,10 +30,7 @@ cd my-repo
 
 ## 3. User accounts & Communities
 
-TODO: genericka komunita ve fixtures
-
-vytvoreni uzivatele jako ownera genericke komunity
-+ mozna nejakeho normalniho uzivatele
+TODO: neni genericka komunita ve fixtures
 
 Create the `manager` and `member` user account:
 ```
@@ -45,7 +45,7 @@ invenio oarepo communities members add generic "manager@e-infra.cz" owner
 
 Add the member user as a regular member of the generic community:
 ```
-invenio oarepo communities members add generic "manager@e-infra.cz" member
+invenio oarepo communities members add generic "member@e-infra.cz" member
 ```
 
 TODO: vysvetlit ukazat workflows
