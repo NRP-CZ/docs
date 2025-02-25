@@ -109,6 +109,9 @@ Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic`.
 
 ```bash
 invenio users create -a -c "manazer@e-infra.cz" --profile '{"full_name": "Velký Manažer"}'
+
+invenio access allow administration-access user manazer@e-infra.cz
+invenio access allow administration-moderation user manazer@e-infra.cz
 ```
 
 ```bash
