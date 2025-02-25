@@ -205,29 +205,97 @@ Pokud by krok 4 neprošel, je třeba zkontrolovat vygenerovaný alembic skript a
 
 Invenio používá Opensearch pro vyhledávání. Pro nový model je třeba vytvořit nový index, který bude obsahovat data záznamů tohoto modelu.
 
-TODO: index
-
 ```bash
-./nrp index
+invenio oarepo index init
+invenio oarepo cf init
 ```
 
-### Nyní je model připraven k použití
+### Kontrola
 
-2. ./nrp develop
+Spustíme opět server
 
-uprava modelu - pridat keywords
+```bash
+./nrp develop
+```
 
-nrp model compile
+V průběhu spouštění bude detekováno, že se změnilo prostředí pythonu a bude provedena aktualizace instalovaných knihoven a nová kompilace uživatelského rozhraní. Po dokončení se server spustí a můžeme se podívat na nový model.
 
-./nrp reindex || drop
+Po kliknutí na vyhledávání už nebude zobrazena informace o chybě, ale dostaneme stránku s 0 výsledky.
 
-./nrp develop a nechat bezet
+## Nahrání záznamu z příkazové řádky
 
-cmdline client + vytvoreni zaznamu + API
+Pro nahrání záznamu do repozitáře můžeme použít příkazovou řádku. Nejprve si nainstalujme příkaz nrp-cmd:
 
-./nrp ui detail model_name
+```bash
+pip install nrp-cmd
+```
 
-vyzkouset ze se zobrazi detail pro zaznam z api
+Příkazová řádka `nrp` umožňuje vytvářet, číst, upravovat a mazat záznamy a soubory. Nejprve zaregistrujeme repozitář:
+
+```bash
+nrp-cmd add repository https://127.0.0.1:5000 --no-verify-tls myrepo
+```
+
+Nyní můžeme nahrát záznam do repozitáře:
+
+```bash
+nrp create record '{"title": "My first dataset"}' --set myrec
+
+nrp read record @myrec
+
+nrp update record @myrec '{"title": "My first dataset - updated"}'
+
+nrp read record @myrec
+
+nrp upload file @myrec invenio.cfg
+
+nrp list files @myrec
+```
+
+## Úprava modelu
+
+Vypněte invenio server.
+
+Pojďme přidat do modelu pole `keywords`. Nejprve upravíme soubor `datasets-metadata.yaml` a přidáme nové pole:
+
+```yaml
+  keywords[]:
+    type: keyword
+```
+
+Následně zkompilujeme model:
+
+```bash
+./nrp model compile datasets
+```
+
+Alembic migrace není potřeba, protože pole uvnitř metadat jsou uložena jako JSON a nemění se struktura databázové tabulky. Co se ale změní, je struktura indexu, který je třeba znovu vytvořit:
+
+```bash
+invenio index destroy --yes-i-know
+invenio index init
+invenio oarepo cf init
+invenio oarepo communities custom-fields init
+invenio oarepo index reindex
+invenio oarepo index reindex
+```
+
+Poznámka: na tuto sekvenci příkazů bude vytvořen alias `./nrp reindex`.
+
+## Vytvoření UI pro detail záznamu
+
+Následující příkaz vytvoří šablonu UI pro detail záznamu:
+
+```bash
+./nrp ui detail datasets
+```
+
+Příkaz vytvoří soubor v `ui/datasets/templates`.
+
+### Kontrola
+
+Spusťte server a otevřete stránku s detailem záznamu
+(odkaz je na `nrp-cmd read record -v @myrec`).
 
 search ui - pridat keywords
 
