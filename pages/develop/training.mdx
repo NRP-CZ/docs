@@ -38,8 +38,6 @@ curl -sSL https://raw.githubusercontent.com/oarepo/nrp-devtools/rdm-12/nrp-insta
 bash nrp-installer.sh my-repo
 ```
 
-<!-- TODO: do generic parameters prihodit support contact? (co se zobrazuje ve footeru?) -->
-
 ```
 🎤 Human readable name of the repository
    Demo repository
@@ -134,8 +132,11 @@ Detailnější dokumentace je k dispozici pod sekci [Branding](/customize/brandi
 * Stáhneme si nové logo z [training-assets](https://raw.githubusercontent.com/NRP-CZ/docs/refs/heads/main/pages/develop/training-assets/my-logo.svg) do
   adresáře `ui/static/images`.
 
-* Použijeme následující postup:
-[Logo](/customize/branding/logo)
+* Nastavíme naše nové logo do konfigurace Invenia (viz [Logo Change](/customize/branding/logo))
+(do nastavení se davá relativní cesta vůči adresáři `/ui/static`)
+```
+THEME_LOGO="images/my-logo.svg"
+```
 
 * Aby se změny projevily, je třeba restartovat development server
 
@@ -148,13 +149,15 @@ Detailnější dokumentace je k dispozici pod sekci [Branding](/customize/brandi
 
 #### Změna barvy záhlaví
 
-V `ui/branding/semantic-ui/less/globals/site.variables`
+V `ui/branding/semantic-ui/less/globals/site.variables` se nachazí definice proměnných
+ovlivňujících celkový vzhled repozitáře. Pro změnu pozadí navigační lišty nastavíme nějaký hezký gradient,
+který si můžete vygenerovat [zde](https://www.joshwcomeau.com/gradient-generator/), např.:
 
 ```less
 @navbar_background_image: linear-gradient(12deg, blue, blue 15%, #ffcc00);
 ```
 
-změna primárních barev (používaných pro tlačítka)
+Změníme primární barvu brandu (používanou pro všechny primární prvky, např. tlačítka):
 
 ```less
 @primaryColor: blue;
@@ -162,11 +165,17 @@ změna primárních barev (používaných pro tlačítka)
 
 #### Změna barvy zápatí
 
+Můžeme změnit i nastavení konkrétní UI komponenty, např. u komponenty page_footer:
+
 `ui/branding/semantic-ui/less/default/views/page_footer.variables`
+
+při nastavení se odkazujeme na jinou proměnnou s definicí barvy (`@pink` - proměnné začínají znakem `@`):
 
 ```less
 @pageFooterBackgroundColor: @pink;
 ```
+
+Podrobnější dokumentaci naleznete pod sekcí [Colors](/customize/branding/colors)
 
 ## Přidání modelu
 
