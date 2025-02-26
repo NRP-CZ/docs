@@ -292,6 +292,8 @@ Následně zkompilujeme model:
 Alembic migrace není potřeba, protože pole uvnitř metadat jsou uložena jako JSON a nemění se struktura databázové tabulky. Co se ale změní, je struktura indexu, který je třeba znovu vytvořit:
 
 ```bash
+source .venv/bin/activate 
+
 invenio index destroy --yes-i-know
 invenio index init
 invenio oarepo cf init
@@ -320,7 +322,7 @@ Spusťte server `./nrp develop --skip-checks` a otevřete stránku s detailem z�
 Pokud přidáte jazyk v editaci, uvidíte, že se špatně zobrazuje. Oprava (v další verzi generátoru se bude takto generovat):
 
 ```jinja
-<ITableField d={d.languages} level={level}>
+  <ITableField d={d.languages} level={level}>
     {% for lang in array(d.languages) %}
       <IVocabularyItem item={lang} />
     {% endfor %}
@@ -360,17 +362,21 @@ const keywords = _get(result, "metadata.keywords", []);
 * Zobrazte klíčová slova v odpovídající lokaci
 
 ```javascript
-{keywords.length > 0 && (
-    <Grid.Row className="ui separated">
-    <span
-        aria-label={i18next.t("Keywords")}
-        title={i18next.t("Keywords")}
-    >
-        {_join(
-        keywords.map((keyword) => keyword),
-        ", "
+// <Item.Meta>
+//   <Grid columns={1}>
+//      <Grid.Column>
+//      ...
+      
+            <Grid.Row className="ui separated">
+            <span
+                aria-label={i18next.t("Keywords")}
+                title={i18next.t("Keywords")}
+            >
+                {_join(
+                keywords.map((keyword) => keyword),
+                ", "
+                )}
+            </span>
+            </Grid.Row>
         )}
-    </span>
-    </Grid.Row>
-)}
 ```
