@@ -15,28 +15,27 @@ Nebudeme dnes řešit:
 
 ## Úvod
 
-TODO: prezentace
+Prezentace
 
 ## Prerekvizity
 
 Invenio pro svůj běh potřebuje posix systém (linux, macos) a několik závislostí.
-Je potřeba mít nainstalované závislosti z [Getting started](/get_started).
-TODO: update get_started.mdx
+Je potřeba mít nainstalované závislosti z [Invenio RDM requirements](https://inveniordm.docs.cern.ch/install/requirements/).
 
 ## Instalace
 
 Instalaci zajišťuje skript `nrp-installer.sh`, který stáhnete z githubu a spustíte s názvem repozitáře, který chcete vytvořit. `rdm-12` je aktuální větev podporované verze Invenio. Na konci Q3 se očekává vydání Invenio RDM 13, všechny oborové repozitáře by pak měly začínat s touto verzí.
 
 ```bash
+mkdir -p demo
 cd demo
 
 curl -sSL https://raw.githubusercontent.com/oarepo/nrp-devtools/rdm-12/nrp-installer.sh >nrp-installer.sh
 ```
 
 ```bash
-export REPO=$PWD/my-repo
 
-bash nrp-installer.sh $REPO
+bash nrp-installer.sh my-repo
 ```
 
 TODO: do generic parameters prihodit support contact? (co se zobrazuje ve footeru?)
@@ -69,13 +68,13 @@ To generate a default UI for the model, run ./nrp ui detail <model_name>.
 ## První kompilace a spuštění
 
 ```bash
-cd $REPO
+cd my-repo
 
 ./nrp develop
 
 ```
 
-```
+```text
 Development server is running
 
 1 or server     - restart python server
@@ -93,9 +92,9 @@ Otevřete prohlížeč a zadejte adresu `https://127.0.0.1:5000/`. Měli byste v
 Nechte server běžet a v novém terminálu spusťte:
 
 ```bash
-REPO=....
 
-cd $REPO
+# cd ...my-repo
+
 source .venv/bin/activate
 invenio oarepo fixtures load ./fixtures --verbose
 ```
@@ -146,15 +145,23 @@ Detailnější dokumentace je k dispozici pod sekci [Branding](/customize/brandi
 
 ### Změna barevnosti
 
-a. V ui/branding/semantic-ui/less/globals/site.variables
-změna pozadí záhlaví
+#### Změna barvy záhlaví
+
+V `ui/branding/semantic-ui/less/globals/site.variables`
+
+```less
 @navbar_background_image: linear-gradient(12deg, blue, blue 15%, #ffcc00);
 změna primárních barev (používaných pro tlačítka)
 @primaryColor: 'blue';
+```
 
-b. změna barvy pozadí zápatí
-ui/branding/semantic-ui/less/default/views/page_footer.variables
+#### Změna barvy zápatí
+
+`ui/branding/semantic-ui/less/default/views/page_footer.variables`
+
+```less
 @pageFooterBackgroundColor: @pink;
+```
 
 ## Přidání modelu
 
@@ -178,8 +185,7 @@ Vygenerovaná struktura modelu je uložena v adresáři `./models` v souborech `
 
 ###  Kompilace modelu
 
-Jádro invenia neumí pracovat s takto definovaným modelem. Je třeba jej zkompilovat do python zdrojového
-kódu, který bude obsahovat třídy a metody pro práci s modelem.
+Jádro invenia neumí pracovat s takto definovaným modelem. Je třeba jej zkompilovat do python zdrojového kódu, který bude obsahovat třídy a metody pro práci s modelem.
 
 ```bash
 ./nrp model compile datasets
