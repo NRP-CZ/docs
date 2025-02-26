@@ -38,7 +38,7 @@ curl -sSL https://raw.githubusercontent.com/oarepo/nrp-devtools/rdm-12/nrp-insta
 bash nrp-installer.sh my-repo
 ```
 
-TODO: do generic parameters prihodit support contact? (co se zobrazuje ve footeru?)
+<!-- TODO: do generic parameters prihodit support contact? (co se zobrazuje ve footeru?) -->
 
 ```
 🎤 Human readable name of the repository
@@ -99,11 +99,11 @@ source .venv/bin/activate
 invenio oarepo fixtures load ./fixtures --verbose
 ```
 
-V prohlížeči klikněte na `Communities` a ujistěte se, že je tam komunita `Generic`.
+V prohlížeči klikněte na `Communities` a ujistěte se, že je tam komunita `Generic Community`.
 
 ## Vytvoření uživatele
 
-Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic`. Následující příkaz bude chtít zadání hesla nového uživatele, je třeba zadat alespoň 6 znaků.
+Pojďme vytvořit uživatele, který bude vlastníkem komunity `Generic Community`. Následující příkaz bude chtít zadání hesla nového uživatele, je třeba zadat alespoň 6 znaků.
 
 ```bash
 invenio users create -a -c "spravce@e-infra.cz" --profile '{"full_name": "Velký Správce"}'
