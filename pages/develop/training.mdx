@@ -24,6 +24,9 @@ Prezentace
 Invenio pro svůj běh potřebuje posix systém (linux, macos) a několik závislostí.
 Je potřeba mít nainstalované závislosti z [Invenio RDM requirements](https://inveniordm.docs.cern.ch/install/requirements/).
 
+Je potřeba mít nainstalován balíčkovací manager `uv` pro Python, podle návodu v
+[https://github.com/astral-sh/uv](https://github.com/astral-sh/uv).
+
 Pro MacOS, pokud používáte homebrew, je nutné si vytvořit soubor `~/.envrc.local`:
 
 ```bash
@@ -141,19 +144,14 @@ Detailnější dokumentace je k dispozici pod sekci [Branding](/customize/brandi
 * Stáhneme si nové logo z [training-assets](https://raw.githubusercontent.com/NRP-CZ/docs/refs/heads/main/pages/develop/training-assets/my-logo.svg) do
   adresáře `ui/static/images`.
 
-* Nastavíme naše nové logo do konfigurace Invenia (viz [Logo Change](/customize/branding/logo))
-(do nastavení se davá relativní cesta vůči adresáři `/ui/static`)
+* Nastavíme naše nové logo do konfigurace Invenia, tj. na konec souboru `invenio.cfg` (viz [Logo Change](/customize/branding/logo))
+(do nastavení se davá relativní cesta vůči adresáři `/ui/static`):
 
 ```
 THEME_LOGO="images/my-logo.svg"
 ```
 
-* Aby se změny projevily, je třeba restartovat development server
-
-```
-0 or stop
-./nrp develop
-```
+* Aby se změny projevily, je třeba restartovat development server stiskem `1`.
 
 ### Změna barevnosti
 
