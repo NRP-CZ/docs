@@ -242,7 +242,7 @@ Pro nahrání záznamu do repozitáře můžeme použít příkazovou řádku. N
 v novém okně terminálu:
 
 ```bash
-python -m venv nrp-cmd-venv
+python3.12 -m venv nrp-cmd-venv
 source nrp-cmd-venv/bin/activate
 pip install nrp-cmd
 ```
@@ -258,16 +258,19 @@ Nyní můžeme nahrát záznam do repozitáře:
 ```bash
 nrp-cmd create record '{"title": "My first dataset"}' --community generic --set myrec
 
-nrp-cmd get record @myrec
+nrp-cmd get record @myrec -v
 
 nrp-cmd update record @myrec '{"title": "My first dataset - updated"}'
 
-nrp-cmd get record @myrec
+nrp-cmd get record @myrec -v
 
 nrp-cmd upload file @myrec invenio.cfg
 
 nrp-cmd list files @myrec
 ```
+
+Poznámka: Ve výstupu příkazu `nrp-cmd get record @myrec -v` je pole self_html,
+které může být použito pro zobrazení záznamu v prohlížeči.
 
 ## Úprava modelu
 
