@@ -1,3 +1,5 @@
+import { Callout } from "nextra/components"
+
 # InstallFest NRP Invenio
 
 Cíle školení:
@@ -259,9 +261,20 @@ pip install nrp-cmd
 
 Příkazová řádka `nrp-cmd` umožňuje vytvářet, číst, upravovat a mazat záznamy a soubory. Zaregistrujeme repozitář:
 
+
+<Callout type="info">
+Pro uživatele MacOS následující příkaz vyžaduje systémovou knihovnu `libmagic`,
+    nainstalujete ji příkazem:
+    ```
+    brew install libmagic
+    ```
+</Callout>
+
 ```bash
 nrp-cmd add repository https://127.0.0.1:5000 --no-verify-tls myrepo
 ```
+
+
 
 Nyní můžeme nahrát záznam do repozitáře:
 
