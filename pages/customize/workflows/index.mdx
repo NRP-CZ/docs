@@ -75,6 +75,10 @@ subgraph V2
 end
 ```
 
+On record, the state is represented as a read-only field `state`.
+
+![State field](state_field.png)
+
 ## Permissions
 
 Permissions can be set for each state in the workflow,
@@ -91,6 +95,23 @@ The permissions determine:
 
 * Who has the authority to access, edit, or delete the record
 * Who can access, upload, or delete the record's files
+
+**Example:**
+
+```python
+    can_read_draft = _can_read_anytime + [
+        IfInState(
+            ["draft", "submitted"],
+            then_=[
+                PrimaryCommunityMembers(),
+                AccessGrant("preview"),
+                AccessGrant("edit"),
+                SecretLinks("preview"),
+                SecretLinks("edit"),
+            ],
+        ),
+    ]
+```
 
 ## Requests
 
