@@ -1,0 +1,41 @@
+# Deployment to NRP Kubernetes Infrastructure
+
+## Terminology
+
+As we will be talking about code repositories (such as github, gitlab, etc.), and
+NRP repository instances (the actual running instances of the dataset repository),
+we will be using the following terms:
+
+* Source code repository - github, gitlab. Will be abbreviated as "github repository"/"gitlab repository"
+* NRP repository - NRP implementation/instance for storing datasets, as running in k8s
+* NRP repository source code - the source code of the NRP repository stored in github/gitlab
+
+## Introduction
+
+NRP-funded repositories typically run inside the Kubernetes cluster provided by CESNET,
+the Academy of Sciences, or other partners within the National Repository Platform.
+
+The following documentation describes the process at CESNET. The details might be
+slightly different if you decide to deploy elsewhere. Note that the text below also
+describes the deployment of an Invenio-based implementation.
+
+## Base Image
+
+The base image on which the NRP repository is built is provided by CESNET and is based
+on the Python 3.12 Debian package. The current version can always be found in
+[GitHub oarepo-images source code repository](https://github.com/oarepo/oarepo-images/blob/main/docker/).
+
+## Building the Image of NRP Repository
+
+The NRP repository image is built on top of the base image. The NRP repository source code is typically
+stored in a GitHub source code repository. The Dockerfile used to build the image is not contained
+within the repository source code, as we want to be able to upgrade the two independently.
+
+For that reason, you can find the Dockerfile [in the oarepo-deployment source code repository](https://github.com/oarepo/oarepo-deployment/tree/rdm-12/docker/production).
+
+To build the image, you will need to have an access to CESNET's gitlab. We use it because
+of it excellent integration with the Kubernetes cluster. CESNET's deployment team will
+create a `deployment project` for your NRP repository. The `deployment project` is a project in gitlab
+repository containing all the configuration needed to build / deploy your NRP repository.
+
+In the gitlab project, go to `Pipelines` and

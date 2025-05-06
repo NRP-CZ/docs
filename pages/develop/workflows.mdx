@@ -1,0 +1,325 @@
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+import { ToDo } from "@/components/todo";
+
+# Workflows
+
+<ToDo />
+
+## Permissions
+
+The permissions are standard Invenio RDM permissions with a couple of added features:
+
+1. `record` or `data` are always passed to permissions, allowing you to write your own generator
+   that utilizes those. This can be used to require elevated permissions when a user tries to
+   modify parts of the metadata.
+
+2. As the record is always created within a community (and the community has an assigned default
+   workflow), you only need to create permissions inside the workflows. There is no need to modify
+   the global permissions.
+
+3. Permissions for search results (`query_filter`) are always evaluated for all available workflows.
+   The following query is created:
+
+   ```
+   query = (
+       (parent.workflow == 'A') && (A.can_read.query_filter) 
+    || (parent.workflow == 'B') && (B.can_read.query_filter)
+    || (parent.workflow == 'C') && (C.can_read.query_filter)
+    || ...
+   )
+   ```
+
+### How it is implemented
+
+The implementation uses standard RDM permissions but replaces the record's permission policy with
+[WorkflowRecordPermissionPolicy](https://github.com/oarepo/oarepo-workflows/blob/main/oarepo_workflows/services/permissions/record_permission_policy.py#L25).
+
+For each `can_...` property, this policy uses a specialized
+[FromRecordWorkflow](https://github.com/oarepo/oarepo-workflows/blob/main/oarepo_workflows/services/permissions/generators.py#L38)
+generator:
+
+```python
+class WorkflowRecordPermissionPolicy(RecordPermissionPolicy):
+    """Permission policy to be used in permission presets directly on 
+    RecordServiceConfig.permission_policy_cls.
+
+    Do not use this class in the Workflow constructor.
+    """
+
+    can_commit_files = [FromRecordWorkflow("commit_files")]
+    can_create = [FromRecordWorkflow("create")]
+```
+
+The `FromRecordWorkflow` generator inspects the passed `record` or `data`, extracts the workflow ID
+from those, loads the workflow from the configuration, and calls the appropriate `can_...` method
+on the workflow.
+
+### SameAs
+
+Suppose you want to express that `can_update_files` is the same as `can_update`, meaning if a user
+has permission to update the record, they can also update the files.
+
+One possible implementation is:
+
+```python
+class MyPermissionPolicy(...):
+    can_update = [...]
+    can_update_files = can_update
+```
+
+This will work unless you'd like to inherit from your policy and change the `can_update`. This will
+break:
+
+```python
+class MySecondPermissionPolicy(MyPermissionPolicy):
+    can_update = [... new definition ...]
+    # expecting that can_update_files 
+    # is also the new definition, but it is pointing
+    # to the old one
+```
+
+For cases like these, you can use `SameAs`:
+
+```python
+class MyPermissionPolicy(...):
+    can_update = [...]
+    can_update_files = SameAs("can_update")
+```
+
+This guarantees that even if you override `can_update` in a subclass, the `can_update_files` will
+always use the latest definition.
+
+## Requests
+
+In NRP Invenio, requests are first-class citizens. There is an API to create new requests regardless
+of their type. A new URL, `/api/<records>/<recid>/requests/applicable`, has been added to all records
+and provides a list of requests that can be created at the moment.
+
+Only the request types that inherit from the
+[OARepoRequestType](https://github.com/oarepo/oarepo-requests/blob/main/oarepo_requests/types/generic.py#L47C7)
+are serialized to this list.
+
+### Applicable request types
+
+A request type has an
+[is_applicable_to(identity, topic, ...)](https://github.com/oarepo/oarepo-requests/blob/main/oarepo_requests/types/generic.py#L110)
+method that returns `True` if the request can potentially be created for the topic. The base
+implementation takes the permission policy from the request's service to check if the identity has
+create rights. In most cases, the permission policy is replaced with
+[CreatorsFromWorkflowRequestsPermissionPolicy](https://github.com/oarepo/oarepo-workflows/blob/main/oarepo_workflows/requests/permissions.py#L26),
+which delegates the creation to the topic's workflow:
+
+```python
+    can_create = [
+        SystemProcess(),
+        RequestCreatorsFromWorkflow(),
+    ]
+```
+
+The `RequestCreatorsFromWorkflow`:
+
+1. Gets the workflow for the passed topic.
+2. Gets the `requests` portion of the workflow and looks up the request type. If it is not there,
+   it returns `False`.
+3. Calls `.needs()` for requesters and performs an intersection with the identity's provides.
+
+**Example:**
+
+```python
+class DefaultWorkflowRequests(WorkflowRequestPolicy):
+    publish_draft = WorkflowRequest(
+        requesters=[
+            RecordOwners(),
+        ],
+        recipients=[PrimaryCommunityRole("curator")],
+        transitions=...,
+        escalations=...,
+    )
+```
+
+In the example above, `RecordOwners` creates a `UserNeed(id=topic.parent.access.owned_by)`.
+
+#### Applicable request types serialization
+
+The serialization is a REST list with a hit containing:
+
+```json
+[
+ {
+  "type_id": "delete_published_record",
+  "links": {
+   "actions": {
+    "create": "https://docs.test.du.cesnet.cz/api/docs/f7cak-7b568/requests/delete_published_record"
+   }
+  },
+  "description": "Request deletion of published record",
+  "name": "Delete record",
+  "dangerous": true,
+  "editable": false,
+  "has_form": true,
+  "stateful_name": "Delete record",
+  "stateful_description": "Click to permanently delete the record."
+ }
+]
+```
+
+### Creating a new request
+
+To create a new request, call `POST` on the `create` URL. The payload is the Invenio serialization
+of a request, **excluding** the `topic` and `receiver`. The `topic` is filled in automatically from
+the record on the path. To get the receiver,
+`current_oarepo_requests.default_request_receiver(identity, type_, topic, creator or identity, data)`
+is called. This call normally goes to `oarepo_workflows` where:
+
+1. The workflow is taken from the topic.
+2. The configuration of the request is extracted from the workflow.
+3. The `recipients=[PrimaryCommunityRole("curator")]` is taken.
+4. `PrimaryCommunityRole` inherits from
+   [RecipientGeneratorMixin](https://github.com/oarepo/oarepo-workflows/blob/main/oarepo_workflows/requests/generators/recipient_generator.py),
+   which implements:
+
+   ```python
+   def reference_receivers(
+           self, 
+           record: Optional[Record] = None, 
+           request_type: Optional[RequestType] = None, 
+           **context: Any) -> list[dict[str, str]]
+   ```
+
+5. Each element of the recipients list returns 0+ entity references, and all are combined into a
+   single sent reference.
+6. If the result is a single entity reference, it is used as is.
+7. **[hack]** If the result contains multiple references (e.g., the request can be approved by a
+   curator or community owner), a special `{"multiple": json.dumps(references)}` entity reference is
+   generated. This is necessary because Invenio allows only a single entity reference in the receiver.
+
+Then, the normal create request is called—permissions are checked, and so on.
+
+### Displaying requests/request types - buttons
+
+A request type has
+[stateful_name()](https://github.com/oarepo/oarepo-requests/blob/main/oarepo_requests/types/generic.py#L143)
+and
+[stateful_description()](https://github.com/oarepo/oarepo-requests/blob/main/oarepo_requests/types/generic.py#L159)
+methods responsible for getting contextualized UI representations of the request type/request. These
+are used as button labels inside the UI.
+
+```python
+    def stateful_name(
+        self,
+        identity: Identity,
+        *,
+        topic: Record,
+        request: Request | None = None,
+        **kwargs: Any,
+    ) -> str | LazyString:
+        """Return the name of the request that reflects its current state.
+
+        :param identity:        identity of the caller
+        :param request:         the request
+        :param topic:           resolved request's topic
+        """
+        return self.name
+
+    def stateful_description(
+        self,
+        identity: Identity,
+        *,
+        topic: Record,
+        request: Request | None = None,
+        **kwargs: Any,
+    ) -> str | LazyString:
+        """Return the description of the request that reflects its current state.
+
+        :param identity:        identity of the caller
+        :param request:         the request
+        :param topic:           resolved request's topic
+        """
+        return self.description
+```
+
+This way, the UI can show different labels for request types, submitted requests, and approved/declined
+requests. Also, the request type can return `dangerous: true` to signal that the request will perform
+a potentially dangerous operation (such as a `delete_published_record` request). These will be displayed
+in a different color and will require an additional confirmation step when approved.
+
+### Request form
+
+A request can have a form associated with it, serialized to the payload of the request. An example is
+a delete record request, where the user must fill in the reason for removal.
+
+[See delete published request](https://github.com/oarepo/oarepo-requests/blob/main/oarepo_requests/types/delete_published_record.py#L37)
+for details:
+
+```python
+    payload_schema = {
+        "removal_reason": ma.fields.Str(),
+        "note": ma.fields.Str()
+    }
+
+    form = [
+        {
+            'section': "",
+            "fields": [
+                {
+                    "field": "removal_reason",
+                    "ui_widget": "Input",
+                    "props": {
+                        "label": _("Removal Reason"),
+                        "placeholder": _("Write down the removal reason."),
+                        "required": True,
+                    },
+                },
+                {
+                    "section": "",
+                    "field": "note",
+                    "ui_widget": "Input",
+                    "props": {
+                        "label": _("Note"),
+                        "placeholder": _("Write down the additional note."),
+                        "required": False,
+                    },
+                }, 
+            ]
+        }
+    ]
+```
+
+This part uses the same form approach as the one used in custom fields on the record
+or fields on `invenio-administration` forms.
+
+### Escalation
+
+Escalation is evaluated automatically by the system each night. You can trigger it manually
+by invoking `invenio oarepo requests escalate` command. This will check all requests and
+escalate those that are overdue. The escalation is done by replacing the recipient of the
+request with the new recipient from the workflow. The previous and new recipients are saved
+within the 'E' event associated with the request.
+
+### Events
+
+Events can be used to associate "history" events with the request. Events can be
+either created by the system (such as the escalation event above) or by the user.
+All possible events are defined in the `DEFAULT_WORKFLOW_EVENTS` constant:
+
+```python
+
+DEFAULT_WORKFLOW_EVENTS = {
+    CommentEventType.type_id: WorkflowEvent(
+        submitters=InvenioRequestsPermissionPolicy.can_create_comment
+    ),
+    LogEventType.type_id: WorkflowEvent(
+        submitters=InvenioRequestsPermissionPolicy.can_create_comment
+    ),
+    TopicUpdateEventType.type_id: WorkflowEvent(
+        submitters=InvenioRequestsPermissionPolicy.can_create_comment
+    ),
+    EscalationEventType.type_id : WorkflowEvent(
+        submitters=InvenioRequestsPermissionPolicy.can_create_comment
+    ),
+    RecordSnapshotEventType.type_id: WorkflowEvent(
+        submitters=InvenioRequestsPermissionPolicy.can_create_comment
+    )
+}
+```
