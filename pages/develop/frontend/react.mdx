@@ -1,0 +1,155 @@
+# React in Our Applications
+
+Our application architecture uses a hybrid approach to frontend development, combining traditional server-rendered templates with modern React components. This document explains how these technologies work together.
+
+## Frontend Architecture Overview
+
+Our repositories follow a hybrid frontend architecture:
+
+- **Record Detail Pages**: Built primarily with Jinja/JinjaX templates for server-side rendering
+- **Interactive UI Components**: Implemented with React for rich, dynamic user experiences
+
+This approach leverages the strengths of both technologies: server-rendered content for faster initial page loads and SEO benefits, combined with React's component-based architecture for complex interactive elements.
+
+## Jinja/JinjaX for Record Detail Pages
+
+### What and Why
+
+Record detail pages are primarily rendered using Jinja/JinjaX templates. These templates:
+
+- Are processed on the server side
+- Receive data directly from the backend
+- Generate HTML that is sent to the browser
+- Provide excellent SEO capabilities
+- Enable fast initial page loads
+
+## React for Interactive UI Components
+
+Most of our application's interactive UI is built with React, including:
+
+- Search interfaces
+- Form components
+- Dashboard widgets
+- Interactive data visualizations
+
+### Integration Points
+
+React components are typically mounted to specific DOM elements within Jinja templates, creating a seamless integration:
+
+```javascript
+// Example of mounting a React component to a DOM element from a Jinja template
+import React from "react";
+import ReactDOM from "react-dom";
+import { RecordActions } from "./components";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const mountPoint = document.getElementById("record-actions");
+  if (mountPoint) {
+    const recordId = mountPoint.dataset.recordId;
+    ReactDOM.render(<RecordActions recordId={recordId} />, mountPoint);
+  }
+});
+```
+
+Note that sometimes you can have multiple small react applications embedded in jinja/jinjax template.
+In certain cases, where there is no need for a react app, it is also possible to embed some vanilla javascript onto a page (jquery is also available inside of the repo).
+
+## When to Use Which Technology
+
+| Use Case                         | Technology   | Reasoning                               |
+| -------------------------------- | ------------ | --------------------------------------- |
+| Detail pages with static content | Jinja/JinjaX | SEO, fast initial load                  |
+| Complex interactive elements     | React        | Component reuse, state management       |
+| Forms                            | React        | Validation, dynamic fields              |
+| Data visualization               | React        | Interactive charts, responsive displays |
+
+## Design system
+
+Our repositories are based on the Semantic UI design system. This means that all of the components that we use and also those that are coming from invenio eco system
+are also using Semantic UI. It is technically possible to use another theme, but it would require much more effort in terms of UI
+development, therefore we recommend sticking with Semantic UI.
+
+Semantic UI React is the official React integration for Semantic UI, available at [https://react.semantic-ui.com/](https://react.semantic-ui.com/). This library provides:
+
+### UI directory Structure
+
+In our repositories, the UI section is organized as follows:
+
+```
+ui/model-name
+├── theme-name
+│   ├── js
+│   │   └── model-name
+│   │       ├── forms
+│   │       │   └── index.js
+│   │       └── search
+│   │           ├── index.js
+│   │           ├── ResultsGridItem.jsx
+│   │           └── ResultsListItem.jsx
+│   └── templates
+│       └── model-name
+│           └── form
+│               ├── FormActionsContainer.jsx
+│               └── FormFieldsContainer.jsx
+├── templates
+│   └── semantic-ui
+│       └── model-name
+│           ├── Deposit.jinja
+│           ├── Detail.jinja
+│           ├── Main.jinja
+│           ├── Search.jinja
+│           └── Sidebar.jinja
+└── webpack.py
+```
+
+Real example for a model named documents:
+![ui folder structure](/images/ui_folder_structure.png)
+
+## Procedure for adding a javascript entry point:
+
+1. Write your javascript code. The code shall be in the javascript section in the "theme" folder, which is
+   semantic-ui in the example above.
+2. in webpack.py, in the entry section, you shall provide the entry point name and the path to the
+   entry point, relative to the theme folder (semantic-ui in this case)
+
+```
+theme = WebpackThemeBundle(
+    __name__,
+    ".",
+    default="semantic-ui",
+    themes={
+        "semantic-ui": dict(
+            entry={
+                "documents_search": "./js/documents/search/index.js",
+                "documents_deposit_form": "./js/documents/forms/index.js",
+            },
+            dependencies={
+                "react-dnd-test-backend": "^16.0.1",
+                "@oarepo/file-manager": "^1.1.0",
+            },
+            devDependencies={},
+            aliases={"@js/documents": "./js/documents"},
+        )
+    },
+)
+```
+
+3. In your jinja template, you need to include this entry point as such:
+
+In our example, this would be embedded into Deposit.jinja template, as it is entry point for the form.
+
+```
+{%- block javascript %}
+{{ super() }}
+{{ webpack['documents_deposit_form.js'] }}
+{{ webpack['oarepo_vocabularies_ui_components.js'] }}
+{{ webpack['oarepo_vocabularies_ui_components.css'] }}
+{%- endblock %}
+```
+
+## Main UI components
+
+In context of our repositories, main UI parts are the search page and the deposit form (and the detail page which is in jinja).
+During the repository initial generation, after we create the model (./nrp model create model-name), basic React templates and
+entry points for the search app and the form will be automatically generated for you (in the forms and search folders respectively).
+We will discuss each of these individually in the following sections.
