@@ -1,0 +1,130 @@
+# React development in the repository
+
+Javascript source files will usually be in the following locations:
+```
+ui/model-name
+├── theme-name
+│   ├── js
+│       └── model-name
+│           ├── forms
+│           │   ├── index.js
+│           │   ├── FormActionsContainer.jsx
+│           │   └── FormFieldsContainer.jsx
+│           └── search
+│               ├── index.js
+│               ├── ResultsGridItem.jsx
+│               └── ResultsListItem.jsx
+```
+
+Generally, for easier development, we recommend to stick with placing your javascript files in the `js/model-name` folder.
+
+## React components overriding
+
+The overriding principle is used for when you wish to replace a component with your own implementation. This is useful when you want to customize the behavior or appearance of a component without modifying the original source code.
+The overriding is done by using react-overridable library, which provides a few ways how to override a component. 
+In short, you can:
+
+- Parametrize component, which means that you are basically passing certain props to it
+- Override the part of the component that is wrapped in the `Overridable` component. This is useful when you want to replace a specific part of a component with your own implementation.
+- Override the whole component, which means that you are replacing the whole component with your own implementation.
+
+In practice, the first two are mostly used. More can be read in the github: https://github.com/indico/react-overridable. overriding
+is a very important principle used accross the whole repository. It is most notably used as part of search apps, as it is obvious that those apps,
+will usually have many same components accross different instances, but will need to have one or two different parts depending on the use case.
+
+## Search apps
+
+### Introduction
+
+Search functionality is a critical component of any modern application, enabling users to quickly find relevant information within your data collection. The search implementation in our system provides powerful tools for filtering, sorting, and discovering content efficiently.
+
+This documentation section will guide you through implementing, customizing, and optimizing search features in your frontend application.
+
+
+### Components
+
+Front end for search page is powered by react-searchkit from invenio https://inveniosoftware.github.io/react-searchkit/
+
+The library exports basic components that make up the search (facets, filters, search options ...). In our apps, we provide
+functionality that just boostraps the search app UI with sensible defaults. The entry point to the search app
+is index.js file in search folder.
+
+Example index.js file:
+```
+import {
+  parseSearchAppConfigs,
+  createSearchAppsInit,
+  HistogramWSlider,
+} from "@js/oarepo_ui/search";
+import { parametrize } from "react-overridable";
+import ResultsListItem from "./ResultsListItem";
+import { SearchAppFacets } from "@js/oarepo_ui/search/SearchAppFacets";
+
+const SearchAppFacetsWithProps = parametrize(SearchAppFacets, {
+  allVersionsToggle: true,
+});
+
+const [{ overridableIdPrefix }] = parseSearchAppConfigs();
+
+export const componentOverrides = {
+  [`${overridableIdPrefix}.SearchApp.facets`]: SearchAppFacetsWithProps,
+  [`${overridableIdPrefix}.ResultsList.item`]: ResultsListItem,
+  [`${overridableIdPrefix}.BucketAggregation.element.syntheticFields_year`]:
+    HistogramWSlider,
+};
+
+createSearchAppsInit({ componentOverrides });
+```
+- createSearchAppsInit is a function that bootstraps the search app. The main parameter it takes, are the component
+overrides. This is basically a mapping of the component id and the component that you want to use instead. 
+- overridableIdPrefix is a prefix that is used to namespace different search apps, accross your application, in order to be able 
+to target a specific component in a specific search app. After you generate the app, the prefix will consist from the model name and search i.e.
+it could be something like Documents.Search for model named documents.
+
+It is very important to get familiar with react dev tools browser extension (https://react.dev/learn/react-developer-tools)
+as it will be a very valuable tool in finding out the id that you can use to override a specific component.
+
+![react dev tools](/images/react-dev-tools.png)
+
+Generally speaking, the component that you will always need to override is the ResultsListItem, as it is highly likely
+that you will simply have different metadata model or that you may want to display different information in the search results. 
+ResultsListItem component is automatically generated for you when you create the model. The component automatically receives 
+result object as a prop, from which you can extract the metadata that you want to display. Here is an
+example of one such component: https://github.com/Narodni-repozitar/nr-docs/blob/main/ui/documents/semantic-ui/js/documents/search/ResultsListItem.jsx
+
+Components you can override in a search app are listed below (note that the list is not exhaustive):
+```
+[`${overridableIdPrefix}.ActiveFilters.element`]: ActiveFiltersElement,
+[`${overridableIdPrefix}.BucketAggregation.element`]:
+    FoldableBucketAggregationElement,
+[`${overridableIdPrefix}.BucketAggregationValues.element`]:
+    BucketAggregationValuesElement,
+[`${overridableIdPrefix}.Count.element`]: CountElement,
+[`${overridableIdPrefix}.EmptyResults.element`]: EmptyResultsElement,
+[`${overridableIdPrefix}.Error.element`]: ErrorElement,
+[`${overridableIdPrefix}.SearchApp.facets`]: SearchAppFacets,
+[`${overridableIdPrefix}.SearchApp.layout`]: SearchAppLayout,
+[`${overridableIdPrefix}.SearchApp.resultOptions`]:
+    SearchAppResultOptions,
+[`${overridableIdPrefix}.SearchApp.searchbarContainer`]:
+    SearchAppSearchbarContainerWithConfig,
+[`${overridableIdPrefix}.SearchFilters.Toggle.element`]:
+    RDMToggleComponent,
+[`${overridableIdPrefix}.SearchApp.sort`]: SearchAppSort,
+[`${overridableIdPrefix}.SearchApp.results`]: SearchAppResults,
+[`${overridableIdPrefix}.SearchBar.element`]: SearchappSearchbarElement,
+[`${overridableIdPrefix}.ResultsList.container`]: ListItemContainer,
+```
+At the same time, these are the default components that will exist in your search app, when you are first starting developing in your repo. 
+
+### Available resources (components)
+
+- [invenio-search-ui](https://github.com/inveniosoftware/invenio-search-ui)
+- [oarepo-ui (search components)](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search)
+
+Components are mainly wrappers around the react-searchkit components, which are adapted to our needs. For details, we propose reading the react-searchkit [docs](https://inveniosoftware.github.io/react-searchkit/).
+
+
+## Forms
+
+    

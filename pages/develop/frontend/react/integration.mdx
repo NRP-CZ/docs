@@ -1,0 +1,66 @@
+# Integrating React into apps
+
+## Integration Points
+
+React components are typically mounted to specific DOM elements within Jinja templates, creating a seamless integration:
+
+```javascript
+// Example of mounting a React component to a DOM element from a Jinja template
+import React from "react";
+import ReactDOM from "react-dom";
+import { RecordActions } from "./components";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const mountPoint = document.getElementById("record-actions");
+  if (mountPoint) {
+    const recordId = mountPoint.dataset.recordId;
+    ReactDOM.render(<RecordActions recordId={recordId} />, mountPoint);
+  }
+});
+```
+
+Note that sometimes you can have multiple small react applications embedded in jinja/jinjax template.
+In certain cases, where there is no need for a react app, it is also possible to embed some vanilla javascript onto a page (jquery is also available inside of the repo).
+
+## Procedure for adding a javascript entry point:
+
+1. Write your javascript code. The code shall be in the javascript section in the "theme" folder, which is
+   semantic-ui in the example above.
+2. in webpack.py, in the entry section, you shall provide the entry point name and the path to the
+   entry point, relative to the theme folder (semantic-ui in this case)
+
+```
+theme = WebpackThemeBundle(
+    __name__,
+    ".",
+    default="semantic-ui",
+    themes={
+        "semantic-ui": dict(
+            entry={
+                "documents_search": "./js/documents/search/index.js",
+                "documents_deposit_form": "./js/documents/forms/index.js",
+            },
+            dependencies={
+                "react-dnd-test-backend": "^16.0.1",
+                "@oarepo/file-manager": "^1.1.0",
+            },
+            devDependencies={},
+            aliases={"@js/documents": "./js/documents"},
+        )
+    },
+)
+```
+
+3. In your jinja template, you need to include this entry point as such:
+
+In our example, this would be embedded into Deposit.jinja template, as it is entry point for the form.
+
+```
+{%- block javascript %}
+{{ super() }}
+{{ webpack['documents_deposit_form.js'] }}
+{{ webpack['oarepo_vocabularies_ui_components.js'] }}
+{{ webpack['oarepo_vocabularies_ui_components.css'] }}
+{%- endblock %}
+```
+
