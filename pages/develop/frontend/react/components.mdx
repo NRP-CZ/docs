@@ -40,6 +40,10 @@ Search functionality is a critical component of any modern application, enabling
 
 This documentation section will guide you through implementing, customizing, and optimizing search features in your frontend application.
 
+The search app will be available at /model-name/ i.e. /documents/ in case of model named documents. Note that some repositories may 
+have multiple models, in which case global search will come into play. This will be discussed in a separate section. For now,
+it is important to note, that for every model, there will be a search app available at /model-name/.
+
 
 ### Components
 
@@ -127,4 +131,413 @@ Components are mainly wrappers around the react-searchkit components, which are 
 
 ## Forms
 
+There are many forms scattered accross the repository. Naturally, the most important one is the deposit form, which is used to deposit new records into the repository. 
+Same as for search, you may also have multiple deposit forms, depending on if you have multiple models in your repository.
+
+### Phylosophy
+
+Forms in our repositories are powered by Formik (https://formik.org/). This means that components are basically Semantic UI "primitives" wrapped
+in Formik "primitives". Some of these components take quite a lot of props, so getting familiar with both libraries would be very benefical,
+in order to have efficient development process.
+
+In terms of validation, we made a decision to use only back end validation. The reason for this decision, is because,
+when you have a big form, with many fields, it is very difficult to keep the validation exactly the same between the front end and the back end. 
+Of course, it is still possible to use front end valdation, but it can happen that components that we already have,
+might not behave in the way that you would expect (in case of front end validation).
+
+After you create the model, you will have a basic form template created for you. The form is located forms folder.
+Similarly to the search app, the entry point is index.js file that contains the bootstrapping function that initiates the form.
+
+Example index.js file:
+```
+import { createFormAppInit, parseFormAppConfig } from "@js/oarepo_ui/forms";
+import FormActionsContainer from "./FormActionsContainer";
+import FormFieldsContainer from "./FormFieldsContainer";
+
+
+const { formConfig } = parseFormAppConfig();
+
+
+const { overridableIdPrefix } = formConfig;
+
+export const componentOverrides = {
+
+  [`${overridableIdPrefix}.FormActions.container`]: FormActionsContainer,
+  [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
+};
+
+createFormAppInit({ componentOverrides });
+```
+You will also get two components created for you, FormActionsContainer and FormFieldsContainer.
+- FormActionsContainer is the component on the right hand side that contains the buttons for the form (save, preview, etc.). It also contains
+requests app, that can contain different actions, depending on the repo configuration. Most common example, would be action that intiates record publication process.
+Also, there is the Embargo section that is used to set embargo on the record.
+- FormFieldsContainer is the component on the left hand side that contains the form fields. Form fields are usually divided into logical sections (accordions). Therefore, you will be adding your fields
+to this component.
+
+Example of [FormFieldsContainer component](https://github.com/Narodni-repozitar/nr-docs/blob/main/ui/documents/semantic-ui/templates/documents/form/FormFieldsContainer.jsx).
+
+There are many done components that you can just import and use in your forms. The main sources of these components are:
+
+- [react-invenio-forms](https://github.com/inveniosoftware/react-invenio-forms)
+- [oarepo-ui (form components)](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms)
+- [oarepo-vocabularies (form components)](https://github.com/oarepo/oarepo-vocabularies/tree/main/oarepo_vocabularies/ui/theme/assets/semantic-ui/js/oarepo_vocabularies_ui/form)
+- [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records)
+
+### Field metadata
+
+Normally, you need to provide field metadata for each field via props (label, placeholder, required etc.). This can be
+error prone and difficult to do consistently accross the application, especially when you take into accout the localization as well.
+The model(s) (yaml files(s) that contain respository metadata definition) are the source of truth for the field metadata. Meaning, when defining your model,
+you will also define the field metadata there. The exact way how to do this, will be explained in
+the model section, but here is a short example for a field named givenName:
+
+```
+    givenName:
+      type: keyword
+      label.cs: Křestní jméno
+      label.en: Given Name
+      hint.cs: Uveďte jméno autora.
+      hint.en: "Fill in the author's given name."
+      required: true
+```
+
+During the model compilation process, field metadata will be extracted from the model and stored in a file in your app called ui.json (model-name/models/ui.json).
+Now in your form components, you can use a hook from oarepo-ui, to get the field metadata.
+
+Sample usage:
+```
+import { useFieldData, useSanitizeInput } from "@js/oarepo_ui/forms";
+import PropTypes from "prop-types";
+
+export const TextField = ({
+  fieldPath,
+  icon,
+  ...rest
+}) => {
+  const { getFieldData } = useFieldData();
+
+  return (
+    <InvenioTextField
+      optimized
+      fieldPath={fieldPath}
+      {...getFieldData({ fieldPath, icon })}
+      {...rest}
+    />
+  );
+};
+```
+
+
+#### Understanding the `getFieldData` Function
+
+The `getFieldData` function plays a critical role in accessing field metadata defined in your model. Looking at its implementation in the codebase:
+
+```js
+// From util.js
+export const getFieldData = (uiMetadata, fieldPathPrefix = "") => {
+  return ({
+    fieldPath,
+    icon = "pencil",
+    fullLabelClassName,
+    compactLabelClassName,
+    fieldRepresentation = "full",
+    ignorePrefix = false,
+  }) => {
+    // Function implementation...
+  };
+};
+```
+
+##### How It Works
+
+1. **Function Signature**: The function takes two parameters:
+   - `uiMetadata`: Contains all field metadata from ui.json
+   - `fieldPathPrefix`: Optional prefix for nested fields (default: "")
+
+2. **Returns**: A higher-order function that takes an object with the following parameters:
+   - `fieldPath` (required): Path to the field in dot notation (e.g., "metadata.title")
+   - `icon` (optional): Icon to display next to the field label (default: "pencil")
+   - `fullLabelClassName` (optional): CSS class for full representation label
+   - `compactLabelClassName` (optional): CSS class for compact representation label
+   - `fieldRepresentation` (optional): How to represent the field - "full", "compact", or "text" (default: "full")
+   - `ignorePrefix` (optional): Whether to ignore the fieldPathPrefix (default: false)
+
+3. **Field Representation Options**:
+   - `full`: Returns a label with icon and help text shown separately
+   - `compact`: Returns a compact label with help text shown in a popup
+   - `text`: Returns plain text values without React components
+
+4. **Returns Object**: Depending on the fieldRepresentation, returns an object with:
+   - `label`: React component or text 
+   - `helpText`: Help text for the field
+   - `placeholder`: Hint text for the field
+   - `required`: Boolean indicating if field is required
+   - `detail`: Additional detail information (if provided in model)
+
+##### Usage Pattern
+
+When you use the `useFieldData` hook, it provides you with the `getFieldData` function that's already configured with the UI metadata from the context:
+
+```js
+// Inside your component
+const { getFieldData } = useFieldData();
+
+// Field metadata automatically loaded
+const fieldMetadata = getFieldData({ 
+  fieldPath: "metadata.title",
+  icon: "book" 
+});
+
+// Use metadata with your component
+<InvenioTextField
+  fieldPath="metadata.title"
+  {...fieldMetadata}
+/>
+```
+
+This approach keeps your form field definitions clean and consistent while maintaining all metadata in your model definition.
+
+It is important to note, that content returned by the function is memoized, and therefore, it is necessary
+to use this function call only on the top level of the component, otherwise, it will be breaking the rule of hooks in React.
+
+#### Good vs. Bad Usage Examples
+
+##### ✅ Good Usage - At Component Top Level
+
+```jsx
+const AuthorForm = () => {
+  const { getFieldData } = useFieldData();
+  
+  // Good: Call getFieldData at the top level of your component
+  const nameFieldMetadata = getFieldData({ 
+    fieldPath: "metadata.authors.name", 
+    icon: "user" 
+  });
+  const affiliationFieldMetadata = getFieldData({ 
+    fieldPath: "metadata.authors.affiliation", 
+    icon: "building" 
+  });
+  
+  return (
+    <div>
+      <InvenioTextField
+        fieldPath="metadata.authors.name"
+        {...nameFieldMetadata}
+      />
+      <InvenioTextField
+        fieldPath="metadata.authors.affiliation"
+        {...affiliationFieldMetadata}
+      />
+    </div>
+  );
+};
+```
+
+##### ❌ Bad Usage - Inside a Loop or Conditional
+
+```jsx
+const AuthorsList = ({ authors }) => {
+  const { getFieldData } = useFieldData();
+  
+  return (
+    <div>
+      {authors.map((author, idx) => (
+        <div key={idx}>
+          {/* Bad: Calling getFieldData inside a map or loop */}
+          <InvenioTextField
+            fieldPath={`metadata.authors[${idx}].name`}
+            {...getFieldData({ 
+              fieldPath: `metadata.authors[${idx}].name`, 
+              icon: "user" 
+            })}
+          />
+          
+          {/* This breaks React's rules of hooks because the number of hook calls
+              can vary between renders depending on authors.length */}
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+##### ✅ Correct Approach for Dynamic Fields
+
+```jsx
+const AuthorsList = ({ authors }) => {
+  const { getFieldData } = useFieldData();
+  
+  // Good: Create a component that uses getFieldData at its top level
+  const AuthorField = ({ index }) => {
+    const fieldPath = `metadata.authors[${index}].name`;
+    const metadata = getFieldData({ fieldPath, icon: "user" });
     
+    return (
+      <InvenioTextField
+        fieldPath={fieldPath}
+        {...metadata}
+      />
+    );
+  };
+  
+  return (
+    <div>
+      {authors.map((author, idx) => (
+        <div key={idx}>
+          <AuthorField index={idx} />
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+This pattern ensures that React's rules of hooks are followed while still allowing you to use field metadata in dynamic contexts.
+
+### Available components
+
+Here we will list the most commonly used components that you can use in your forms. Majority of 
+components are using getFieldData internally, so you don't need to worry about passing field metadata via props, through
+it is still possible to do so.
+
+#### Basic text input
+```
+import { TextField } from "@js/oarepo_ui/forms";
+
+<TextField fieldPath="metadata.title" />
+``` 
+This component is a wrapper of invenio's [TextField](https://github.com/inveniosoftware/react-invenio-forms/blob/016b12b63b38dc25658c83f539f384519cead4e2/src/lib/forms/TextField.js#L15)
+
+##### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation (e.g., "metadata.title") |
+| `fieldRepresentation` | string | "full" | How to represent the field - "full", "compact", or "text" |
+| `icon` | string | "pencil" | Icon to display next to the field label |
+| `...rest` | any | - | Any additional props are passed directly to InvenioTextField |
+
+The component automatically applies:
+- Field metadata (labels, help text, etc.) from your model definition
+- Input sanitization on blur to prevent XSS attacks
+- Proper field touch handling for Formik
+
+#### HTML input
+In Invenio RDM, there is Tiny MCE added as a dependency, therefore, we use it as well.
+
+To add rich editor to your form, you can use the following [component](https://github.com/inveniosoftware/react-invenio-forms/blob/016b12b63b38dc25658c83f539f384519cead4e2/src/lib/forms/RichInputField.js#L16):
+```
+import { RichInputField } from "react-invenio-forms";
+
+ <RichInputField
+    fieldPath={descriptionFieldPath}
+    editor={<OarepoRichEditor fieldPath={textFieldPath} 
+ />}
+```
+
+##### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation (e.g., "metadata.description") |
+| `icon` | string | "pencil" | Icon to display next to the field label |
+| `...rest` | any | - | Any additional props are passed directly to InvenioRichInputField |
+
+The component automatically applies:
+- Field metadata (labels, help text, etc.) from your model definition
+- Proper field touch handling for Formik
+
+**Note**: The `editor` prop is used to specify the editor component. In the example, `<OarepoRichEditor />` is used as the editor.
+
+#### Date input
+```
+import {
+  EDTFSingleDatePicker,
+} from "@js/oarepo_ui/forms";
+<EDTFSingleDatePicker fieldPath="metadata.dateIssued" />
+```
+
+##### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation (e.g., "metadata.dateIssued") |
+| `icon` | string | "pencil" | Icon to display next to the field label |
+| `...rest` | any | - | Any additional props are passed directly to EDTFSingleDatePicker |
+
+The component automatically applies:
+- Field metadata (labels, help text, etc.) from your model definition
+- Proper field touch handling for Formik
+
+**Note**: The `EDTFSingleDatePicker` component is used for selecting single dates using the EDTF (Extended Date Time Format) picker.
+
+#### EDTF Date Pickers
+
+Our repository provides two specialized date picker components based on the [react-datepicker](https://github.com/Hacker0x01/react-datepicker) npm package. These components support the Extended Date/Time Format (EDTF) specification with various precision options (year, month, day).
+
+1. **EDTFSingleDatePicker** - For selecting a single date with EDTF support
+2. **EDTFDaterangePicker** - For selecting a date range with EDTF support
+
+Both components allow users to:
+- Select dates from a calendar interface
+- Choose different date precision levels (year, month, day)
+- Clear selected dates
+- Handle EDTF date format serialization/deserialization
+
+##### EDTFSingleDatePicker
+
+Used for selecting a single date:
+
+```jsx
+import { EDTFSingleDatePicker } from "@js/oarepo_ui/forms";
+
+<EDTFSingleDatePicker 
+  fieldPath="metadata.publicationDate"
+  inputPlaceholder="Choose publication date"
+/>
+```
+
+###### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation |
+| `label` | string\|node | (from metadata) | Custom label for the field |
+| `icon` | string | "calendar" | Icon to display next to the field label |
+| `helpText` | string | (from metadata) | Help text for the field |
+| `required` | boolean | false | Whether the field is required |
+| `inputPlaceholder` | string | "Choose a date." | Placeholder text for the date picker input |
+| `datePickerPropsOverrides` | object | {} | Additional props to override default DatePicker behavior |
+
+##### EDTFDaterangePicker
+
+Used for selecting a date range or toggling between range and single date:
+
+```jsx
+import { EDTFDaterangePicker } from "@js/oarepo_ui/forms";
+
+<EDTFDaterangePicker 
+  fieldPath="metadata.eventDateRange"
+  dateRangeInputPlaceholder="Select event start and end dates"
+/>
+```
+
+###### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation |
+| `label` | string\|node | (from metadata) | Custom label for the field |
+| `icon` | string | "calendar" | Icon to display next to the field label |
+| `helpText` | string | (from metadata) | Help text for the field |
+| `required` | boolean | false | Whether the field is required |
+| `singleDateInputPlaceholder` | string | "Choose one date." | Placeholder when in single date mode |
+| `dateRangeInputPlaceholder` | string | "Choose date range (From - To)." | Placeholder when in date range mode |
+| `datePickerPropsOverrides` | object | {} | Additional props to override default DatePicker behavior |
+
+Both components:
+- Save dates in EDTF format to match backend requirements
+- Allow switching between different date precision levels (year only, year-month, or full date)
+- Handle Formik form integration automatically
+- Apply field metadata from your model definition
