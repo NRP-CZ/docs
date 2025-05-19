@@ -541,3 +541,368 @@ Both components:
 - Allow switching between different date precision levels (year only, year-month, or full date)
 - Handle Formik form integration automatically
 - Apply field metadata from your model definition
+
+#### Multilingual inputs
+
+Our repository provides specialized components for handling multilingual content. These components combine language selection with text input fields to enable content entry in multiple languages.
+
+There are two main multilingual input components:
+
+1. **I18nTextInputField** - For plain text multilingual input
+2. **I18nRichInputField** - For rich text (HTML) multilingual input with Tiny MCE editor
+
+Both components combine a language selector with an input field, allowing users to specify both the content and the language it's written in.
+
+##### I18nTextInputField
+
+Used for entering plain text in multiple languages:
+
+```jsx
+import { I18nTextInputField } from "@js/oarepo_ui/forms";
+
+<I18nTextInputField 
+  fieldPath="metadata.multilingualTitle"
+/>
+```
+
+The component stores data in the format:
+```json
+{
+  "lang": "en",
+  "value": "Title in English"
+}
+```
+
+###### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation |
+| `lngFieldWidth` | number | 3 | Width of the language selector field (1-16) |
+| `...rest` | any | - | Any additional props are passed to the TextField component |
+
+##### I18nRichInputField
+
+Used for entering formatted text (HTML) in multiple languages:
+
+```jsx
+import { I18nRichInputField } from "@js/oarepo_ui/forms";
+
+<I18nRichInputField 
+  fieldPath="metadata.multilingualDescription"
+/>
+```
+
+The component stores data in the same format as I18nTextInputField but allows rich text editing:
+```json
+{
+  "lang": "en",
+  "value": "<p>Description with <strong>formatting</strong></p>"
+}
+```
+
+###### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation |
+| `lngFieldWidth` | number | 3 | Width of the language selector field (1-16) |
+| `editorConfig` | object | undefined | Configuration options for the rich text editor |
+| `...rest` | any | - | Any additional props are passed to the RichInputField component |
+
+Both components:
+- Automatically handle form state through Formik
+- Combine a language selector with input field in a single row
+- Apply XSS protection and input sanitization
+- Use field metadata from your model definition
+
+#### Vocabulary inputs
+
+Most often your record will contain some fields that derive values from controlled sources i.e. vocabularies.
+These fields are usually represented as dropdowns, where you can select the value from the list of available values.
+
+Our repository provides two main types of vocabulary selection components:
+
+1. **LocalVocabularySelectField** - For selecting values from a pre-loaded local vocabulary
+2. **VocabularySelectField** - For selecting values from a remote vocabulary using API requests
+
+##### Usage in FormFieldsContainer
+
+Here's how these components are typically used within a form:
+
+```jsx
+import {
+  LocalVocabularySelectField,
+  VocabularySelectField,
+} from "@js/oarepo_vocabularies/form";
+
+// Inside your FormFieldsContainer component
+return (
+  <>
+    {/* Simple dropdown for resource types */}
+    <LocalVocabularySelectField
+      fieldPath="metadata.resourceType"
+      optionsListName="resource-types"
+    />
+    
+    {/* API-powered selection for subjects */}
+    <VocabularySelectField
+      fieldPath="metadata.languages"
+      type="languages"
+      multiple={true}
+    />
+  </>
+);
+```
+
+##### LocalVocabularySelectField
+
+`LocalVocabularySelectField` allows selecting values from a pre-loaded vocabulary that is available in the form configuration. This component is efficient for smaller vocabularies that can be completely loaded at initialization time.
+
+###### Example
+
+```jsx
+<LocalVocabularySelectField
+  fieldPath="metadata.languages"
+  optionsListName="languages"
+/>
+```
+
+###### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation |
+| `optionsListName` | string | (required) | Name of the vocabulary in formConfig.vocabularies |
+| `fieldRepresentation` | string | "full" | How to represent the field - "full", "compact", or "text" |
+| `multiple` | boolean | false | Whether multiple selections are allowed |
+| `showLeafsOnly` | boolean | false | If true, only leaf nodes in hierarchical vocabularies will be shown |
+| `filterFunction` | function | undefined | Custom function to filter available options |
+| `icon` | string | "tag" | Icon to display next to the field label |
+| `clearable` | boolean | true | Whether the field can be cleared |
+
+###### Data Structure
+
+The component stores selected value(s) in the following format:
+
+For single selection:
+```json
+{
+  "id": "en",
+  "title": { "en": "English" }
+}
+```
+
+For multiple selections:
+```json
+[
+  {
+    "id": "en",
+    "title": { "en": "English" }
+  },
+  {
+    "id": "cs",
+    "title": { "en": "Czech" }
+  }
+]
+```
+This component is useful for vocabularies that are not very large and can be loaded at once. It provides a simple dropdown interface for users to select from.
+The benefit is that it is very fast and does not require any API calls to load the options.
+Supports also search by typing in a limited shape as it is happening on the front end.
+##### VocabularySelectField
+
+`VocabularySelectField` provides an autocomplete-style input that loads options dynamically via API calls. This is useful for large vocabularies where it's impractical to load all options at once.
+
+###### Example
+
+```jsx
+<VocabularySelectField
+  fieldPath="metadata.subjects"
+  type="subjects"
+  multiple={true}
+/>
+```
+
+###### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation |
+| `type` | string | (required) | Type of vocabulary (corresponds to API endpoint) |
+| `multiple` | boolean | false | Whether multiple selections are allowed |
+| `filterFunction` | function | opt => opt | Function to filter suggestions from API |
+| `...rest` | any | - | Any additional props are passed to RelatedSelectField |
+
+###### API Integration
+
+The component automatically constructs API URLs in the format:
+- Regular suggestions: `/api/vocabularies/{type}`
+
+This type is used for fetching suggestions based on user input. The API will return a list of matching vocabulary items.
+The suggestions are using full power of opensearch (supports typos, missing letters etc.)
+
+#### Using Vocabularies Together
+
+For complex forms, these components can be used together to provide a comprehensive interface:
+
+```jsx
+<AccordionField label="Document Classification">
+  {/* Simple dropdown for basic types */}
+  <LocalVocabularySelectField
+    fieldPath="metadata.resourceType"
+    optionsListName="resource-types"
+  />
+  
+  {/* API-powered selection for free-form subjects */}
+  <VocabularySelectField
+    fieldPath="metadata.subjects"
+    type="subjects"
+    multiple={true}
+  />
+</AccordionField>
+```
+
+These vocabulary components help ensure data consistency by encouraging users to select from controlled terminology rather than entering free text. They automatically handle the serialization of selected values to match the expected backend data format.
+
+#### Complex fields
+Often you will have a need to create a complex field, mening a field can have many subfields (nested),
+or a field can be a collection of fields (array). The most complex case is the array of nested fields (objects).
+Here is an example of array of nested fields that showcases how this can be done:
+```
+import React from "react";
+import PropTypes from "prop-types";
+import { ArrayField, GroupField } from "react-invenio-forms";
+import { LocalVocabularySelectField } from "@js/oarepo_vocabularies";
+import { StringArrayField, TextField } from "@js/oarepo_ui/forms";
+import {
+  ArrayFieldItem,
+  EDTFDaterangePicker,
+  useSanitizeInput,
+  useFieldData,
+} from "@js/oarepo_ui";
+import { i18next } from "@translations/nr/i18next";
+import { useFormikContext, getIn } from "formik";
+import { Label } from "semantic-ui-react";
+
+export const EventsField = ({ fieldPath }) => {
+  const { values, setFieldValue, setFieldTouched, errors } = useFormikContext();
+
+  const { sanitizeInput } = useSanitizeInput();
+  const { getFieldData } = useFieldData();
+  return (
+    <ArrayField
+      addButtonLabel={i18next.t("Add event")}
+      fieldPath={fieldPath}
+      {...getFieldData({ fieldPath, fieldRepresentation: "text" })}
+      addButtonClassName="array-field-add-button"
+    >
+      {({ arrayHelpers, indexPath }) => {
+        const fieldPathPrefix = `${fieldPath}.${indexPath}`;
+        const eventNameOriginalFieldPath = `${fieldPathPrefix}.eventNameOriginal`;
+
+        const beValidationErrors = getIn(errors, "BEvalidationErrors", {});
+        const eventLocationError = beValidationErrors?.errors?.find(
+          (e) => e.field === `${fieldPathPrefix}.eventLocation`
+        );
+
+        return (
+          <ArrayFieldItem
+            indexPath={indexPath}
+            arrayHelpers={arrayHelpers}
+            className={"invenio-group-field events"}
+            fieldPathPrefix={fieldPathPrefix}
+          >
+            <TextField
+              width={16}
+              fieldPath={eventNameOriginalFieldPath}
+              onBlur={() => {
+                const cleanedContent = sanitizeInput(
+                  getIn(values, eventNameOriginalFieldPath)
+                );
+                setFieldValue(eventNameOriginalFieldPath, cleanedContent);
+                setFieldTouched(eventNameOriginalFieldPath, true);
+              }}
+              fieldRepresentation="compact"
+            />
+            <StringArrayField
+              width={16}
+              fieldPath={`${fieldPathPrefix}.eventNameAlternate`}
+              addButtonLabel={i18next.t("Add event alternate name")}
+              fieldRepresentation="compact"
+            />
+            <EDTFDaterangePicker fieldPath={`${fieldPathPrefix}.eventDate`} />
+            <GroupField>
+              <TextField
+                width={10}
+                fieldPath={`${fieldPathPrefix}.eventLocation.place`}
+                fieldRepresentation="compact"
+              />
+              <LocalVocabularySelectField
+                width={6}
+                fieldPath={`${fieldPathPrefix}.eventLocation.country`}
+                optionsListName="countries"
+                clearable
+                fieldRepresentation="compact"
+              />
+            </GroupField>
+            {eventLocationError && (
+              <React.Fragment>
+                <Label className="rel-mb-1 mt-0 ml-5" prompt pointing="above">
+                  {eventLocationError.messages.join(" ")}
+                </Label>
+                <br />
+              </React.Fragment>
+            )}
+          </ArrayFieldItem>
+        );
+      }}
+    </ArrayField>
+  );
+};
+
+EventsField.propTypes = {
+  fieldPath: PropTypes.string.isRequired,
+};
+```
+
+#### Formik's Dot Notation for Nested Fields
+
+When working with complex data structures in Formik, you often need to reference nested fields in your form values. Formik uses a dot notation system to access these nested fields.
+
+#### Basic Structure
+
+For an object like this:
+
+```json
+{
+  "metadata": {
+    "title": "My Document",
+    "authors": [
+      {
+        "name": "John Doe",
+        "affiliation": "University A"
+      },
+      {
+        "name": "Jane Smith",
+        "affiliation": "University B"
+      }
+    ]
+  }
+}
+```
+
+You would use dot notation to access nested fields:
+
+- `metadata.title` - Accesses the title field
+- `metadata.authors` - Accesses the authors array
+- `metadata.authors[0].name` - Accesses the name of the first author
+- `metadata.authors[1].affiliation` - Accesses the affiliation of the second author
+
+#### Fields in modal
+
+Sometimes, if the field is very complex, you may want to put it inside of a modal. This allows for a more focused user experience and can help in managing complex data inputs without overwhelming the user.
+Putting a field inside a modal also has some drawbacks, as you need internal form (internal formik) to track the fields in the modal and then 
+convert the data from the main form to modal and vice versa, which can be problematic. We recommend using
+modal only where it is really necessary, otherwise, try to keep the fields in the main form.
+
+Example of such a field would be [Creatibutors](https://github.com/inveniosoftware/invenio-rdm-records/tree/19e5e080b75a5c9ca5688e02e8dc378e3d209cfb/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/fields/CreatibutorsField) field from RDM.

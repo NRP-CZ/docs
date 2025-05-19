@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
 ```
 
 Note that sometimes you can have multiple small react applications embedded in jinja/jinjax template.
-In certain cases, where there is no need for a react app, it is also possible to embed some vanilla javascript onto a page (jquery is also available inside of the repo).
+In certain cases, where there is no need for a react app, it is possible to embed vanilla javascript onto a page (jquery is also available inside of the repo).
 
 ## Procedure for adding a javascript entry point:
 
@@ -59,8 +59,12 @@ In our example, this would be embedded into Deposit.jinja template, as it is ent
 {%- block javascript %}
 {{ super() }}
 {{ webpack['documents_deposit_form.js'] }}
-{{ webpack['oarepo_vocabularies_ui_components.js'] }}
-{{ webpack['oarepo_vocabularies_ui_components.css'] }}
 {%- endblock %}
 ```
+4. After you add a new entry point, it will be necessary to rebuild the javascript "manually" in order
+for this entry point to actually be available. This is done by running the following commands in your venv:
 
+```
+invenio webpack clean create
+invenio webpack install
+```
