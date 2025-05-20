@@ -58,7 +58,8 @@ Most of our application's interactive UI is built with React, including:
 Our repositories are based on the Semantic UI design system. This means that all of the components that we use and also those that are coming from Invenio eco system
 are also using Semantic UI. It is technically possible to use another design system, but it would require much more effort in terms of UI
 development, therefore we recommend sticking with Semantic UI. Also all of the UI that your app is getting from our/Invenio source code
-will be in Semantic UI, therefore, it will be difficult to achieve same look and feel accross the app.
+will be in Semantic UI, therefore, it will be difficult to achieve same look and feel accross the app if you
+use different design system.
 
 Semantic UI React is the official React integration for Semantic UI, available at [https://react.semantic-ui.com/](https://react.semantic-ui.com/).
 For the static pages, you can use documentation of "regular" Semantic UI: https://semantic-ui.com/
@@ -99,7 +100,7 @@ The most important thing to note is that here you have your jinjax templates for
 Plus the webpack.py file, which is very important as it serves to add new javascript entry points, javascript aliases and javascript dependencies to 
 your project. It is basically a way to create your npm project via python.
 
-Real example for a model named documents:
+Real example of UI folder for a project with model named documents:
 ![ui folder structure](/images/ui_folder_structure.png)
 
 ## Table of Contents
@@ -123,7 +124,7 @@ UI Resource classes are Python classes tied to route views, responsible for fetc
 through Jinja templates, ensuring a separation between backend logic and UI presentation.
 
 <Cards>
-<Card title='Resource views' arrow href="/develop/frontend/jinja">
+<Card title='Resource views' arrow href="/develop/frontend/resources">
 How to use, create and configure UI resource view classes to feed data and render
     templates for your routes views.
 </Card>

@@ -28,9 +28,9 @@ In short, you can:
 - Override the part of the component that is wrapped in the `Overridable` component. This is useful when you want to replace a specific part of a component with your own implementation.
 - Override the whole component, which means that you are replacing the whole component with your own implementation.
 
-In practice, the first two are mostly used. More can be read in the github: https://github.com/indico/react-overridable. overriding
-is a very important principle used accross the whole repository. It is most notably used as part of search apps, as it is obvious that those apps,
-will usually have many same components accross different instances, but will need to have one or two different parts depending on the use case.
+In practice, the first two are mostly used. More can be read on https://github.com/indico/react-overridable. Overriding
+is a very important principle used across the whole repository. It is most notably used as part of search apps, as it is obvious that those apps,
+will usually have many same components across different instances, but will need to have one or two different components depending on the use case.
 
 ## Search apps
 
@@ -50,7 +50,7 @@ it is important to note, that for every model, there will be a search app availa
 Front end for search page is powered by react-searchkit from invenio https://inveniosoftware.github.io/react-searchkit/
 
 The library exports basic components that make up the search (facets, filters, search options ...). In our apps, we provide
-functionality that just boostraps the search app UI with sensible defaults. The entry point to the search app
+functionality that just bootstraps the search app UI with sensible defaults. The entry point to the search app
 is index.js file in search folder.
 
 Example index.js file:
@@ -81,7 +81,7 @@ createSearchAppsInit({ componentOverrides });
 ```
 - createSearchAppsInit is a function that bootstraps the search app. The main parameter it takes, are the component
 overrides. This is basically a mapping of the component id and the component that you want to use instead. 
-- overridableIdPrefix is a prefix that is used to namespace different search apps, accross your application, in order to be able 
+- overridableIdPrefix is a prefix that is used to namespace different search apps, across your application, in order to be able 
 to target a specific component in a specific search app. After you generate the app, the prefix will consist from the model name and search i.e.
 it could be something like Documents.Search for model named documents.
 
@@ -119,7 +119,7 @@ Components you can override in a search app are listed below (note that the list
 [`${overridableIdPrefix}.SearchBar.element`]: SearchappSearchbarElement,
 [`${overridableIdPrefix}.ResultsList.container`]: ListItemContainer,
 ```
-At the same time, these are the default components that will exist in your search app, when you are first starting developing in your repo. 
+At the same time, these are the default components that will exist in your search app, when you are first starting development of your app. 
 
 ### Available resources (components)
 
@@ -131,18 +131,18 @@ Components are mainly wrappers around the react-searchkit components, which are 
 
 ## Forms
 
-There are many forms scattered accross the repository. Naturally, the most important one is the deposit form, which is used to deposit new records into the repository. 
+There are many forms scattered across the repository. Naturally, the most important one is the deposit form, which is used to deposit new records into the repository. 
 Same as for search, you may also have multiple deposit forms, depending on if you have multiple models in your repository.
 
-### Phylosophy
+### Philosophy
 
 Forms in our repositories are powered by Formik (https://formik.org/). This means that components are basically Semantic UI "primitives" wrapped
-in Formik "primitives". Some of these components take quite a lot of props, so getting familiar with both libraries would be very benefical,
+in Formik "primitives". Some of these components take quite a lot of props, so getting familiar with both libraries would be very beneficial,
 in order to have efficient development process.
 
-In terms of validation, we made a decision to use only back end validation. The reason for this decision, is because,
+In terms of validation, we made a decision to use only back end validation. The reason for this decision is,
 when you have a big form, with many fields, it is very difficult to keep the validation exactly the same between the front end and the back end. 
-Of course, it is still possible to use front end valdation, but it can happen that components that we already have,
+Of course, it is still possible to use front end validation, but it can happen that components that we already have,
 might not behave in the way that you would expect (in case of front end validation).
 
 After you create the model, you will have a basic form template created for you. The form is located forms folder.
@@ -170,7 +170,7 @@ createFormAppInit({ componentOverrides });
 ```
 You will also get two components created for you, FormActionsContainer and FormFieldsContainer.
 - FormActionsContainer is the component on the right hand side that contains the buttons for the form (save, preview, etc.). It also contains
-requests app, that can contain different actions, depending on the repo configuration. Most common example, would be action that intiates record publication process.
+requests app, that can contain different actions, depending on the repo configuration. Most common example, would be action that initiates record publication process.
 Also, there is the Embargo section that is used to set embargo on the record.
 - FormFieldsContainer is the component on the left hand side that contains the form fields. Form fields are usually divided into logical sections (accordions). Therefore, you will be adding your fields
 to this component.
@@ -187,8 +187,8 @@ There are many done components that you can just import and use in your forms. T
 ### Field metadata
 
 Normally, you need to provide field metadata for each field via props (label, placeholder, required etc.). This can be
-error prone and difficult to do consistently accross the application, especially when you take into accout the localization as well.
-The model(s) (yaml files(s) that contain respository metadata definition) are the source of truth for the field metadata. Meaning, when defining your model,
+error prone and difficult to do consistently across the application, especially when you take into account the localization as well.
+The model(s) (yaml files(s) that contain repository metadata definition) are the source of truth for the field metadata. Meaning, when defining your model,
 you will also define the field metadata there. The exact way how to do this, will be explained in
 the model section, but here is a short example for a field named givenName:
 
@@ -427,57 +427,36 @@ The component automatically applies:
 In Invenio RDM, there is Tiny MCE added as a dependency, therefore, we use it as well.
 
 To add rich editor to your form, you can use the following [component](https://github.com/inveniosoftware/react-invenio-forms/blob/016b12b63b38dc25658c83f539f384519cead4e2/src/lib/forms/RichInputField.js#L16):
-```
+```jsx
 import { RichInputField } from "react-invenio-forms";
+import { OarepoRichEditor } from "@js/oarepo_ui/forms";
 
- <RichInputField
-    fieldPath={descriptionFieldPath}
-    editor={<OarepoRichEditor fieldPath={textFieldPath} 
- />}
+<RichInputField
+  fieldPath="metadata.description"
+  label={i18next.t("Description")}
+/>
 ```
+
+**Note**: Unlike many other components in our system, `RichInputField` doesn't use `getFieldData` internally, so you need to provide all field metadata props explicitly or wrap it in a custom component that uses `getFieldData`.
 
 ##### Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `fieldPath` | string | (required) | Path to the field in dot notation (e.g., "metadata.description") |
-| `icon` | string | "pencil" | Icon to display next to the field label |
-| `...rest` | any | - | Any additional props are passed directly to InvenioRichInputField |
+| `fieldPath` | string | (required) | Path to the field in dot notation |
+| `label` | string\|node | undefined | Label for the field |
+| `required` | boolean | false | Whether the field is required |
+| `className` | string | undefined | Additional CSS class for the field |
+| `editor` | elementType | undefined | Editor component to use (e.g., `<OarepoRichEditor />`) |
+| `editorConfig` | object | undefined | Configuration options for the editor |
 
-The component automatically applies:
-- Field metadata (labels, help text, etc.) from your model definition
-- Proper field touch handling for Formik
-
-**Note**: The `editor` prop is used to specify the editor component. In the example, `<OarepoRichEditor />` is used as the editor.
 
 #### Date input
-```
-import {
-  EDTFSingleDatePicker,
-} from "@js/oarepo_ui/forms";
-<EDTFSingleDatePicker fieldPath="metadata.dateIssued" />
-```
-
-##### Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `fieldPath` | string | (required) | Path to the field in dot notation (e.g., "metadata.dateIssued") |
-| `icon` | string | "pencil" | Icon to display next to the field label |
-| `...rest` | any | - | Any additional props are passed directly to EDTFSingleDatePicker |
-
-The component automatically applies:
-- Field metadata (labels, help text, etc.) from your model definition
-- Proper field touch handling for Formik
-
-**Note**: The `EDTFSingleDatePicker` component is used for selecting single dates using the EDTF (Extended Date Time Format) picker.
-
-#### EDTF Date Pickers
 
 Our repository provides two specialized date picker components based on the [react-datepicker](https://github.com/Hacker0x01/react-datepicker) npm package. These components support the Extended Date/Time Format (EDTF) specification with various precision options (year, month, day).
 
-1. **EDTFSingleDatePicker** - For selecting a single date with EDTF support
-2. **EDTFDaterangePicker** - For selecting a date range with EDTF support
+1. [**EDTFSingleDatePicker**](https://github.com/oarepo/oarepo-ui/blob/313e2902583b505ef1a98eb841658d34fae39b50/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/EDTFDatePickerField/EDTFSingleDatePickerField.jsx#L15) - For selecting a single date with EDTF support
+2. [**EDTFDaterangePicker**](https://github.com/oarepo/oarepo-ui/blob/313e2902583b505ef1a98eb841658d34fae39b50/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/EDTFDatePickerField/EDTFDateRangePickerField.jsx#L17) - For selecting a date range with EDTF support
 
 Both components allow users to:
 - Select dates from a calendar interface
@@ -494,7 +473,6 @@ import { EDTFSingleDatePicker } from "@js/oarepo_ui/forms";
 
 <EDTFSingleDatePicker 
   fieldPath="metadata.publicationDate"
-  inputPlaceholder="Choose publication date"
 />
 ```
 
@@ -503,23 +481,21 @@ import { EDTFSingleDatePicker } from "@js/oarepo_ui/forms";
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `fieldPath` | string | (required) | Path to the field in dot notation |
-| `label` | string\|node | (from metadata) | Custom label for the field |
+| `label` | string\|node | (from model) | Custom label for the field |
 | `icon` | string | "calendar" | Icon to display next to the field label |
-| `helpText` | string | (from metadata) | Help text for the field |
-| `required` | boolean | false | Whether the field is required |
-| `inputPlaceholder` | string | "Choose a date." | Placeholder text for the date picker input |
+| `helpText` | string | (from model) | Help text for the field |
+| `required` | boolean | (from model) | Whether the field is required |
 | `datePickerPropsOverrides` | object | {} | Additional props to override default DatePicker behavior |
 
 ##### EDTFDaterangePicker
 
-Used for selecting a date range or toggling between range and single date:
+Used for selecting a date range or toggling between range and single date (in case where start and end date are the same):
 
 ```jsx
 import { EDTFDaterangePicker } from "@js/oarepo_ui/forms";
 
 <EDTFDaterangePicker 
   fieldPath="metadata.eventDateRange"
-  dateRangeInputPlaceholder="Select event start and end dates"
 />
 ```
 
@@ -528,10 +504,10 @@ import { EDTFDaterangePicker } from "@js/oarepo_ui/forms";
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `fieldPath` | string | (required) | Path to the field in dot notation |
-| `label` | string\|node | (from metadata) | Custom label for the field |
+| `label` | string\|node | (from model) | Custom label for the field |
 | `icon` | string | "calendar" | Icon to display next to the field label |
-| `helpText` | string | (from metadata) | Help text for the field |
-| `required` | boolean | false | Whether the field is required |
+| `helpText` | string | (from model) | Help text for the field |
+| `required` | boolean | (from model) | Whether the field is required |
 | `singleDateInputPlaceholder` | string | "Choose one date." | Placeholder when in single date mode |
 | `dateRangeInputPlaceholder` | string | "Choose date range (From - To)." | Placeholder when in date range mode |
 | `datePickerPropsOverrides` | object | {} | Additional props to override default DatePicker behavior |
@@ -548,8 +524,8 @@ Our repository provides specialized components for handling multilingual content
 
 There are two main multilingual input components:
 
-1. **I18nTextInputField** - For plain text multilingual input
-2. **I18nRichInputField** - For rich text (HTML) multilingual input with Tiny MCE editor
+1. [**I18nTextInputField**](https://github.com/oarepo/oarepo-ui/blob/313e2902583b505ef1a98eb841658d34fae39b50/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/I18nTextInputField/I18nTextInputField.jsx#L11) - For plain text multilingual input
+2. [**I18nRichInputField**](https://github.com/oarepo/oarepo-ui/blob/313e2902583b505ef1a98eb841658d34fae39b50/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/I18nRichInputField/I18nRichInputField.jsx#L11) - For rich text (HTML) multilingual input with Tiny MCE editor
 
 Both components combine a language selector with an input field, allowing users to specify both the content and the language it's written in.
 
@@ -623,8 +599,8 @@ These fields are usually represented as dropdowns, where you can select the valu
 
 Our repository provides two main types of vocabulary selection components:
 
-1. **LocalVocabularySelectField** - For selecting values from a pre-loaded local vocabulary
-2. **VocabularySelectField** - For selecting values from a remote vocabulary using API requests
+1. [**LocalVocabularySelectField**](https://github.com/oarepo/oarepo-vocabularies/blob/a6ebc6009a07d58b40aebc92bfe14b929420b9be/oarepo_vocabularies/ui/theme/assets/semantic-ui/js/oarepo_vocabularies_ui/form/components/LocalVocabularySelectField/LocalVocabularySelectField.jsx#L63) - For selecting values from a pre-loaded local vocabulary
+2. [**VocabularySelectField**](https://github.com/oarepo/oarepo-vocabularies/blob/a6ebc6009a07d58b40aebc92bfe14b929420b9be/oarepo_vocabularies/ui/theme/assets/semantic-ui/js/oarepo_vocabularies_ui/form/components/VocabularySelectField/VocabularySelectField.jsx#L11) - For selecting values from a remote vocabulary using API requests
 
 ##### Usage in FormFieldsContainer
 
@@ -689,7 +665,7 @@ For single selection:
 ```json
 {
   "id": "en",
-  "title": { "en": "English" }
+  ...rest,
 }
 ```
 
@@ -698,17 +674,17 @@ For multiple selections:
 [
   {
     "id": "en",
-    "title": { "en": "English" }
+    ...rest,
   },
   {
     "id": "cs",
-    "title": { "en": "Czech" }
+    ...rest
   }
 ]
 ```
 This component is useful for vocabularies that are not very large and can be loaded at once. It provides a simple dropdown interface for users to select from.
 The benefit is that it is very fast and does not require any API calls to load the options.
-Supports also search by typing in a limited shape as it is happening on the front end.
+Supports also search by typing in a limited capacity as it is happening on the front end.
 ##### VocabularySelectField
 
 `VocabularySelectField` provides an autocomplete-style input that loads options dynamically via API calls. This is useful for large vocabularies where it's impractical to load all options at once.
@@ -765,7 +741,7 @@ For complex forms, these components can be used together to provide a comprehens
 These vocabulary components help ensure data consistency by encouraging users to select from controlled terminology rather than entering free text. They automatically handle the serialization of selected values to match the expected backend data format.
 
 #### Complex fields
-Often you will have a need to create a complex field, mening a field can have many subfields (nested),
+Often you will have a need to create a complex field, meaning a field can have many subfields (nested),
 or a field can be a collection of fields (array). The most complex case is the array of nested fields (objects).
 Here is an example of array of nested fields that showcases how this can be done:
 ```
@@ -902,7 +878,7 @@ You would use dot notation to access nested fields:
 
 Sometimes, if the field is very complex, you may want to put it inside of a modal. This allows for a more focused user experience and can help in managing complex data inputs without overwhelming the user.
 Putting a field inside a modal also has some drawbacks, as you need internal form (internal formik) to track the fields in the modal and then 
-convert the data from the main form to modal and vice versa, which can be problematic. We recommend using
+convert the data from the main form to modal and vice versa, which can be more work and can create difficulties when data is very nested. We recommend using
 modal only where it is really necessary, otherwise, try to keep the fields in the main form.
 
 Example of such a field would be [Creatibutors](https://github.com/inveniosoftware/invenio-rdm-records/tree/19e5e080b75a5c9ca5688e02e8dc378e3d209cfb/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/fields/CreatibutorsField) field from RDM.
