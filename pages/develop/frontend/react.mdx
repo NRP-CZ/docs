@@ -3,20 +3,16 @@
 ## Approach
 
 As previously stated, our applications are multi page applications (MPA). Meaning, it is not a classical
-React app, where you have one entry point and everything is rendered in the browser. Instead, we are using
-Jinja/JinjaX for rendering the pages and React for rendering the interactive components.
+React app, where you have one entry point and everything is rendered in the browser. Instead, we are using Flas for routing,
+Jinja/JinjaX for rendering the pages embedding interactive widgets written in React.
 
-This means that the front end is composed of many smaller react applications, which are mounted to different pages.
 This has some advantages and some disadvantages. The main advantage is that
 this inherently means that the react applications are smaller and therefore less complex and easier to develop.
 The main disadvantage is that there is no such a thing as a global state, which can sometimes complicate things.
 
-
-
-
 ## Main UI components
 
-In context of our repositories, main UI parts are the search page and the deposit form (and the detail page which is in jinja).
+In context of React, main UI parts are the search page and the and record deposition form pages.
 During the repository initial generation, after we create the model (./nrp model create model-name), basic React templates and
 entry points for the search app and the form will be automatically generated for you (in the forms and search folders respectively).
 We will discuss each of these individually in the following sections.
