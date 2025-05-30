@@ -18,20 +18,6 @@ ui/model-name
 
 Generally, for easier development, we recommend to stick with placing your javascript files in the `js/model-name` folder.
 
-## React components overriding
-
-The overriding principle is used for when you wish to replace a component with your own implementation. This is useful when you want to customize the behavior or appearance of a component without modifying the original source code.
-The overriding is done by using react-overridable library, which provides a few ways how to override a component. 
-In short, you can:
-
-- Parametrize component, which means that you are basically passing certain props to it
-- Override the part of the component that is wrapped in the `Overridable` component. This is useful when you want to replace a specific part of a component with your own implementation.
-- Override the whole component, which means that you are replacing the whole component with your own implementation.
-
-In practice, the first two are mostly used. More can be read on https://github.com/indico/react-overridable. Overriding
-is a very important principle used across the whole repository. It is most notably used as part of search apps, as it is obvious that those apps,
-will usually have many same components across different instances, but will need to have one or two different components depending on the use case.
-
 ## Search apps
 
 ### Introduction

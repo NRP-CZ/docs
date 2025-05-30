@@ -1,0 +1,64 @@
+# Overriding JinjaX Components
+
+JinjaX components are used to create UI elements on static pages, while having similar syntax to React.
+This also makes it easier for React developers to work with JinjaX components, than with regular jinja macros.
+Additionally, it makes the markup cleaner and more readable.
+
+This is an example of a detail page sidebar:
+
+```
+{#def metadata, record, extra_context, is_preview, api_record #}
+{%set recordRequests = record.expanded.requests and record.expanded.requests|selectattr('status_code', 'in', ['submitted', 'created'])|list%}
+{% if record.expanded.request_types or recordRequests or record.links.edit_html %}
+<section class="ui segment" aria-label='{{ _("Actions") }}'>
+<h2 class="ui small header detail-sidebar-header">{{ _("Actions") }}</h2>
+{% if record.links.edit_html%}
+  <div class="mb-10">
+    <SidebarLink icon="pencil" href={record.links.edit_html}>
+      {{_('Edit')}}
+    </SidebarLink>
+  </div>
+{% endif %}
+{% if record.expanded.request_types or recordRequests %}
+  <RecordRequests record={record} />
+{% endif %}
+{% if extra_context.permissions.can_manage %}
+<RecordSharing record={record} permissions={extra_context.permissions} groups_enabled={config.USERS_RESOURCES_GROUPS_ENABLED} />
+{% endif %}
+</section>
+{% endif %}
+{% if record.expanded.communities %}
+  <RecordCommunities communities={record.expanded.communities} />
+{% endif %}
+<IdentifiersAndLinks 
+  originalRecordUrl={metadata.originalRecord} 
+  objectIdentifiers={metadata.objectIdentifiers} 
+  pids={record.get('pids', {})}
+/>
+<Metrics record={api_record} />
+
+{% if "oai" not in record 
+      or "harvest" not in record.oai 
+      or "identifier" not in record.oai.harvest 
+%}
+{# do not show the versions for harvested records #}
+<RecordVersions record={record} is_preview={is_preview} />
+{% endif %}
+
+<RecordExport record={record} metadata={metadata} extra_context={extra_context}/>
+```
+
+Let us say that you wish to override IdentifiersAndLinks component. You can 
+create a new file in your repository's `templates` directory:
+
+```
+ui/model-name/templates/semantic-ui/model-name/100-IdentifiersAndLinks.jinja
+```
+Number 100 is arbitrary, but the greates the number the greater the priority of the component.
+
+![ui folder structure](/images/jinjax_component_overriding.png)
+
+Sidebar component is located inside of your app, so you could have just changed its contents directly, but
+this way you can override it without touching the original code, which is useful for maintenance and upgrades.
+Additionally, you can use this to override any JinjaX component that is used in the app, not just the ones that are 
+in the code you control.
