@@ -1,3 +1,6 @@
 {
-  "index": "Overriding UI components"
+  "index": "Overriding UI components",
+  "html": "HTML Templates",
+  "jinjax": "JinjaX Components",
+  "react": "React Components"
 }
