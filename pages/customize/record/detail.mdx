@@ -1,0 +1,314 @@
+import { GitHubCode } from "@/components/githubcode";
+
+# Detail Page Customization
+
+## Overview
+
+The detail page is where users view individual records in your repository. It consists of two main sections:
+- The main content area (showing record metadata and content)
+- The sidebar (showing actions, community information, and other contextual elements)
+
+After generating your repository, these template files will be available in your project:
+
+```
+ui/model-name
+└── templates
+    └── semantic-ui
+        └── model-name
+            ├── Detail.jinja      # Main layout template
+            ├── Main.jinja        # Main content area
+            └── Sidebar.jinja     # Sidebar content
+```
+
+## Getting Started with Detail Page Customization
+
+The detail page uses JinjaX templates, which provide a React-like component approach to templating. This makes customizations more intuitive and maintainable.
+
+### Understanding the Detail.jinja Template
+
+This is the main template for the record detail page, which extends the base detail template:
+
+```jinja
+{# def metadata, extra_context, record, ui, is_preview=None, api_record=None #}
+{%- set title = metadata.title ~ " | " ~ _("NR Document repository") %}
+
+{% extends "oarepo_ui/detail.html" %}
+
+{%- block head_links %}
+{{ super() }}
+{%- endblock %}
+
+{% block record_main_content %}
+    <Main metadata={metadata} ui={ui} extra_context={extra_context} record={record}/>
+{% endblock %}
+
+{% block record_sidebar %}
+    <Sidebar metadata={metadata} ui={ui} extra_context={extra_context} record={record} is_preview={is_preview} api_record={api_record}/>
+{% endblock record_sidebar %}
+
+{%- block javascript %}
+{{ super() }}
+{{ webpack['oarepo_requests_ui_record_requests.js']}}
+{{ webpack['copy_to_clipboard.js']}}
+{%- endblock %}
+```
+
+Key points:
+- It extends the base detail template from oarepo_ui
+- The layout is divided into blocks (head_links, record_main_content, record_sidebar, javascript)
+- It loads JinjaX components (`<Main/>` and `<Sidebar/>`) and passes necessary data to them
+
+### Basic Customizations
+
+## 1. Customizing the Page Title
+
+You can update the page title by modifying the `title` variable:
+
+```jinja
+{%- set title = metadata.title ~ " | " ~ _("Your Repository Name") %}
+```
+
+## 2. Adding Custom CSS or JavaScript
+
+To include additional CSS or JavaScript:
+
+```jinja
+{%- block css %}
+{{ super() }}
+{{ webpack['your_custom_script.css']}}
+{%- endblock %}
+
+{%- block javascript %}
+{{ super() }}
+{{ webpack['your_custom_script.js']}}
+{%- endblock %}
+```
+
+## 3. Customizing the Main Content Area
+
+The main content area is controlled by the `Main.jinja` file. Create or modify this file to change how the record data is displayed:
+
+```jinja
+{# def metadata, record, ui, extra_context #}
+
+<section class="ui segment" aria-label="{{ _('Record details') }}">
+  <h1 class="ui header">{{ metadata.title }}</h1>
+  
+  {% if metadata.description %}
+  <div class="description">
+    {{ metadata.description }}
+  </div>
+  {% endif %}
+  
+  {# Custom metadata sections #}
+  <div class="ui segment">
+    <h3>{{ _("Additional Information") }}</h3>
+    <dl class="ui definition list">
+      {% if metadata.created %}
+      <dt>{{ _("Created") }}</dt>
+      <dd>{{ metadata.created }}</dd>
+      {% endif %}
+      
+      {% if metadata.resourceType %}
+      <dt>{{ _("Resource Type") }}</dt>
+      <dd>{{ metadata.resourceType.title }}</dd>
+      {% endif %}
+    </dl>
+  </div>
+  
+  {# File preview section if files exist #}
+  {% if record.files and record.files.entries %}
+  <div class="ui segment">
+    <h3>{{ _("Files") }}</h3>
+    <FilesViewer files={extra_context.files} />
+  </div>
+  {% endif %}
+</section>
+```
+
+## 4. Customizing the Sidebar
+
+The sidebar typically contains actions, links, and contextual information. Modify the `Sidebar.jinja` file:
+
+```jinja
+{#def metadata, record, extra_context, is_preview, api_record #}
+
+{# Actions Section #}
+<section class="ui segment" aria-label='{{ _("Actions") }}'>
+  <h2 class="ui small header detail-sidebar-header">{{ _("Actions") }}</h2>
+  
+  {# Edit button - only show if user has edit permission #}
+  {% if record.links.edit_html %}
+  <div class="mb-10">
+    <SidebarLink icon="pencil" href={record.links.edit_html}>
+      {{_('Edit')}}
+    </SidebarLink>
+  </div>
+  {% endif %}
+  
+  {# Custom action button example #}
+  <div class="mb-10">
+    <SidebarLink icon="download" href={record.links.files_html}>
+      {{_('Download Files')}}
+    </SidebarLink>
+  </div>
+  
+  {# Add record requests if available #}
+  {% if record.expanded.request_types or recordRequests %}
+  <RecordRequests record={record} />
+  {% endif %}
+</section>
+
+{# Custom sidebar section example #}
+<section class="ui segment">
+  <h2 class="ui small header detail-sidebar-header">{{ _("Record Information") }}</h2>
+  <div class="ui list">
+    {% if metadata.created %}
+    <div class="item">
+      <i class="calendar icon"></i>
+      <div class="content">
+        <div class="header">{{ _("Created on") }}</div>
+        <div class="description">{{ metadata.created }}</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{# Reuse existing components #}
+<IdentifiersAndLinks 
+  originalRecordUrl={metadata.originalRecord} 
+  objectIdentifiers={metadata.objectIdentifiers} 
+  pids={record.get('pids', {})}
+/>
+
+<RecordExport record={record} metadata={metadata} extra_context={extra_context}/>
+```
+
+## Using JinjaX Components
+
+JinjaX components follow a React-like syntax and can help you create reusable elements.
+
+### Creating a Custom Component
+
+You can create your own JinjaX components for reuse across templates. Create a new file `ui/model-name/templates/semantic-ui/model-name/components/MetadataField.jinja`:
+
+```jinja
+{# def label, value, icon=None #}
+
+<div class="metadata-field">
+  <div class="field-label">
+    {% if icon %}<i class="{{ icon }} icon"></i>{% endif %}
+    {{ label }}:
+  </div>
+  <div class="field-value">{{ value }}</div>
+</div>
+```
+
+Then use this component in your Main.jinja:
+
+```jinja
+<div class="metadata-section">
+  <MetadataField 
+    label={_("Author")} 
+    value={metadata.creator} 
+    icon="user" 
+  />
+  <MetadataField 
+    label={_("Publication Date")} 
+    value={metadata.publicationDate} 
+    icon="calendar" 
+  />
+</div>
+```
+
+## Available Component Reference
+
+These components are commonly used in detail pages:
+
+1. `<FilesViewer/>` - Displays record files with download options
+2. `<RecordCommunities/>` - Shows communities the record belongs to
+3. `<RecordVersions/>` - Shows version information for the record
+4. `<RecordExport/>` - Provides export options for the record
+5. `<IdentifiersAndLinks/>` - Displays record identifiers and links
+6. `<Metrics/>` - Shows usage metrics for the record
+
+## Working with Available Data
+
+The detail templates have access to several data objects:
+
+1. `metadata` - Contains the record's metadata fields
+2. `record` - Contains record information including links, files, etc.
+3. `extra_context` - Contains additional context information like permissions
+4. `ui` - Contains UI configuration settings
+5. `api_record` - Contains the raw API record data
+
+You can access and display this data using standard Jinja syntax:
+
+```jinja
+<h1>{{ metadata.title }}</h1>
+<p>{{ metadata.description }}</p>
+
+{% if extra_context.permissions.can_edit %}
+  <button class="ui button">{{ _("Edit") }}</button>
+{% endif %}
+```
+
+## Advanced Customizations
+
+### Conditional Rendering
+
+You can conditionally render content based on record attributes or user permissions:
+
+```jinja
+{% if metadata.accessRights.id == "restricted" %}
+  <div class="ui warning message">
+    <i class="lock icon"></i> {{ _("This record has restricted access.") }}
+  </div>
+{% endif %}
+
+{% if extra_context.permissions.can_manage %}
+  <div class="ui segment">
+    <h3>{{ _("Management Options") }}</h3>
+    {# Management options here #}
+  </div>
+{% endif %}
+```
+
+### Customizing the Layout
+
+You can modify the overall layout by overriding blocks in the Detail.jinja template:
+
+```jinja
+{% block record_layout %}
+<div class="ui container record-detail custom-layout">
+  <div class="ui grid">
+    <div class="twelve wide column">
+      {% block record_main_content %}
+        <Main metadata={metadata} ui={ui} extra_context={extra_context} record={record}/>
+      {% endblock %}
+    </div>
+    <div class="four wide column">
+      {% block record_sidebar %}
+        <Sidebar metadata={metadata} ui={ui} extra_context={extra_context} record={record} is_preview={is_preview} api_record={api_record}/>
+      {% endblock %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+```
+
+This example creates a custom grid layout with a 12:4 column ratio.
+
+## Best Practices
+
+1. **Use Components**: Break down complex UI into reusable JinjaX components
+2. **Localization**: Use the `_()` function for all user-facing strings to support translations
+3. **Fallbacks**: Always check if data exists before rendering it to avoid errors
+4. **Semantic UI**: Use Semantic UI classes for styling to maintain consistent look and feel
+5. **Keep Templates Clean**: Move complex logic to Python helpers or JinjaX components
+
+
+By understanding and customizing these templates, you can create a unique and effective detail page that best presents your repository's content.
+
+Note that when you generate your repository, the templates will be created with default content. You can then modify them as needed to fit your specific requirements.

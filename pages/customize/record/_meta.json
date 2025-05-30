@@ -1,7 +1,8 @@
 {
-    "permissions": "Permissions",
-    "": "---",
-    "react-components": "React components",
-    "search": "Search",
-    "deposit": "Deposition"
+  "permissions": "Permissions",
+  "": "---",
+  "react-components": "React components",
+  "detail": "Record detail",
+  "search": "Search",
+  "deposit": "Deposition"
 }

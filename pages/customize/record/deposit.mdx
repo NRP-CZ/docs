@@ -1,15 +1,279 @@
 import { GitHubCode } from "@/components/githubcode";
 
-# Deposition
+# Deposition form
 
-## Overridable IDs
+## Customize your deposition form
 
-The following is the list of known overridable IDs:
-```js filename="blah"
-export const overridableComponentIds = [  "Errors.container",  "FormActions.container",  "FormApp.layout",  "FormFields.container",];
+Deposition form is probably the largest chunk of front end code in the entire project. It is written in React.
+After you generate your repository the basic deposition form will be available in ui/model-name/semantic-ui/js/model-name/forms
+folder. This code is directly in your app, so you have full control over it i.e. you can change the form in any way you like.
+```
+ui/model-name
+├── semantic-ui
+│   ├── js
+│       └── model-name
+│           ├── forms
+│               ├── index.js
+│               ├── FormActionsContainer.jsx
+│               └── FormFieldsContainer.jsx
 ```
 
-<GitHubCode
-  repo="oarepo/oarepo-ui"
-  path="oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/constants.js"
-/>
+Your fields will be in the FormFieldsContainer.jsx file, which is the main file for the deposition form. 
+
+Here is an example of how the FormFieldsContainer.jsx file looks like:
+
+```jsx
+import * as React from "react";
+import {
+  useFormConfig,
+  FormikStateLogger,
+  FilesField,
+  TextField,
+} from "@js/oarepo_ui/forms";
+import { CommunitySelector } from "@js/communities_components/CommunitySelector/CommunitySelector";
+import { LocalVocabularySelectField } from "@js/oarepo_vocabularies";
+import { AccordionField } from "react-invenio-forms";
+import { i18next } from "@translations/i18next";
+
+const FormFieldsContainer = () => {
+  const { formConfig, files: recordFiles } = useFormConfig();
+
+  return (
+    <React.Fragment>
+      <CommunitySelector />
+      <AccordionField
+        includesPaths={["metadata.title", "metadata.languages"]}
+        active
+        label={i18next.t("Basic information")}
+      >
+        <TextField fieldPath="metadata.title" />
+        <LocalVocabularySelectField
+          fieldPath="metadata.languages"
+          optionsListName="languages"
+        />
+      </AccordionField>
+      <AccordionField
+        includesPaths={["files.enabled"]}
+        active
+        label={
+          <label htmlFor="files.enabled">{i18next.t("Files upload")}</label>
+        }
+        data-testid="filesupload-button"
+      >
+        <FilesField
+          recordFiles={recordFiles}
+          allowedFileTypes={formConfig.allowed_file_extensions}
+        />
+      </AccordionField>
+      {process.env.NODE_ENV === "development" && <FormikStateLogger />}
+    </React.Fragment>
+  );
+};
+
+export default FormFieldsContainer;
+```
+
+### Add new fields to the deposition form
+
+Adding fields to your deposition form is straightforward. Fields are typically organized within `AccordionField` components to group related fields together.
+
+#### Basic Structure
+
+Here's the general pattern for adding fields:
+
+```jsx
+<AccordionField
+  includesPaths={["metadata.field1", "metadata.field2"]}
+  active
+  label={i18next.t("Section Title")}
+>
+  {/* Your field components go here */}
+  <TextField fieldPath="metadata.field1" />
+  <TextField fieldPath="metadata.field2" />
+</AccordionField>
+```
+
+#### Adding a Text Field
+
+To add a simple text input:
+
+```jsx
+// Import at the top of your file
+import { TextField } from "@js/oarepo_ui/forms";
+
+// In your FormFieldsContainer component
+<AccordionField
+  includesPaths={["metadata.title"]}
+  active
+  label={i18next.t("Basic Information")}
+>
+  <TextField fieldPath="metadata.title" />
+</AccordionField>
+```
+
+The `fieldPath` prop specifies where in your data model the value will be stored. Field metadata like label, placeholder, and help text are automatically pulled from your [model definition](/develop/frontend/react/components#field-metadata).
+
+#### Adding a Vocabulary Field
+
+For fields that should select from a controlled vocabulary, use one of these components:
+
+##### Local Vocabulary (pre-loaded list)
+
+```jsx
+// Import at the top of your file
+import { LocalVocabularySelectField } from "@js/oarepo_vocabularies";
+
+// In your FormFieldsContainer component
+<AccordionField
+  includesPaths={["metadata.languages"]}
+  active
+  label={i18next.t("Language Information")}
+>
+  <LocalVocabularySelectField
+    fieldPath="metadata.languages"
+    optionsListName="languages"
+  />
+</AccordionField>
+```
+
+The `optionsListName` prop refers to a vocabulary defined in your form configuration.
+
+##### Remote Vocabulary (API-based)
+
+```jsx
+// Import at the top of your file
+import { VocabularySelectField } from "@js/oarepo_vocabularies";
+
+// In your FormFieldsContainer component
+<AccordionField
+  includesPaths={["metadata.subjects"]}
+  active
+  label={i18next.t("Subject Classification")}
+>
+  <VocabularySelectField
+    fieldPath="metadata.subjects"
+    type="subjects"
+    multiple={true}
+  />
+</AccordionField>
+```
+
+The `type` prop specifies which vocabulary API endpoint to use for suggestions.
+
+#### Adding a Date Field
+
+For date inputs that support the Extended Date/Time Format (EDTF):
+
+```jsx
+// Import at the top of your file
+import { EDTFSingleDatePicker } from "@js/oarepo_ui/forms";
+
+// In your FormFieldsContainer component
+<AccordionField
+  includesPaths={["metadata.publicationDate"]}
+  active
+  label={i18next.t("Publication Information")}
+>
+  <EDTFSingleDatePicker fieldPath="metadata.publicationDate" />
+</AccordionField>
+```
+
+For date ranges:
+
+```jsx
+import { EDTFDaterangePicker } from "@js/oarepo_ui/forms";
+
+<EDTFDaterangePicker fieldPath="metadata.eventDateRange" />
+```
+
+#### Putting It All Together
+
+Here's a complete example showing how to add multiple fields to your form:
+
+```jsx
+import * as React from "react";
+import {
+  useFormConfig,
+  FormikStateLogger,
+  FilesField,
+  TextField,
+  EDTFSingleDatePicker
+} from "@js/oarepo_ui/forms";
+import { LocalVocabularySelectField, VocabularySelectField } from "@js/oarepo_vocabularies";
+import { AccordionField } from "react-invenio-forms";
+import { i18next } from "@translations/i18next";
+
+const FormFieldsContainer = () => {
+  const { formConfig, files: recordFiles } = useFormConfig();
+
+  return (
+    <React.Fragment>
+      <CommunitySelector />
+      
+      <AccordionField
+        includesPaths={["metadata.title", "metadata.languages"]}
+        active
+        label={i18next.t("Basic information")}
+      >
+        <TextField fieldPath="metadata.title" />
+        <LocalVocabularySelectField
+          fieldPath="metadata.languages"
+          optionsListName="languages"
+        />
+      </AccordionField>
+      
+      <AccordionField
+        includesPaths={["metadata.publicationDate", "metadata.subjects"]}
+        active
+        label={i18next.t("Publication details")}
+      >
+        <EDTFSingleDatePicker fieldPath="metadata.publicationDate" />
+        <VocabularySelectField
+          fieldPath="metadata.subjects"
+          type="subjects"
+          multiple={true}
+        />
+      </AccordionField>
+
+      <AccordionField
+        includesPaths={["files.enabled"]}
+        active
+        label={
+          <label htmlFor="files.enabled">{i18next.t("Files upload")}</label>
+        }
+        data-testid="filesupload-button"
+      >
+        <FilesField
+          recordFiles={recordFiles}
+          allowedFileTypes={formConfig.allowed_file_extensions}
+        />
+      </AccordionField>
+      
+      {process.env.NODE_ENV === "development" && <FormikStateLogger />}
+    </React.Fragment>
+  );
+};
+
+export default FormFieldsContainer;
+```
+
+Remember:
+1. Each field needs a unique `fieldPath` that matches your data model
+2. Group related fields within `AccordionField` components
+3. Include the field paths in the `includesPaths` prop of the `AccordionField`
+4. The field metadata (labels, help text, etc.) is automatically pulled from your model definition
+
+You can read more information [here](/develop/frontend/react/components#forms).
+## Customize an existing form
+
+This is a bit more complicated topic, so below we are giving just a basic overview of how to customize existing forms. 
+
+The app contains forms in various places and sometimes these forms are coming already done from Invenio. Good example is the
+community settings form. It is a bit more complicated to customize these forms, due to the fact that they are not inside source code you have control over.
+
+These forms can be customized in a few ways (note that this depends on the form, i.e. if the components are wrapped in Overridable components):
+
+1. By providing a mapping which maps component ids to the components that you want to use instead. More about the general principle can be read [here](/develop/frontend/react/components#react-components-overriding).
+2. By using custom fields principle, to add more fields to a form. Note that you can only add fields in this way, and not replace existing ones. More can be read [here](/customize/record/custom_fields).
+
+The above mentioned [community settings form](https://github.com/inveniosoftware/invenio-communities/blob/816eabc3234636a1027eaa78ed71827d261bf49c/invenio_communities/assets/semantic-ui/js/invenio_communities/settings/profile/CommunityProfileForm.js) contains both of these methods. It is using the `Overridable` component to allow you to replace the form components, and it is also using custom fields to add more fields to the form.
