@@ -1,0 +1,47 @@
+# Overriding HTML Templates
+
+Invenio application is based on Flask and is composed of many extensions. Some of these
+extensions provide parts of UI. For example, when you install invenio-communities,
+you will get entire UI for communities that lives in /communities section of the application.
+
+As the rest of the app, this UI is a HTML page that can have arbitrary CSS and JS included. 
+Overriding an entire HTML page is the largest customization you can do, but also it may 
+require the most effort to implement and later maintain. It is usually best to try to reuse existing
+UI if it is possible.
+
+In Invenio, HTML template loading is prioritized based on the APP_THEME variable in invenio.cfg i.e.,
+the first template found in the list will be used. This means that you can override any HTML template
+by creating a new file with the same name in your repository's `templates` directory, using the theme name
+with the greatest priority.
+
+Default APP_THEME is:
+
+```
+APP_THEME = ["oarepo", "semantic-ui"]
+```
+
+This means that you can use oarepo templates to override any semantic-ui template.
+For example, let us say that you want to override the HTML template
+for communities [members](https://github.com/inveniosoftware/invenio-communities/blob/master/invenio_communities/templates/semantic-ui/invenio_communities/details/members/base.html).
+You can do this by creating a new file in your repository's `templates` directory:
+
+```
+ui/your-model-name/templates/oarepo/invenio_communities/details/members/base.html
+```
+
+![ui folder structure](/images/overriding_html_templates.png)
+
+It must have the same path as the original, but with the theme that has priority. In this case, we are using oarepo instead of semantic-ui.
+Pay attention when creating the path as it is relatively easy to make a mistake in which case it will not work.
+
+Example code you will put in this file:
+
+```
+{% extends "semantic-ui/invenio_communities/details/members/base.html" %}
+{%- block settings_menu %}
+{%- endblock settings_menu %}
+```
+This will remove the settings menu from the members page.
+
+This method is very powerful, meaning you can provide your own HTML and static assets and in that way
+you can entirely change a page that comes from an external source.

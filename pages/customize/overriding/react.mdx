@@ -1,0 +1,122 @@
+# Overriding React Components
+
+
+## React components overriding
+
+The overriding principle is used for when you wish to replace a component with your own implementation. This is useful when you want to customize the behavior or appearance of a component without modifying the original source code.
+The overriding is done by using react-overridable library, which provides a few ways how to override a component. 
+In short, you can:
+
+- Parametrize component, which means that you are basically passing certain props to it
+- Override the part of the component that is wrapped in the `Overridable` component. This is useful when you want to replace a specific part of a component with your own implementation.
+- Override the whole component, which means that you are replacing the whole component with your own implementation.
+
+In practice, the first two are mostly used. More can be read on https://github.com/indico/react-overridable. Overriding
+is a very important principle used across the whole repository. It is most notably used as part of search apps, as it is obvious that those apps,
+will usually have many same components across different instances, but will need to have one or two different components depending on the use case.
+
+## Overridable principle
+In order to override components, you need to have a store where the mapping between component IDs and components you wish to use is stored.
+This is the overrideStore from react-overridable library. 
+On the other side, the React apps are wrapped in an OverridableContext.Provider that provides access to this store.
+
+Here's an example of how the OverridableContext.Provider is used:
+
+```jsx
+import { OverridableContext } from "react-overridable";
+
+function SearchApp({ config, appName }) {
+  const overriddenComponents = overrideStore.getAll();
+  
+  return (
+    <OverridableContext.Provider value={overriddenComponents}>
+      <SearchAppLayout
+        config={config}
+        appName={appName}
+      />
+    </OverridableContext.Provider>
+  );
+}
+```
+
+This pattern allows any component within the SearchApp to access and use overridden components through the context.
+
+## Overridable registry
+In order to keep the bloat in terms of javascript low, we have decided to implement method,
+which enables you to provide overridable registry per page. 
+Meaning that any particular page, will only see overrides that are relevant to it. In order to override
+components in a specific page, you need to provide certain information in 
+invenio.cfg in UI_OVERRIDES key. Steps to follow:
+
+1. View page source on the page where you wish to provide overrides (i.e. ctrl+u on most browsers) and scroll
+to the bottom where script tags are located. 
+
+![ui folder structure](/images/overriding_page_source.png)
+
+overrides-documents.detail will be the key where you will provide the overrides configuration for
+this page.
+
+2. Find the ID of the component that you wish to override. You can do this in two ways:
+
+   - Install the React Developer Tools browser extension
+   - Open the browser's developer tools (F12) and go to the "Components" tab
+   - Navigate through the component tree to find the [`Overridable`](/develop/frontend/react/components#components) component that wraps the component you want to override
+   - Look at the props of the `Overridable` component - the `id` prop contains the overridable ID you need
+
+
+3. In your invenio.cfg, you will need to provide the overrides for this page in UI_OVERRIDES key.
+
+### UIComponent Parameters
+
+The `UIComponent` class is used to define component specifications for overriding existing UI components and takes the following parameters:
+
+- `import_name` (str): The name of the component to import
+- `import_path` (str): JS module path where the component is imported from
+- `import_mode` (str, optional): The mode of import, either 'default' or 'named'. Defaults to 'named'
+- `props` (dict, optional): Additional key-value properties used to parametrize the component before registering it to overrides store. Defaults to None
+
+The `UI_OVERRIDES` configuration maps overridable component IDs to `UIComponent` instances:
+
+```python
+from oarepo_ui.ui.components import UIComponent
+
+UI_OVERRIDES = {
+    "overrides-documents.detail": {
+        "Documents.Detail.Metadata": UIComponent(
+            "MyCustomMetadataComponent",
+            "@js/my_app/components/CustomMetadata"
+        ),
+        "Documents.Detail.Actions": UIComponent(
+            "MyCustomActionsComponent", 
+            "@js/my_app/components/CustomActions",
+            "default",
+            {"extraProp": "value"}
+        ),
+    }
+}
+```
+
+Note: The keys in the nested dictionary (e.g., "Documents.Detail.Metadata") are the overridable component IDs that you want to replace, and the values are `UIComponent` instances that define what component to use as a replacement.
+
+4. Now you will have to rebuild all of your assets in order for these changes to take effect. In your virtual environment, run the following commands:
+```
+invenio webpack clean create
+invenio webpack install
+```
+
+Now you can reload your page and you should see your custom component.
+
+### Troubleshooting
+
+If your component is not being overridden, first make sure that this new javascript you 
+configured in your invenio.cfg is actually built in your assets.
+Check in .venv/var/instance/assets/js/_overrides folder to see
+if you have javascript file named overrides-documents.detail.js
+
+If you do not have this file, then you need to check your invenio.cfg
+and make sure you did not make any typos in the configuration and then
+after correcting it, run the following commands again:
+```
+invenio webpack clean create
+invenio webpack install
+```
