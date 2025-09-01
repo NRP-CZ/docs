@@ -1,0 +1,733 @@
+# Converting CCMM XML Schemas (XSD) to YAML specs
+
+This guide explains how to convert the CCMM XSD modules into the YAML specifications.
+
+## What does the YAML files describe?
+
+The YAML files describe the data model for your Invenio instance, including the structure, types, and relationships of the data elements. They serve as a machine-readable specification for the data schema.
+
+The root of the YAML file corresponds to type definitions. An example of a type definition in YAML is:
+
+```yaml
+MyProfileWeight:
+  type: object
+  properties:
+    value:
+      type: double
+    unit:
+      type: keyword
+      enum: [kg, g]
+```
+
+For simple type:
+
+```yaml
+MyProfileSimple:
+  type: keyword
+```
+
+For arrays:
+
+```yaml
+MyProfileMeasurements:
+  type: array
+  items:
+    type: MyProfileMeasurement
+```
+
+Single file can contain multiple definitions.
+
+```yaml
+MyProfileWeight:
+  ...
+MyProfileOrganismSize:
+  type: object
+  properties:
+    length:
+      type: double
+    unit: 
+      type: keyword
+      enum: [nm, um, mm, cm, m, km]
+```
+
+## Inputs and Outputs
+
+- You need the generated XSD files from DataSpecer as inputs. Do not re-declare base CCMM elements; they are added automatically by the Invenio repository.
+
+- The outputs will be the corresponding YAML specifications for your extension of the CCMM model. These will be used as model definitions when you create your Invenio instance.
+
+## Conventions
+
+- XSD uses snake_case for type names. YAML uses PascalCase.
+- In YAML, prefix your types with a unique prefix to differentiate them from CCMM types. All CCMM types will have the CCMM prefix (such as CCMMTimeReference)
+
+## Primitive data types
+
+- YAML uses the following primitive types: `keyword`, `fulltext`, `fulltext+keyword`, `integer`, `long`, `float`, `double`, `date`, `date_time`, `boolean`, `url`, and localized text `multilingual`/`i18nStr`.
+
+### Definition of data types:
+
+- `keyword`: A single string value, not analyzed for full-text search. Use it for short text values that should be always matched exactly. Example: units.
+- `fulltext`: A string value analyzed for full-text search. Use these for texts that should be searchable by words.
+- `fulltext+keyword`: A string value that is both analyzed for full-text search and has a non-analyzed keyword form.
+- `integer`: A 32-bit integer value.
+- `long`: A 64-bit integer value.
+- `float`: A 32-bit IEEE floating-point value.
+- `double`: A 64-bit IEEE floating-point value.
+- `date`: A date value (without time).
+- `date_time`: A date and time value.
+- `boolean`: A true/false value.
+- `url`: A resolvable URL/IRI intended for navigation (a specialization of keyword for links).
+- `i18nStr`: A single fulltext value that has associated a language tag.
+- `multilingual`: A value that is a collection of translations of a single term. For example, a vocabulary item has a title in multiple languages, this `title: { type: multilingual }`.
+
+## How to translate from XML schema to YAML data type
+
+<table>
+<tr>
+<th>Concept</th>
+<th>XML Schema</th>
+<th>YAML</th>
+</tr>
+<tr><td>Complex type</td><td>
+
+XML schema uses underscored names
+
+```xml
+<complexType name="foo_bar">
+  ...
+</complexType>
+```
+
+</td><td>
+
+YAML uses PascalCase names
+
+```yaml
+FooBar:
+  type: object
+  properties:
+    ...
+```
+
+</td></tr>
+
+<tr><td>Property names</td><td>
+
+XML schema uses underscored property names
+
+```xml
+<complexType name="foo_bar">
+  <sequence>
+    <element name="identifier" type="string"/>
+  </sequence>
+</complexType>
+```
+
+</td><td>
+
+YAML uses underscored names as well
+
+```yaml
+FooBar:
+  type: object
+  properties:
+    identifier:
+      type: keyword
+```
+
+</td></tr>
+
+<tr><td>Arrays (maxOccurs>1)</td><td>
+
+XML schema uses maxOccurs>1 to represent arrays
+
+```xml
+<complexType name="foo_bar">
+  <sequence>
+    <element name="identifier" 
+             maxOccurs="unbounded" type="string"/>
+  </sequence>
+</complexType>
+```
+
+</td><td>
+
+In YAML, please convert the property name to plural and use jsonschema array
+
+```yaml
+FooBar:
+  type: object
+  properties:
+    identifiers:
+      type: array
+      items:
+        type: keyword
+```
+
+</td></tr>
+
+<tr><td>Reference other types</td><td>
+
+In XML schema, you can reference other complex types using the `type` attribute.
+
+```xml
+<complexType name="foo_bar">
+  <sequence>
+    <element name="identifier" 
+             maxOccurs="unbounded" type="ccmm:identifier"/>
+  </sequence>
+</complexType>
+```
+
+</td><td>
+
+In YAML do the same, using the PascalCase name of the referenced type.
+
+```yaml
+FooBar:
+  type: object
+  properties:
+    identifiers:
+      type: array
+      items:
+        type: Identifier
+```
+
+</td></tr>
+
+<tr><td>IRIs</td><td>
+
+When CCMM asks for IRIs, add them as well, although they are not used by default
+(they make sense in RDF world in which CCMM is defined, but not so much sense in
+repository world).
+
+```xml
+<complexType name="foo_bar">
+  <sequence>
+    <element name="iri" type="anyURI"/>
+  </sequence>
+</complexType>
+```
+
+</td><td>
+
+In YAML, add the iri with type: keyword. Do not use the type URL as that is reserved
+for human readable referenceable URLs.
+
+```yaml
+FooBar:
+  type: object
+  properties:
+    iri:
+      type: keyword
+```
+
+</td></tr>
+
+<tr><td>Required elements</td><td>
+
+XML schema uses `minOccurs=1` for required elements
+
+```xml
+<complexType name="foo_bar">
+  <sequence>
+    <element name="identifier" minOccurs="1" type="string"/>
+  </sequence>
+</complexType>
+```
+
+</td><td>
+
+YAML uses `required: true`
+
+```yaml
+FooBar:
+  type: object
+  properties:
+    identifier:
+      type: keyword
+      required: true
+```
+
+</td></tr>
+
+</table>
+
+### Example
+
+```xml
+<xs:complexType name="identifier">
+  <xs:sequence>
+    <xs:element minOccurs="0" name="iri" type="xs:anyURI"/>
+    <xs:element name="value" type="xs:string"/>
+    <xs:element name="additional_value" maxOccurs="unbounded" type="xs:double"/>
+  </xs:sequence>
+</xs:complexType>
+```
+
+```yaml
+MyProfileIdentifier:      # changed from lowercase to PascalCase
+  type: object   # it was complexType, so its type is object in json
+  properties:    # object always has properties
+    iri:         # add the iri field
+      type: keyword  # always with keyword type
+    value:       # keep value snake case
+      type: keyword  # small string -> keyword
+    additional_values:  # pluralized because maxOccurs="unbounded"
+      type: array    # it is an array of doubles
+      items:
+        type: double
+```
+
+## Datatype mapping
+
+- `complexType` → `type: object`
+- `xs:string` → `type: keyword`, `fulltext`, `fulltext+keyword`
+  - with `lang` attribute -> `type: i18nStr`, `multilingual` (if translations of the same term), array of `i18nStr` (if multiple localized, unrelated values)
+- `xs:anyURI` → `type: keyword`, or `type: url` (if resolvable and navigable)
+- `xs:integer` → `type: integer`
+- `xs:long` → `type: long`
+- `xs:float` → `type: float`
+- `xs:double` → `type: double`
+- `xs:date` → `type: date`
+- `xs:dateTime` → `type: date_time`
+- Enumerations (facet restrictions on string) → prefer vocabulary if external/controlled; else `keyword` with an `enum` list (if used locally).
+
+## Language-tagged text
+
+XSD pattern used in CCMM vocabularies:
+
+```xml
+<xs:element name="label" [maxOccurs="unbounded"]>
+  <xs:complexType>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute ref="xml:lang" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+ </xs:element>
+```
+
+Mapping:
+
+- Single localized string that may vary by language (no maxOccurs) → `type: i18nStr`.
+
+```xml
+<xs:element name="label">
+  <xs:complexType>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute ref="xml:lang" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+ </xs:element>
+```
+
+```yaml
+properties:
+  label:
+    type: i18nStr
+```
+
+- Translations of a single concept (maxOccurs=unbounded) → `type: multilingual`.
+
+```xml
+<xs:element name="label" maxOccurs="unbounded">
+  <xs:complexType>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute ref="xml:lang" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+ </xs:element>
+```
+
+```yaml
+properties:
+  label:
+    type: multilingual
+```
+
+- Multiple localized strings that are unrelated (for example, unrelated keywords in multiple languages) → `type: array`, `items: { type: i18nStr }`.
+
+```xml
+<!--  array of unrelated language-tagged concepts  -->
+<xs:element name="keyword" maxOccurs="unbounded">
+  <xs:complexType>
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute ref="xml:lang" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+ </xs:element>
+```
+
+```yaml
+properties:
+  keywords:  # plural here
+    type: array
+    items:
+      type: i18nStr
+```
+
+## SAWSDL annotations (optional but recommended)
+
+When the XSD uses SAWSDL annotations (`sawsdl:modelReference`), carry the links over as YAML comments to preserve semantic alignment:
+
+```yaml
+title:
+  # sawsdl:modelReference=http://purl.org/dc/terms/title
+  type: multilingual
+```
+
+If the complex type itself has a `modelReference`, you can add the comment above the type block.
+
+## Recognizing vocabularies vs objects
+
+- Vocabulary-like complex types (e.g., `language_system`, `resource_type`, `identifier_scheme`, roles/types) have:
+  - a required `iri` (anyURI)
+  - repeated `label` with `xml:lang`
+  - are concept-like (SKOS Concept, DC Terms class)
+
+```xml
+  <xs:complexType name="resource_relation_type" 
+     sawsdl:modelReference="http://www.w3.org/2004/02/skos/core#Concept">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        Resource relation type - Type of the relation between the dataset and given resource.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="iri" type="xs:anyURI"/>
+      <xs:element minOccurs="0" maxOccurs="unbounded" name="label">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            label - Label of the relation type.
+          </xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+          <xs:simpleContent>
+            <xs:extension base="xs:string">
+              <xs:attribute ref="xml:lang" use="required"/>
+            </xs:extension>
+          </xs:simpleContent>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+```
+
+- For these, add entry like:
+
+```yaml
+ResourceRelationType:
+  type: vocabulary
+  vocabulary-type: resource-relation-types
+```
+
+- The `vocabulary-type` identifies the vocabulary inside the Invenio instance; it has no mapping in CCMM RDF. It should be a short slug (not an RDF namespace URL).
+
+## Labels, hints, help texts
+
+You can add labels, hints, and help texts to your YAML definitions to improve usability and clarity. These will be picked automatically by the UI library and you will not have to implement any additional logic to display them. You will also have a single place to manage all user-facing text.
+
+```yaml
+MyProfileIdentifier:
+  type: object
+  properties:
+    iri:
+      type: keyword
+      label:
+        en: "IRI"  # keep it short
+        cs: "IRI"
+      hint:  # optional, short text, will be always displayed in the edit form
+        en: "The IRI of the identifier"
+        cs: "IRI identifikátoru"
+      help:  # optional, long text, will be displayed in the edit form
+             # after clicking on the (?) icon
+        en: |
+          The IRI of the identifier is a unique resource identifier
+          that can be used to reference this identifier in other
+          systems. Adding it is useful for linking and discovering
+          related resources, thus improving interoperability.
+        cs: |
+          IRI identifikátoru je jedinečný identifikátor zdroje, který
+          lze použít k odkazu na tento identifikátor v jiných
+          systémech. Jeho přidání je užitečné pro propojení a
+          objevování souvisejících zdrojů, čímž se zlepšuje
+          interoperabilita.
+    value:
+      type: keyword
+      label:
+        en: "Value"
+        cs: "Hodnota"
+      hint:
+        en: "The value of the identifier"
+        cs: "Hodnota identifikátoru"
+    additional_values:
+      type: array
+      label:
+        en: "Additional Values"
+        cs: "Další hodnoty"
+      hint:
+        en: "Any additional values associated with the identifier"
+        cs: "Jakékoli další hodnoty spojené s identifikátorem"
+      items:
+        type: double
+```
+
+## More examples
+
+### Example 1 – Identifier (object with primitives and a vocabulary reference)
+
+XSD (excerpt):
+
+```xml
+<xs:complexType name="identifier">
+  <xs:sequence>
+    <xs:element minOccurs="0" name="iri" type="xs:anyURI"/>
+    <xs:element name="value" type="xs:string" />
+    <xs:element name="scheme" type="ccmm:identifier_scheme" />
+  </xs:sequence>
+</xs:complexType>
+```
+
+YAML:
+
+```yaml
+MyProfileIdentifier:
+  type: object
+  properties:
+    iri:
+      type: keyword
+    value:
+      type: keyword
+    scheme:
+      type: CCMMIdentifierScheme
+
+# included in CCMM, not repeated
+CCMMIdentifierScheme:
+  type: vocabulary
+  vocabulary-type: identifier-schemes
+```
+
+### Example 2 – AlternateTitle (multilingual + optional vocabulary)
+
+XSD (excerpt):
+
+```xml
+<xs:complexType name="alternate_title">
+  <xs:sequence>
+    <xs:element minOccurs="0" name="iri" type="xs:anyURI"/>
+    <xs:element maxOccurs="unbounded" name="title" > ... xml:lang ... </xs:element>
+    <xs:element minOccurs="0" name="alternate_title_type" type="ccmm:alternate_title_type"/>
+  </xs:sequence>
+  </xs:complexType>
+```
+
+YAML:
+
+```yaml
+MyProfileAlternateTitle:
+  type: object
+  properties:
+    iri:
+      type: keyword
+    title:
+      type: multilingual
+    alternate_title_type:
+      type: CCMMAlternateTitleType
+
+# included in CCMM, not repeated
+CCMMAlternateTitleType:
+  type: vocabulary
+  vocabulary-type: alternate-title-types
+```
+
+### Example 3 – MetadataRecord (arrays, references, pluralization)
+
+XSD (excerpt):
+
+```xml
+<xs:complexType name="metadata_record">
+  <xs:sequence>
+    <xs:element minOccurs="0" name="iri" type="xs:anyURI"/>
+    <xs:element minOccurs="0" maxOccurs="unbounded" name="date_updated" type="xs:date"/>
+    <xs:element minOccurs="0" name="date_created" type="xs:date"/>
+    <xs:element minOccurs="0" maxOccurs="unbounded" name="original_repository" type="ccmm:repository"/>
+    <xs:element minOccurs="0" maxOccurs="unbounded" name="conforms_to_standard" type="ccmm:application_profile"/>
+    <xs:element maxOccurs="unbounded" name="qualified_relation" type="ccmm:resource_to_agent_relationship"/>
+    <xs:element minOccurs="0" maxOccurs="unbounded" name="language" type="ccmm:language_system"/>
+  </xs:sequence>
+</xs:complexType>
+```
+
+YAML:
+
+```yaml
+MyProfileMetadataRecord:
+  type: object
+  properties:
+    iri:
+      type: keyword
+    dates_updated:
+      type: array
+      items: 
+        type: date
+    date_created:
+      type: date
+    original_repositories:
+      type: array
+      items: 
+        type: CCMMRepository
+    conforms_to_standards:
+      type: array
+      items: 
+        type: CCMMApplicationProfile
+    qualified_relations:
+      type: array
+      items: 
+        type: CCMMResourceToAgentRelationship
+    languages:
+      type: array
+      items: 
+        type: CCMMLanguageSystem
+
+# included in CCMM, not repeated
+CCMMApplicationProfile:
+  type: vocabulary
+  vocabulary-type: application-profiles
+CCMMLanguageSystem:
+  type: vocabulary
+  vocabulary-type: language-systems
+```
+
+### Example 4 – Resource (object with arrays, references, and vocabularies)
+
+XSD (excerpt):
+
+```xml
+<xs:complexType name="resource">
+  <xs:sequence>
+    <xs:element minOccurs="0" name="iri" type="xs:anyURI"/>
+    <xs:element minOccurs="0" name="title" type="xs:string" />
+    <xs:element minOccurs="0" name="resource_url" type="xs:anyURI" />
+    <xs:element minOccurs="0" maxOccurs="unbounded" name="qualified_relation" type="ccmm:resource_to_agent_relationship" />
+    <xs:element minOccurs="0" maxOccurs="unbounded" name="time_reference" type="ccmm:time_reference"/>
+    <xs:element minOccurs="0" maxOccurs="unbounded" name="identifier" type="ccmm:identifier"/>
+    <xs:element minOccurs="0" name="resource_type" type="ccmm:resource_type"/>
+    <xs:element minOccurs="0" name="resource_relation_type" type="ccmm:resource_relation_type"/>
+  </xs:sequence>
+</xs:complexType>
+```
+
+YAML:
+
+```yaml
+MyProfileResource:
+  type: object
+  properties:
+    iri: 
+      type: keyword
+    title:
+      type: keyword
+    resource_url:
+      type: url
+    qualified_relations:
+      type: array
+      items: 
+        type: CCMMResourceToAgentRelationship
+    time_references:
+      type: array
+      items: 
+        type: CCMMTimeReference
+    identifiers:
+      type: array
+      items: 
+        type: MyProfileIdentifier # defined in example above
+    resource_type:
+      type: CCMMResourceType
+    resource_relation_type:
+      type: CCMMResourceRelationType
+
+# included in CCMM, not repeated
+CCMMResourceType:
+  type: vocabulary
+  vocabulary-type: resource-types
+CCMMResourceRelationType:
+  type: vocabulary
+  vocabulary-type: resource-relation-types
+```
+
+## Step-by-step conversion checklist
+
+### 1. Collect modules and includes
+
+- Note `xs:include`/`xs:import` so referenced types are available.
+
+### 2. Define object types
+
+- For each XSD complex type, create/verify a top-level YAML section `PascalCaseName:` with `type: object` (unless it’s a vocabulary concept; see step 4).
+- Use a custom prefix (e.g., `MyProfile*`) to avoid collisions with CCMM types. Refer to CCMM types using their `CCMM*` names.
+
+### 3. Map elements to properties
+
+- For each `xs:element` in the sequence:
+  - Map datatype via the table above.
+  - If it refers to another CCMM type, map to that PascalCase type.
+  - Apply multiplicity → arrays and pluralized property names.
+  - Add `label`/`hint`/`help` from XSD documentation where available.
+
+### 4. Handle vocabularies
+
+- If the complex type is a concept with `iri` + localized `label` and aligns to SKOS/DCAT roles/types, treat it as a vocabulary type in most cases.
+- For vocabulary type, use existing slugs from the directory name (e.g., `language-systems`).
+
+### 5. Cross-reference cleanup
+
+- Ensure properties in `ccmm.yaml` that point to vocabularies use the PascalCase name defined in `ccmm-vocabularies.yaml`.
+
+### 6. Quick verification
+
+- Pick a small XML instance (e.g., `ccmm_sample.xml`) and check that every element can be located in YAML (by property name), and every referenced type exists.
+- Validate that language-tagged fields show as `multilingual` in YAML when XSD used `xml:lang` with maxOccurs.
+
+## Minimal template you can reuse
+
+Object skeleton:
+
+```yaml
+TypeName:
+  type: object
+  properties:
+    iri: 
+      type: keyword
+    property_a:
+      # sawsdl:modelReference=http://example
+      type: keyword
+    items_b:
+      type: array
+      items: 
+        type: OtherType
+```
+
+Vocabulary entry:
+
+```yaml
+VocabularyTypeName:
+  type: vocabulary
+  vocabulary-type: my-vocabulary-slug
+```
+
+## Quick do/don’t
+
+- Do: Keep custom type names unique and prefixed (e.g., `MyProfile*`).
+- Do: Reference CCMM-provided types with `CCMM*` names; don’t re-declare them.
+- Do: Use `url` for resolvable links; otherwise prefer `keyword` for short strings.
+- Don’t: Duplicate CCMM vocabulary/type definitions in your YAML; only reference them.
+- Don’t: Lose SAWSDL semantics—copy `modelReference` IRIs as comments where available.
