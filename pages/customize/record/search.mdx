@@ -6,16 +6,144 @@ Search UI plays a crucial role in helping users discover relevant records quickl
 
 ## Getting started
 
-To get started with search UI customizations, Search UI is provided 
+After you generate your repository, the basic search UI will be available in the search folder:
 
-## Overridable IDs
+```
+ui/model-name
+├── semantic-ui
+│   ├── js
+│       └── model-name
+│           └── search
+│               ├── index.js
+│               ├── ResultsGridItem.jsx
+│               └── ResultsListItem.jsx
+```
 
-The following is the list of known overridable IDs:
+The generated code in ResultsListItem is a minimalistic example of how to display search results. This code will be different
+depending on the metadata model you have chosen for your records. The code looks like this:
 
-<GitHubCode
-  repo="oarepo/oarepo-ui"
-  path="oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/constants.js"
+```jsx
+import React from "react";
+import PropTypes from "prop-types";
+import _get from "lodash/get";
+import _join from "lodash/join";
+import { Grid, Item, Label } from "semantic-ui-react";
+import { i18next } from "@translations/i18next";
+
+export const ResultsListItem = ({ result, ...rest }) => {
+  const accessRights = _get(result, "access_status", null);
+  const createdDate = _get(result, "created", "No creation date found.");
+  const languages = _get(result, "metadata.languages", []);
+  const version = _get(result, "metadata.version", null);
+  const title = _get(result, "metadata.title", i18next.t("No title"));
+  return (
+    <Item key={result.id} data-testid="result-item">
+      <Item.Content>
+        <Grid>
+          <Grid.Row>
+            <Grid.Column className="results-list item-main">
+              <div className="justify-space-between flex">
+                <Item.Header as="h2">
+                  <a href={result.links.self_html}>{title}</a>
+                </Item.Header>
+                <div className="item-access-rights">
+                  <Label title={result.state_timestamp}>{result.state}</Label>
+                  {accessRights && accessRights.id !== "open" && (
+                    <Label title={`${accessRights.description_l10n}`}>
+                      {accessRights.title_l10n}
+                    </Label>
+                  )}
+                </div>
+              </div>
+              <Item.Meta>
+                <Grid columns={1}>
+                  <Grid.Column>
+                    <Grid.Row className="ui separated">
+                      <span
+                        aria-label={i18next.t("Languages")}
+                        title={i18next.t("Languages")}
+                      >
+                        {_join(
+                          languages.map((l) => l.title),
+                          ", "
+                        )}
+                      </span>
+                    </Grid.Row>
+                  </Grid.Column>
+                </Grid>
+              </Item.Meta>
+              <Item.Extra>
+                <div>
+                  <small>
+                    <p>
+                      {createdDate && (
+                        <>
+                          {i18next.t("Uploaded on")} <span>{createdDate}</span>{" "}
+                          {version && `(${i18next.t("version")}: ${version})`}
+                        </>
+                      )}
+                    </p>
+                  </small>
+                </div>
+              </Item.Extra>
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
+      </Item.Content>
+    </Item>
+  );
+};
+
+ResultsListItem.propTypes = {
+  result: PropTypes.object.isRequired,
+};
+
+export default ResultsListItem;
+```
+
+Of course, you can change the code in any way you like and you have full control over it.
+General principle is that you extract the data you need from the result object and then place it in JSX code.
+
+## Understanding the result object
+
+The `result` object contains all the metadata for a record. Common properties include:
+
+- `id`: Unique identifier for the record
+- `links`: URLs related to the record (e.g., `links.self_html` for record details page)
+- `metadata`: Contains most of the record's metadata fields
+- `access_status`: Access rights information
+- `created`: Creation date
+- `state`: Current state of the record (e.g., published, draft)
+
+## Common customization examples
+
+Here are some examples of how you might customize the ResultsListItem:
+
+### Adding a thumbnail image
+
+```jsx
+<Item.Image
+  size="small"
+  src={_get(result, "metadata.thumbnailUrl", "/default-thumbnail.jpg")}
 />
+```
 
-## Component load order
+### Displaying additional metadata fields
 
+```jsx
+<div className="item-description">
+  <p>{_get(result, "metadata.description", "No description available")}</p>
+  <p>
+    Authors:{" "}
+    {_get(result, "metadata.authors", [])
+      .map((author) => author.name)
+      .join(", ")}
+  </p>
+</div>
+```
+
+Note: The simplest and quickest way to see what data is available in the result object is to check the network tab in your browser's developer tools while performing a search. You can inspect the JSON response to see the structure and available fields.
+
+### Changing the layout
+
+You can modify the Semantic UI components or replace them entirely with your own custom HTML/CSS structure to achieve the desired layout.
