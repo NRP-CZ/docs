@@ -1,82 +1,174 @@
 import {Difficulty} from '@/components/difficulty'
+import {ToDo} from '@/components/todo'
 
 # Initial data for vocabularies <Difficulty level="easy" />
 
-To import initial data into vocabularies, create a fixture and call importing the fixture.
+You have two options to add vocabularies to your repository:
 
-## Fixture catalogue file
+1. Put the required vocabulary files into the `app_data` folder inside your repository
+2. Create a python library with the vocabulary data and install it into your repository
 
-The vocabularies that will be imported are defined in a fixture catalogue file. The file is located at
-`fixtures/catalogue.yaml` and contains a list of vocabularies to be imported.
+## Using app_data folder
 
-```yaml
-Colors:
-- source: files/Colors.yaml
-- writer: vocabulary
-  vocabulary: Colors
-  pid_type: v-colo
-  title:
-    cs: Barvy a optické vlastnosti
-    en: Colors and Optical Properties
+Files in the `app_data` folder are automatically detected and loaded during the
+`./run.sh services setup` command and have the highest priority. The structure of the
+`app_data` folder is as follows:
+
+```bash
+app_data
+├── vocabularies           # folder containing vocabulary files
+│   ├── languages.yaml     # vocabulary file for 'languages' vocabulary
+│   └── names.yaml         # vocabulary file for 'names' vocabulary
+└── vocabularies.yaml      # catalogue file defining the vocabularies to be imported
 ```
 
-The `Colors:` defines the name of the item inside the catalogue.yaml (can be used for overriding the default fixture - see below).
+### Catalogue file
 
-The next line specifies, that the vocabulary content will be loaded from the file `files/Colors.yaml`. The `writer` line
-defines that the content of the file will be vocabulary records and thus the vocabulary service will be used.
-Then you need to define the target vocabulary (Colors in this case, must be unique) and pid type
-(up to 6 characters, must be unique). The last line defines the title of the vocabulary in different languages.
+```yaml
+The vocabularies that will be imported are defined in a fixture catalogue file. The file is located at
+`app_data/vocabularies.yaml` and contains a list of vocabularies to be imported.
+
+```yaml
+languages:
+  pid-type: v-lng
+  data-file: vocabularies/languages.yaml
+names:
+  pid-type: names
+  data-file: vocabularies/names.yaml
+```
+
+The `languages:` is the vocabulary identifier. It must be unique within the `vocabularies.yaml` file.
+The next line, `pid-type: lng` specifies the pid type to be used for the vocabulary (must be unique within the repository and at most 6 characters long). The `data-file:` line specifies the path to the vocabulary file, relative to the `app-data` folder.
 
 ## Vocabulary file
 
-Vocabulary file is a YAML multi-documents file containing the vocabulary records. The file is located at `fixtures/files/Colors.yaml`.
+Vocabulary file is a YAML document file containing the vocabulary records.
 
 ```yaml
-id: blue
-title:
-  en: Blue
-  cs: Modrá
----
-id: red
-title:
-  en: Red
-  cs: Červená
+# located at app_data/vocabularies/languages.yaml
+- id: eng
+  props:
+    alpha_2: en
+  tags:
+  - individual
+  - living
+  title:
+    en: English
+- id: ces
+  props:
+    alpha_2: cs
+  tags:
+  - individual
+  - living
+  title:
+    en: Czech
 ```
 
-Each document in the file represents a single vocabulary record. The first line specifies the record id, which must be unique
-within the vocabulary. The last section specifies the title of the record in different languages. You might add text props,
-keywords or custom fields here as well.
+Each member of the array represents a single vocabulary item.
+The first line specifies the id of the vocabulary item, which must be unique
+within the particular vocabulary (languages in this case). The last section specifies the title
+of the vocabulary item in different languages. You might add text props,
+tags or custom fields here as well.
 See [Invenio vocabularies schema](https://github.com/inveniosoftware/invenio-vocabularies/blob/master/invenio_vocabularies/records/jsonschemas/vocabularies/vocabulary-v1.0.0.json)
 for more information.
 
-**Note:** The vocabulary file must be a yaml, json or excel file. The yaml/json must have the structure as above,
-if you use an excel file the structure is more complicated - see [Czech NR vocabularies](https://github.com/Narodni-repozitar/nr-vocabularies/tree/main/nr_vocabularies/fixtures)
-for examples.
+## Using specific python package
 
-## Overriding the default fixture
+<ToDo/>
 
-If you use the nr-vocabularies package (installed by default if you use nr-data or nr-docs metadata model),
-the required vocabularies have already been installed for you. In some cases you might want to override them.
-To do so, change the following section inside pyproject.toml to:
+## Speeding up the initial data loading
 
-```toml
+For development purposes, you might want to speed up the initial data loading by reducing
+the number of vocabularies being loaded. You can do so by modifying the
+`app_data/vocabularies.yaml` file to only include the vocabularies you need.
 
-[project.entry-points."oarepo.fixtures"]
-100-uct-fixtures = "fixtures"
-```
-
-The added prefix `100-` will ensure that the fixture takes precedence.
-
-Then, put your overrides to `fixtures/catalogue.yaml`:
+Suggested changes:
 
 ```yaml
-vocabulary-institutions:
-  - source: ./institutions.yaml
-  - writer: vocabulary
-    vocabulary: institutions
-    pid_type: v-i
-    title:
-      cs: Instituce
-      en: Institutions
+# app_data/vocabularies.yaml
+languages:
+  pid-type: v-lng
+  data-file: vocabularies/languages.yaml
+names:
+  pid-type: v-names
+  data-file: vocabularies/names.yaml
+licenses:
+  pid-type: v-lic
+  data-file: vocabularies/licenses.csv
+code:developmentStatus: 
+  pid-type: v-devs
+  data-file: vocabularies/development_status.yaml
+code:programmingLanguages: 
+  pid-type: v-prg
+  data-file: vocabularies/programming_languages.yaml
 ```
 
+```yaml
+# app_data/vocabularies/languages.yaml
+- id: eng
+  props:
+    alpha_2: en
+  tags:
+  - individual
+  - living
+  title:
+    en: English
+- id: ces
+  props:
+    alpha_2: cs
+  tags:
+  - individual
+  - living
+  title:
+    en: Czech
+```
+
+```yaml
+# app_data/vocabularies/names.yaml
+- affiliations:
+  - name: Northwestern University
+  family_name: Riesbeck
+  given_name: Christopher
+  id: 0000-0001-7673-1000
+  identifiers:
+  - identifier: 0000-0001-7673-1000
+    scheme: orcid
+- affiliations:
+  - name: Helmholtz-Zentrum Dresden-Rossendorf
+  family_name: Hauser
+  given_name: Sandra
+  id: 0000-0001-8206-6000
+  identifiers:
+  - identifier: 0000-0001-8206-6000
+    scheme: orcid
+```
+
+```csv
+# app_data/vocabularies/licenses.csv
+id,title__en,description__en,icon,tags,props__url,props__scheme,props__osi_approved
+cc-by-4.0,Creative Commons Attribution 4.0 International,The Creative Commons Attribution license allows re-distribution and re-use of a licensed work on the condition that the creator is appropriately credited.,cc-by-icon,"recommended,all,data",https://creativecommons.org/licenses/by/4.0/,spdx,
+cc-by-nc-4.0,Creative Commons Attribution Non Commercial 4.0 International,,cc-by-nc-icon,"all,data",https://creativecommons.org/licenses/by-nc/4.0/,spdx,
+cc-by-nc-nd-4.0,Creative Commons Attribution Non Commercial No Derivatives 4.0 International,,cc-by-nc-nd-icon,"all,data",https://creativecommons.org/licenses/by-nc-nd/4.0/,spdx,
+cc-by-nc-sa-4.0,Creative Commons Attribution Non Commercial Share Alike 4.0 International,,cc-by-nc-sa-icon,"all,data",https://creativecommons.org/licenses/by-nc-sa/4.0/,spdx,
+cc-by-nd-4.0,Creative Commons Attribution No Derivatives 4.0 International,,cc-by-nd-icon,"all,data",https://creativecommons.org/licenses/by-nd/4.0/,spdx,
+cc-by-sa-4.0,Creative Commons Attribution Share Alike 4.0 International,Permits almost any use subject to providing credit and license notice. Frequently used for media assets and educational materials. The most common license for Open Access scientific publications. Not recommended for software.,cc-by-sa-icon,"recommended,all,data",https://creativecommons.org/licenses/by-sa/4.0/,spdx,
+cc0-1.0,Creative Commons Zero v1.0 Universal,CC0 waives copyright interest in a work you've created and dedicates it to the world-wide public domain. Use CC0 to opt out of copyright entirely and ensure your work has the widest reach.,cc-cc0-icon,"recommended,all,data,software",https://creativecommons.org/publicdomain/zero/1.0/,spdx,
+```
+
+```yaml
+# app_data/vocabularies/development_status.yaml
+[]
+```
+
+```yaml
+# app_data/vocabularies/programming_languages.yaml
+[]
+```
+
+## Not using rdm vocabularies at all
+
+<ToDo/>
+
+## See also
+
+Invenio  RDM documentation on [vocabularies](https://inveniordm.docs.cern.ch/operate/customize/vocabularies/)

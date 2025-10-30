@@ -1,0 +1,92 @@
+# Model customization
+
+This section describes how to customize metadata models in your NRP-based repository.
+
+## Create a new metadata schema
+
+To add a new metadata schema, use the `model create` command. You need to supply a pythonic name for the model (e.g. `equipment`). The name must be *different* from existing models or the name of the repository.
+
+```bash
+❯ ./run.sh model create equipment
+...
+```
+
+When the new model is created, it can be based on one of the following base models:
+
+* **ccmm** (stands for the czech code metadata model)
+* **rdm** (minimal model that can use features provided by Invenio RDM, such as communities, etc)
+* **empty** (no predefined fields)
+
+We recommend to start from the `ccmm` or `rdm` base models.
+
+## Adding new metadata to the model
+
+After the model has been created, you can customize the metadata schema by editing the `metadata.yaml` file located in the model directory (e.g. `equipment/metadata.yaml`).
+
+Under the Metadata section, you can define new metadata fields. For example, to add `serial_number` and `manufacturer` fields to the `equipment` model, you can modify the `metadata.yaml` file as follows:
+
+```yaml
+# Definition of metadata for equipment. Please do not add ccmm model here,
+# add the ccmm_preset instead.
+Metadata:
+  properties:
+    serial_number:
+      type: keyword
+      label:
+        en: Serial Number
+        cs: Sériové číslo
+      help:
+        en: The serial number of the equipment.
+        cs: Sériové číslo zařízení.
+      hint:
+        en: Unique identifier assigned by the manufacturer.
+        cs: Unikátní identifikátor přidělený výrobcem.
+    manufacturer:
+      type: keyword
+      label:
+        en: Manufacturer
+        cs: Výrobce
+      help:
+        en: The manufacturer of the equipment.
+        cs: Výrobce zařízení.
+      hint:
+        en: Name of the company that produced the equipment.
+        cs: Název společnosti, která zařízení vyrobila.
+```
+
+If you need to add more complex fields, such as nested objects, create a top-level definition and then reference it in the `Metadata` section.
+
+```yaml
+Warranty:
+  type: object
+  properties:
+    period:
+      type: int
+      label:
+        en: Warranty Period (months)
+        cs: Záruční doba (měsíce)
+    provider:
+      type: keyword
+      label:
+        en: Warranty Provider 
+        cs: Poskytovatel záruky
+
+Metadata:
+  type: object
+  properties:
+    warranty:
+      type: Warranty
+      label:
+        en: Warranty Information
+        cs: Informace o záruce
+```
+
+You can create multiple yaml files in the model directory to organize your definitions better and reference them from the model.py file.
+
+For more details, see the [metadata reference](./model_reference.md).
+
+## Adding custom export formats
+
+
+
+## Adding custom import formats
