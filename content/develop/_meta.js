@@ -2,9 +2,6 @@ export default {
   "index": {
     "title": "Developer reference"
   },
-  "api": {
-    "title": "API reference"
-  },
   "client": {
     "title": "Python client library"
   },
