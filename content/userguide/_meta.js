@@ -1,4 +1,4 @@
-{
+export default {
   "index": {
     "title": "User Guide",
     "type": "page"

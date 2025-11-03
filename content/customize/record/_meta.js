@@ -1,4 +1,4 @@
-{
+export default {
     "permissions": "Permissions",
     "": "---",
     "react-components": "React components",

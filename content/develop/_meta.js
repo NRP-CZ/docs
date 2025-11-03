@@ -1,4 +1,4 @@
-{
+export default {
   "index": {
     "title": "Developer reference"
   },
