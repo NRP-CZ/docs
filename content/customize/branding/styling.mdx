@@ -1,4 +1,4 @@
-import { Cards, Card, FileTree, Callout, Steps } from "nextra/components";
+import { Cards, FileTree, Callout, Steps } from "nextra/components";
 import { Difficulty } from "@/components/difficulty";
 
 **TODO: RDM 12 version, update to RDM14**
@@ -33,11 +33,11 @@ This file is located in the `ui/branding/semantic-ui/less/globals` folder:
 For a complete list of possible LESS styling variables, please refer to:
 
 <Cards>
-  <Card
+  <Cards.Card
     title="Invenio Theme Global Variables Reference"
     href="https://github.com/inveniosoftware/invenio-theme/blob/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme/globals/site.variables"
   />
-  <Card
+  <Cards.Card
     title="SemanticUI Default Theme Variables Reference"
     href="https://github.com/Semantic-Org/Semantic-UI/blob/master/src/themes/default/globals/site.variables"
   />
@@ -69,11 +69,11 @@ To customize the appearance of a UI component, you can override its default vari
 For a full list of UI components usable in a NRP repository site, please refer to:
 
 <Cards>
-  <Card
+  <Cards.Card
     title="Semantic UI docs"
     href="https://semantic-ui.com/introduction/getting-started.html"
   />
-  <Card
+  <Cards.Card
     title="Default Semantic UI component style definitions"
     href="https://github.com/Semantic-Org/Semantic-UI/tree/master/src/definitions"
   />
@@ -87,11 +87,11 @@ Look up the default variable definitions for the component you want to customize
 and find out a variable that you want to tweak to get the desired effect. Then override that variable by defining it in the `{componentType}/{component}.variables` file under the [`branding`](/customize/branding/theme#creatingoverriding-files-under-the-branding-folder) folder.
 
 <Cards>
-  <Card
+  <Cards.Card
     title="Default SemanticUI component variables"
     href="https://github.com/Semantic-Org/Semantic-UI/tree/master/src/themes/default"
   />
-  <Card
+  <Cards.Card
     title="Default Invenio Theme component variables"
     href="https://github.com/inveniosoftware/invenio-theme/tree/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme"
   />

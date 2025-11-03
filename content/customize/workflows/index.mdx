@@ -1,12 +1,9 @@
-import { Cards } from 'nextra/components'
+import { Cards, Mermaid } from 'nextra/components'
 import { Card } from "@/components/card";
-import { ToDo } from "@/components/todo";
 
 **TODO: RDM 12 version, update to RDM14**
 
 # Workflows
-
-<ToDo />
 
 ## Overview
 
@@ -51,7 +48,7 @@ The following diagram illustrates a sample workflow for a record.
 
 **Note:** If a user with elevated permissions (e.g., a reviewer) creates the draft, certain workflow steps may be skipped.
 
-```mermaid
+<Mermaid>
 flowchart TB
 published --> draft_v2
 subgraph V1 
@@ -75,7 +72,7 @@ subgraph V2
     draft_v2 --> rest
     rest[...]
 end
-```
+</Mermaid>
 
 On record, the state is represented as a read-only field `state`.
 
@@ -138,14 +135,14 @@ For example, the review request:
 4. If it is approved, the record moves to state "published"
 5. If it is rejected, the record moves back to state "draft"
 
-```mermaid
+<Mermaid>
 flowchart TB
 draft[Record is in **'draft'** state]
 submitted[Record automatically 
 changes to 
 **'being approved'**
 state]
-review_request{Review request}
+review_request{"Review request"}
 draft -- record owner 
 creates and submits 
 review request --> review_request
@@ -154,7 +151,7 @@ review_request -- "when request is approved" --> approved[Record automatically
 changes to **'published'** 
 state]
 review_request -- "when request is rejected" --> draft
-```
+</Mermaid>
 
 ## Real-world example
 
