@@ -10,5 +10,6 @@ export default {
   images: {
     unoptimized: true,
   },
-  basePath: "/docs"
+  basePath: "/docs",
+  output: 'export',
 }
