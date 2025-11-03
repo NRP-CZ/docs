@@ -1,13 +1,12 @@
-import React from "react";
+'use client';
+import React, { useState } from "react";
 import { Pre, Code } from "nextra/components";
-import {getHighlighter} from "shiki";
-import { BUNDLED_LANGUAGES, BUNDLED_THEMES } from 'shiki'
-import rehypePrettyCode from 'rehype-pretty-code'
+import rehypePrettyCode from 'rehype-pretty-code';
 
 export function useGitHubCode({ repo, branch = "main", path }) {
   const viewUrl = `https://github.com/${repo}/tree/${branch}/${path}`;
   const rawUrl = `https://raw.githubusercontent.com/${repo}/${branch}/${path}`;
-  const [content, setContent] = React.useState(null);
+  const [content, setContent] = useState(null);
   const extension = path.split(".").pop();
   console.log(rehypePrettyCode)
 
@@ -31,7 +30,7 @@ export function GitHubCode({ title = "GitHub", repo, branch = "main", path }) {
 
   if (content) {
     return (
-      <Pre filename={viewUrl} hasCopyCode={true} {...codeProps}>
+      <Pre data-filename={viewUrl} {...codeProps}>
         <Code {...codeProps}>
           {content.split("\n").map((line, lineNum) => (
             <span className="line" key={lineNum}>

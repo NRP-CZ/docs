@@ -57,7 +57,7 @@ Here's how you would write the equivalent code using JinjaX components:
   <div>
     <h2>Hello, {{ msg }}</h2>
     <div>
-      <Card title="So clean">
+      <Cards.Card title="So clean">
         {% for product in products %}
           <Product :product="product" />
         {% endfor %}
@@ -72,7 +72,7 @@ Here's how you would write the equivalent code using JinjaX components:
 - **Syntax**: Instead of importing and calling macros, you define and use components directly in the template using a
 syntax that resembles React. This approach is more declarative and easier to read.
 - **Props (attributes)**: JinjaX allows you to pass variables to components as attributes (props), similar to how you
-would pass props in React. For example, `<Card div="So clean">` passes the string "So clean" to the div prop of the Card component.
+would pass props in React. For example, `<Cards.Card div="So clean">` passes the string "So clean" to the div prop of the Card component.
 - **Self-closing tags**: Components that do not require content between their opening and closing tags can be self-closed
 using `/>`, like `<Product :product="product" />`.
 - **Declarative Layout**: By using components like `<Layout>` and `<Paginator>`, your template structure is more
@@ -96,7 +96,7 @@ Here’s an example of how you might define a Card component:
 
 When used in another template as:
 ```jsx
-<Card title="Products" class="mb-10" open>bla</Card>
+<Cards.Card title="Products" class="mb-10" open>bla</Card>
 ```
 
 It will render into a HTML page as:
