@@ -1,4 +1,4 @@
-{
+export default {
   "index": {
     "type": "page",
     "title": "NRP Documentation",
@@ -6,10 +6,6 @@
   },
   "overview": {
     "title": "Overview",
-    "type": "page"
-  },
-  "features": {
-    "title": "Features",
     "type": "page"
   },
   "get_started": {
