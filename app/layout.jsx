@@ -1,5 +1,5 @@
 /* eslint-env node */
-import { Footer, Layout, Navbar } from 'nextra-theme-docs'
+import { Footer, Layout, Link, Navbar } from 'nextra-theme-docs'
 import { Head } from 'nextra/components'
 import { getPageMap } from 'nextra/page-map'
 import 'nextra-theme-docs/style.css'
@@ -46,7 +46,7 @@ export default async function RootLayout({ children }) {
       <body>
         <Layout
           navbar={navbar}
-          footer={<Footer>MIT {new Date().getFullYear()} © CESNET.</Footer>}
+          footer={<Footer>MIT {new Date().getFullYear()} © <Link href="https://cesnet.cz"> CESNET a.l.e.</Link></Footer>}
           editLink="Edit this page on GitHub"
           docsRepositoryBase="https://github.com/NRP-CZ/docs"
           sidebar={{ defaultMenuCollapseLevel: 1 }}

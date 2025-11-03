@@ -1,5 +1,6 @@
 import cn from "clsx";
 import Link from "next/link"
+import { Cards } from "nextra/components";
 
 var classes = {
     card: cn(
@@ -19,16 +20,11 @@ var classes = {
   };
 
 export function Card ({ href, title, children, arrow }) {
-
-    const arrowEl = <span className="nx-transition-transform nx-duration-75 group-hover:nx-translate-x-[2px]">{"\u2192"}</span>
-
-    return <div className={classes.card}>
-        <Link href={href}>
-            <span className={classes.title}>{title}{arrow && arrowEl}</span>
-            
-            <div className={classes.content}>{children}</div>
-        </Link>
-    </div>
+    return <Cards.Card title={title} arrow href={href}>
+      <span className="x:flex x:items-center x:gap-2 x:p-4 x:text-gray-600 x:hover:text-gray-900 x:after:transition-transform x:after:duration-75 x:group-hover:after:translate-x-0.5 x:group-focus:after:translate-x-0.5 x:dark:text-gray-300 x:dark:hover:text-gray-100">
+        {children}
+      </span>
+    </Cards.Card>
 }
 
 export default Card;

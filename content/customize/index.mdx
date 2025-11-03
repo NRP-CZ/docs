@@ -1,3 +1,7 @@
+---
+sidebarTitle: Overview
+---
+
 import { Cards } from 'nextra/components'
 import { Card } from "@/components/card";
 
@@ -49,7 +53,7 @@ Each repository is backed by a Python package that defines:
    - Metadata previews, editors, or panels specific to that repository's schema
 
 4. **Automatic discovery and integration**  
-   During build time, NRP’s frontend toolchain automatically collects and merges all UI components, templates, and assets from installed packages into a unified frontend build.
+   During build time, NRP's frontend toolchain automatically collects and merges all UI components, templates, and assets from installed packages into a unified frontend build.
 
 ---
 
@@ -71,11 +75,11 @@ Each level builds on the previous one, allowing you to customize globally or loc
 
 | Aspect | InvenioRDM | NRP |
 |--------|------------|-----|
-| Metadata model | Single RDM schema (applies to all records) | One or more custom record schema |
-| Frontend | Specific components implemented for a single RDM record schema | Higher-level components composed from shared RDM & NRP components |
-| Form configuration | Static implementation specific to RDM record schema | Start with a basic form & plug-in more form fields according to record schema |
-| Search results | Only single RDM schema-based type of record search result possible | Each record schema can have its own search result representation |
-| Customization goal | Branding and small UI tweaks | Full domain-specific metadata UI per repository |
+| **Metadata model** | Single RDM schema (applies to all records) | One or more custom record schema |
+| **Frontend** | Specific components implemented for a single RDM record schema | Higher-level components composed from shared RDM & NRP components |
+| **Form configuration** | Static implementation specific to RDM record schema | Start with a basic form & plug-in more form fields according to record schema |
+| **Search results** | Only single RDM schema-based type of record search result possible | Each record schema can have its own search result representation |
+| **Customization goal** | Branding and small UI tweaks | Full domain-specific metadata UI per repository |
 
 This means that in NRP, customizing the repository frontend is not just about changing colors or layout — it's about connecting your **metadata model** directly to your **user interface**.
 
@@ -96,17 +100,17 @@ For background reference, consult the upstream [InvenioRDM customization documen
 These affect **global look and feel, branding, and theming** across the repository. They generally do **not require coding**.
 
 <Cards>
-  <Cards.Card title='Branding & Theme' arrow href="/customize/branding/theme">
-    Change typography, color palette, logo, base page layout, and copywriting.
-  </Cards.Card>
+  <Card title='Branding & Theme' arrow href="/customize/branding/theme">
+    <p>Change typography, color palette, logo, base page layout, and copywriting.</p>
+  </Card>
 
-  <Cards.Card title='Translations' arrow href="/customize/translations">
+  <Card title='Translations' arrow href="/customize/translations">
     Translate the UI into your language or customize existing labels and hints.
-  </Cards.Card>
+  </Card>
 
-  <Cards.Card title='Vocabularies (initial data)' arrow href="/customize/vocabularies/initial_data">
+  <Card title='Vocabularies (initial data)' arrow href="/customize/vocabularies/initial_data">
     Provide default values for controlled vocabularies used across records.
-  </Cards.Card>
+  </Card>
 </Cards>
 
 ---
@@ -116,21 +120,21 @@ These affect **global look and feel, branding, and theming** across the reposito
 These customizations are **specific to a repository's record models**. They affect pages and components related to records, search results, and forms.
 
 <Cards>
-  <Cards.Card title='Custom metadata fields' arrow href="/customize/record/custom_fields">
+  <Card title='Custom metadata fields' arrow href="/customize/record/custom_fields">
     Add new metadata fields to records. Supports simple types like text, dates, or controlled vocabularies.
-  </Cards.Card>
-  <Cards.Card title='Record landing page' arrow href="/customize/record/detail">
+  </Card>
+  <Card title='Record landing page' arrow href="/customize/record/detail">
     Change the order or visibility of fields on the record detail page, or provide custom React components for advanced models.
-  </Cards.Card>
-  <Cards.Card title='Record deposition form' arrow href="/customize/record/deposit">
+  </Card>
+  <Card title='Record deposition form' arrow href="/customize/record/deposit">
     Reorder fields in the deposit form or provide custom UI components for new field types.
-  </Cards.Card>
-  <Cards.Card title='Search results item' arrow href="/customize/record/search">
+  </Card>
+  <Card title='Search results item' arrow href="/customize/record/search">
     Customize how search results are displayed, including fields, ordering, and faceting.
-  </Cards.Card>
-  <Cards.Card title='Record workflows' arrow href="/customize/workflows">
+  </Card>
+  <Card title='Record workflows' arrow href="/customize/workflows">
     Customize approval processes and workflows for the repository’s records.
-  </Cards.Card>
+  </Card>
 </Cards>
 
 ---
@@ -140,19 +144,19 @@ These customizations are **specific to a repository's record models**. They affe
 These require **coding experience in Python, Jinja, or React/JS**. They allow **fine-grained overrides** of UI components.
 
 <Cards>
-  <Cards.Card title='Page templates' arrow href="/customize/branding/templating">
+  <Card title='Page templates' arrow href="/customize/branding/templating">
     Modify page layouts or create your own templates using Jinja or React.
-  </Cards.Card>
-  <Cards.Card title='Complex custom fields' arrow href="/customize/record/complex_fields">
+  </Card>
+  <Card title='Complex custom fields' arrow href="/customize/record/complex_fields">
     Add metadata fields with complex data types, nested structures, or special widgets.
-  </Cards.Card>
-  <Cards.Card title='Complex validation' arrow href="/customize/record/complex_validation">
+  </Card>
+  <Card title='Complex validation' arrow href="/customize/record/complex_validation">
     Implement advanced validation rules for metadata fields, enforced in deposit forms and backend APIs.
-  </Cards.Card>
-  <Cards.Card title='Editable vocabularies' arrow href="/customize/vocabularies/editable">
+  </Card>
+  <Card title='Editable vocabularies' arrow href="/customize/vocabularies/editable">
     Allow users to create or extend controlled vocabulary items dynamically.
-  </Cards.Card>
-  <Cards.Card title='Fine-grained component overrides' arrow href="/customize/record/components">
+  </Card>
+  <Card title='Fine-grained component overrides' arrow href="/customize/record/components">
     Override default React components for fields, record pages, or search items to change behavior or appearance.
-  </Cards.Card>
+  </Card>
 </Cards>
