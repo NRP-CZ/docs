@@ -1,22 +1,18 @@
 export default {
     "index": {
-        "type": "page",
-        "title": "Customize"
+        "title": "Customize",
+        "display": "normal"
     },
     "branding": {
-        "type": "page",
         "title": "Branding"
     },
     "record": {
-        "type": "page",
         "title": "Records"
     },
     "vocabularies": {
-        "type": "page",
         "title": "Vocabularies"
     },
     "workflows": {
-        "type": "page",
         "title": "Record workflows"
     }
 }

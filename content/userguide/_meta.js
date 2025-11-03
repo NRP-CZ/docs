@@ -1,7 +1,6 @@
 export default {
   "index": {
     "title": "User Guide",
-    "type": "page"
   },
   "commandline": {
     "title": "Commandline tools"
