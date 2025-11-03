@@ -1,4 +1,4 @@
-{
+export default {
     "theme": "Theme",
     "styling": "Styling",
     "colors": "Colors",
