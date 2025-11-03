@@ -20,6 +20,10 @@ To install CESNET flavour of Invenio repository, you will need to have the follo
 
 To get the installation package, download the installer from [repository_installer.sh](https://raw.githubusercontent.com/oarepo/oarepo/refs/heads/main/tools/repository_installer.sh).
 
+```bash
+❯ curl -o repository_installer.sh https://raw.githubusercontent.com/oarepo/oarepo/refs/heads/main/tools/repository_installer.sh
+```
+
 ### Run the installer to create a new repository
 
 Now run the installer to scaffold a new repository in the current directory::
@@ -134,6 +138,11 @@ The model created in the steps above contains a basic metadata schema. Before co
 If your metadata schema uses vocabularies, you need to declare them in the metadata schema and import them to the repository. More information about vocabularies are in the [vocabulary guide](./customize/vocabularies).
 
 **Note:** the default implementation adds rdm-compatible vocabularies which can take significant time to load during the first run. If you do not need them or want to use a reduced set, please see the [initial data for vocabularies](./customize/vocabularies/initial_data) for instructions on how to customize them.
+
+### Add exports
+
+You need to add at least a datacite export for you new model. This is required not only for DOI registration, but also for other parts of Invenio, such as tombstone page when a record is deleted, proper citation generation and signposting headers.
+See the [export customization guide](./develop/exports) for more information.
 
 ### Install the backend and build the frontend
 
