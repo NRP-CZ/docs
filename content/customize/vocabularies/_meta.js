@@ -1,4 +1,4 @@
-{
+export default {
     "index": "Vocabularies",
     "initial_data": "Initial Data",
     "editable": "Editable vocabularies",
