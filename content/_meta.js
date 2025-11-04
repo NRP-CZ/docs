@@ -8,7 +8,7 @@ export default {
     "title": "Overview",
     "type": "page"
   },
-  "get_started": {
+  "installation": {
     "title": "» Get Started",
     "type": "page"
   },
@@ -22,10 +22,6 @@ export default {
   },
   "customize": {
     "title": "Customize",
-    "type": "page"
-  },
-  "develop": {
-    "title": "Develop",
     "type": "page"
   },
   "deploy": {
