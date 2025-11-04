@@ -42,7 +42,7 @@ A `serializers.py` file has already been created in your model directory.
 You can add your custom serializer classes there, or create separate
 files for each serializer if you prefer.
 
-### Serializing to JSON
+#### Serializing to JSON
 
 If the export format is JSON, you can
 use the existing `flask_resources.MarshmallowSerializer` as the base class. Example:
@@ -50,25 +50,26 @@ use the existing `flask_resources.MarshmallowSerializer` as the base class. Exam
 ```python
 from flask_resources import BaseListSchema, MarshmallowSerializer
 from flask_resources.serializers import BaseSerializerSchema, JSONSerializer
+from marshmallow import fields
 
 
 class MyJSONSerializer(MarshmallowSerializer):
-    """Marshmallow based serializer for records."""
+    """Marshmallow-based serializer for records."""
 
     def __init__(self, **options):
         """Constructor."""
         super().__init__(
-            format_serializer_cls=JSONSerializer, # the resulting format is JSON
-            object_schema_cls=MySchema, # schema for single object
-            list_schema_cls=BaseListSchema, # schema for list of objects
+            format_serializer_cls=JSONSerializer,  # the resulting format is JSON
+            object_schema_cls=MySchema,  # schema for single object
+            list_schema_cls=BaseListSchema,  # schema for list of objects
             schema_kwargs={},
             **options,
         )
 
 class MySchema(BaseSerializerSchema):
-    """My schema."""
+    """Schema for serializing records to custom JSON format."""
 
-    # TODO: implement the schema fields
+    # Define the fields to include in the export
     title = fields.String(attribute="metadata.title")
     serial_number = fields.String(attribute="metadata.serial_number")
     manufacturer = fields.String(attribute="metadata.manufacturer")
@@ -77,22 +78,22 @@ class MySchema(BaseSerializerSchema):
 The `MarshmallowSerializer` is responsible for calling `MySchema` on each serialized record. The `MySchema` class
 is where you define the actual fields and their serialization logic. Refer to the [Marshmallow documentation](https://marshmallow.readthedocs.io/en/stable/) for more details on defining schemas and fields.
 
-### Serializing to other formats
+#### Serializing to other formats
 
-Let's create an example: we'll add a simple CSV export format for a metadata schema called `equipment`.
-The CSV will contain only three fields: `name`, `serial_number`, and `manufacturer`.
+To serialize to other formats, you have two options:
 
-**Note:** This is a synthetic example to illustrate how to create a custom serializer. For CSV export in real scenarios, you might want to use a combination of `MarshmallowSerializer` with a format serializer that handles CSV. See [flask-resources](https://github.com/inveniosoftware/flask-resources/tree/master/flask_resources/serializers) for more details.
+1. Inherit from `MarshmallowSerializer` and provide a different format serializer class (for example, `XMLSerializer`) - see [flask-resources](https://github.com/inveniosoftware/flask-resources/tree/master/flask_resources/serializers) for more details.
+2. Inherit directly from `BaseSerializer` and implement the `serialize_object` and `serialize_object_list` methods.
 
-### Create the serializer class
-
-We'll create a custom serializer by inheriting directly from `BaseSerializer`.
+Here we'll use the second option and create a CSV serializer from scratch. Note that this is a synthetic example to illustrate how to create a custom serializer. For CSV export in real scenarios, you'd want to use a combination of `MarshmallowSerializer` with a format serializer that handles CSV.
 
 ```python
 import csv
 from flask_resources.serializers.base import BaseSerializer
 
 class CSVSerializer(BaseSerializer):
+    """Custom serializer for exporting records to CSV format."""
+    
     header = ['name', 'serial_number', 'manufacturer']
 
     def serialize_object(self, obj: dict):
@@ -125,3 +126,25 @@ class CSVSerializer(BaseSerializer):
             metadata.get('manufacturer', ''),
         ]
 ```
+
+### Registering the custom serializer
+
+Once you've created your custom serializer, register it in your model's customization section:
+
+```python
+my_model = model(
+    # ...
+    customizations=[
+        AddMetadataExport(
+            code="csv",
+            name=_("CSV export"),
+            mimetype="text/csv",
+            serializer=CSVSerializer(),
+        ),
+    ],
+)
+```
+
+## Adding custom import formats
+
+TODO
