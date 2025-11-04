@@ -1,0 +1,163 @@
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+
+# Create a new repository
+
+Refer to the [Getting started](/get_started) guide to verify that you have all the prerequisites installed.
+
+## Download the installer
+
+To get the installation package, download the installer from [repository_installer.sh](https://raw.githubusercontent.com/oarepo/oarepo/refs/heads/main/tools/repository_installer.sh).
+
+```bash
+curl -o repository_installer.sh \
+    https://raw.githubusercontent.com/oarepo/oarepo/refs/heads/main/tools/repository_installer.sh
+```
+
+## Run the installer to create a new repository
+
+Now run the installer to scaffold a new repository in the current directory:
+
+```bash
+❯ bash repository_installer.sh instruments
+
+Creating repository 'instruments' using template 'https://github.com/oarepo/nrp-app-copier' with version 'rdm-14'...
+Using template from GitHub: https://github.com/oarepo/nrp-app-copier with version rdm-14
+Installed 23 packages in 37ms
+🎤 Human readable name of the repository
+   Instruments
+🎤 Description of the repository
+    (Finish with 'Alt+Enter' or 'Esc then Enter')
+> Repository for laboratory equipment
+ 
+🎤 List of languages to use in the repository,
+2 letter code separated by either comma or space.
+English is implicit, do not include it.
+ 
+
+Copying from template version 0.0.0.post66.dev0+cab83e5
+...
+```
+
+This will create a new directory `instruments` with the repository code.
+
+## Change to the repository directory
+
+```bash
+❯ cd instruments
+❯ ./run.sh
+Usage: run.sh command [options]
+
+Commands:
+  install                    Install the repository
+  services setup             Set up Docker services
+  services start             Start Docker services
+  services stop              Stop Docker services
+  model create [config-file]   Create a new record model
+  model update [model-name] [answers-file] Update an existing record model.
+      Answers file is optional.
+  run                        Run the repository
+      [--no-services]        Do not start Docker services
+      [--no-celery]          Do not start background tasks
+  cli [subcommand]           Run the invenio-cli command
+
+  self-update                Update the runner script to the latest version
+Options:
+  --help                     Show this help message
+```
+
+## Check prerequisites
+
+Let's verify that all prerequisites are met. Run the following command in the repository directory:
+
+```bash
+❯ ./run.sh cli check-requirements -d
+
+Checking pre-requirements...
+Checking Python version...
+Python version OK. Got 3.13.2.
+Checking Pipenv is installed...
+Pipenv OK. Got version 2025.0.4.
+Checking Docker version...
+Docker version OK. Got 28.3.3.
+Checking Docker Compose version...
+Docker Compose version OK. Got 2.39.2.
+Checking Node version...
+Node version OK. Got 20.9.0.
+Checking NPM version...
+NPM version OK. Got 10.1.0.
+Checking ImageMagick version...
+ImageMagick version OK. Got 7.1.2.
+Checking git version...
+git version OK. Got 2.50.1.
+All prerequisites are met.
+```
+
+## Add a metadata schema
+
+To add a new metadata schema, use the `model create` command. You need to provide a Python-style name for the model (e.g., `equipment`). The name must be *different* from existing models and the repository name.
+
+When creating the model, you'll choose from one of the following templates:
+
+* **ccmm** (Czech Code Metadata Model)
+* **rdm** (Research Data Management)
+  * **minimal** - A basic model that supports Invenio RDM features like communities and requests. Some features may not work (e.g., records won't appear in the administration interface).
+  * **basic** - Includes commonly used fields such as creators, contributors, and resource types.
+  * **full** - Includes all Invenio RDM features.
+* **empty** (no predefined fields)
+
+We recommend starting with either `ccmm` or `rdm full` templates. You can change the template later by editing the `model.py` file in the model directory, but this will cause data loss if you have already created records using the model.
+
+
+```bash
+❯ ./run.sh model create equipment
+Using template from GitHub: https://github.com/oarepo/nrp-model-copier with version rdm-14
+🎤 Human readable name of the model
+   Equipment
+🎤 Description of the model
+    (Finish with 'Alt+Enter' or 'Esc then Enter')
+> Model for equipment registration
+...
+Copying from template version 0.0.0.post56.dev0+fd459fc
+    create  ui/equipment
+     ...
+    create  equipment
+    create  equipment/__init__.py
+    create  equipment/metadata.yaml
+    create  equipment/model.py
+
+ > Running task 1 of 2: ['register_to_pyproject.py', 'equipment']
+ > Running task 2 of 2: ['register_to_invenio_cfg.py', 'equipment', 'equipment']
+```
+
+## Customize the metadata schema
+
+Regardless of the template you chose in the previous step, you may want to add more metadata fields (especially if your model is based on an empty or minimal RDM model). You can do this by editing the `equipment/metadata.yaml` file. See the [metadata model customization guide](../model/model) for more information.
+
+## Add vocabularies
+
+If your metadata schema uses vocabularies, you need to declare them in the metadata schema and import them into the repository. More information about vocabularies is available in the [vocabulary guide](./customize/vocabularies).
+
+**Note:** The default implementation adds RDM-compatible vocabularies, which can take significant time to load during the first run. If you don't need them or want to use a reduced set, see the [initial data for vocabularies](./customize/vocabularies/initial_data) for instructions on how to customize them.
+
+## Add exports
+
+You need to add at least a DataCite export for your new model. This is required not only for DOI registration, but also for other parts of Invenio, such as the tombstone page when a record is deleted, proper citation generation, and signposting headers. The schema class for the export has been generated automatically in the `equipment/serializers.py` file.
+
+See the [export customization guide](../model/exports_and_imports) for more information.
+
+## Install and run the repository
+
+To install and run the repository, follow the instructions in the [running an instance guide](./develop/run_instance#install-the-backend-and-build-the-frontend).
+
+## TODO: alembic migrations
+
+## Next steps
+
+Now that your repository is running, you can start customizing its user interface.
+
+<Cards num={2}>
+    <Card title="Customizations" href="/customize" arrow={true}>
+        Repository customization guide
+    </Card>
+</Cards>

@@ -3,216 +3,62 @@ import { Card } from "@/components/card";
 
 # Getting started
 
+## Getting help
+
+This documentation is a work in progress, so some parts might not be accurate.
+If you need assistance, please contact our support team at [cesnet-invenio@eosc.cz](mailto:cesnet-invenio@eosc.cz).
+
 ## Prerequisites
 
-To install CESNET flavour of Invenio repository, you will need to have the following tools installed:
+To install the CESNET flavor of Invenio repository, you will need the following tools:
 
-* Linux or Mac (Windows **are not** supported)
-* latest version of **Docker** or **OrbStack** configured so that regular user can run docker commands without sudo
-* node.js, version 20+
-* python, version 3.13
-* git
+* Linux or Mac (Windows **is not** supported)
+* Latest version of **Docker** or **OrbStack** configured so that regular users can run Docker commands without sudo
+* [Node.js](https://nodejs.org/en/download), version 20+ and [pnpm](https://pnpm.io/installation)
+* Python, version 3.13
+* Git
+* Bash, **version 5+**. On Mac, the system version of bash is usually 3.x, so you may need
+  to install a newer version via Homebrew: `brew install bash`
 * [uv](https://docs.astral.sh/uv/getting-started/installation/)
+
+## Verify prerequisites
+
+```bash
+❯ uname -a
+Darwin MacBookPro.localdomain 25.0.0 Darwin Kernel Version 25.0.0
+
+❯ python --version
+Python 3.13.2
+
+❯ node --version
+v20.9.0
+
+❯ pnpm --version
+10.19.0
+
+❯ docker run hello-world
+Hello from Docker!
+
+❯ docker-compose --version
+Docker Compose version v2.39.2
+
+❯ git --version
+git version 2.50.1
+
+❯ uv --version
+uv 0.8.18
+
+❯ bash --version
+5.3.3
+```
 
 ## Installation and running
 
-### Download the installer
-
-To get the installation package, download the installer from [repository_installer.sh](https://raw.githubusercontent.com/oarepo/oarepo/refs/heads/main/tools/repository_installer.sh).
-
-```bash
-❯ curl -o repository_installer.sh https://raw.githubusercontent.com/oarepo/oarepo/refs/heads/main/tools/repository_installer.sh
-```
-
-### Run the installer to create a new repository
-
-Now run the installer to scaffold a new repository in the current directory::
-
-```bash
-❯ bash repository_installer.sh instruments
-
-Creating repository 'instruments' using template 'https://github.com/oarepo/nrp-app-copier' with version 'rdm-14'...
-Using template from GitHub: https://github.com/oarepo/nrp-app-copier with version rdm-14
-Installed 23 packages in 37ms
-🎤 Human readable name of the repository
-   Instruments
-🎤 Description of the repository
-    (Finish with 'Alt+Enter' or 'Esc then Enter')
-> Repository for laboratory equipment
- 
-🎤 List of languages to use in the repository,
-2 letter code separated by either comma or space.
-English is implicit, do not include it.
- 
-
-Copying from template version 0.0.0.post66.dev0+cab83e5
-...
-```
-
-This will create a new directory `instruments` with the repository code.
-
-### Change to the repository directory
-
-```bash
-❯ cd instruments
-❯ ./run.sh
-Usage: run.sh command [options]
-
-Commands:
-  install                    Install the repository
-  services setup             Setup docker services
-  services start             Start docker services
-  services stop              Stop docker services
-  model create [config-file]   Create a new record model
-  model update [model-name] [answers-file] Update an existing record model.
-      Answers file is optional.
-  run                        Run the repository
-      [--no-services]        Do not start docker services
-      [--no-celery]          Do not start background tasks
-  cli [subcommand]           Run the invenio-cli command
-
-  self-update                Update the runner script to the latest version
-Options:
-  --help                     Show this help message
-```
-
-### Check prerequisites
-
-Let's check if all prerequisites are fulfilled. Run the following command in the repository directory:
-
-```bash
-❯ ./run.sh cli check-requirements -d
-
-Checking pre-requirements...
-Checking Python version...
-Python version OK. Got 3.13.2.
-Checking Pipenv is installed...
-Pipenv OK. Got version 2025.0.4.
-Checking Docker version...
-Docker version OK. Got 28.3.3.
-Checking Docker Compose version...
-Docker Compose version OK. Got 2.39.2.
-Checking Node version...
-Node version OK. Got 20.9.0.
-Checking NPM version...
-NPM version OK. Got 10.1.0.
-Checking ImageMagick version...
-ImageMagick version OK. Got 7.1.2.
-Checking git version...
-git version OK. Got 2.50.1.
-All requisites are fulfilled.
-```
-
-### Add a metadata schema
-
-To add a new metadata schema, use the `model create` command. You need to supply a pythonic name for the model (e.g. `equipment`). The name must be *different* from existing models or the name of the repository.
-
-```bash
-❯ ./run.sh model create equipment
-Using template from GitHub: https://github.com/oarepo/nrp-model-copier with version rdm-14
-🎤 Human readable name of the model
-   Equipment
-🎤 Description of the model
-    (Finish with 'Alt+Enter' or 'Esc then Enter')
-> Model for equipment registration
-
-Copying from template version 0.0.0.post56.dev0+fd459fc
-    create  ui/equipment
-     ...
-    create  equipment
-    create  equipment/__init__.py
-    create  equipment/metadata.yaml
-    create  equipment/.copier-answers.yml
-    create  equipment/model.py
-
- > Running task 1 of 2: ['register_to_pyproject.py', 'equipment']
- > Running task 2 of 2: ['register_to_invenio_cfg.py', 'equipment', 'equipment']
-```
-
-### Update the metadata schema
-
-The model created in the steps above contains a basic metadata schema. Before continuing, customize it by editing the `equipment/metadata.yaml` file. See the [metadata model customization guide](./develop/model.md) for more information.
-
-### Add vocabularies
-
-If your metadata schema uses vocabularies, you need to declare them in the metadata schema and import them to the repository. More information about vocabularies are in the [vocabulary guide](./customize/vocabularies).
-
-**Note:** the default implementation adds rdm-compatible vocabularies which can take significant time to load during the first run. If you do not need them or want to use a reduced set, please see the [initial data for vocabularies](./customize/vocabularies/initial_data) for instructions on how to customize them.
-
-### Add exports
-
-You need to add at least a datacite export for you new model. This is required not only for DOI registration, but also for other parts of Invenio, such as tombstone page when a record is deleted, proper citation generation and signposting headers.
-See the [export customization guide](./develop/exports) for more information.
-
-### Install the backend and build the frontend
-
-If you are on Mac and using homebrew, you may need to patch the generated invenio.cfg to make installation work correctly. To do so, open `invenio.cfg` in a text editor and append at the end of the file the following lines:
-
-```python
-# hack to get invenio working on osx 26
-import os
-os.environ["DYLD_FALLBACK_LIBRARY_PATH"]="/opt/homebrew/lib"
-```
-
-```bash
-❯ ./run.sh install
-```
-
-The compilation will take a couple of minutes, as it needs to download and install all dependencies both for backend and frontend.
-
-### Set up database and other services
-
-After you have compiled the repository, you need to do the initial setup of the database and other services. Run the following command:
-
-```bash
-# the -N option is to skip adding demo data (in most cases you want that)
-❯ ./run.sh services setup -N
-```
-
-*Note:* If you destroy the containers, please edit the `.invenio.private` and set `services_setup=False`. Then run `./run.sh services setup` again to recreate the database and other services.
-
-### TODO: alembic migrations
-
-### Run the repository
-
-Finally, you can run the repository using the following command:
-
-```bash
-❯ ./run.sh run
-```
-
-This command will start the background services (database, search engine, etc.), background tasks and the repository itself. At the beginning, pending tasks from the services setup will be processed, so it may take a couple of minutes before the repository is fully operational.
-
-After some time, the output will settle on:
-
-```bash
-Scheduler: Sending due task indexer
-Task invenio_records_resources.tasks.manage_indexer_queues received
-Task invenio_records_resources.tasks.manage_indexer_queues succeeded
-```
-
-This is a sign that all background tasks have been processed and the repository is running. Go to [https://127.0.0.1:5000/](https://127.0.0.1:5000/) and you should see the repository homepage.
-
-### Create an initial user
-
-To create an initial administrator user, open another terminal, change to the repository directory and run the following command:
-
-```bash
-❯ ./run.sh invenio users create -a -c <email>
-```
-
-and login with the created user.
-
-### Create the initial bucket in S3
-
-At this time the S3 storage does not have any buckets created. To create the initial bucket, log in to the minio web interface at [http://127.0.0.1:9000/](http://127.0.0.1:9000/) using the credentials that you find inside the `variables` file. Create a bucket named `default`.
-
-### Create a sample record
-
-To create a sample record, click on the "+" icon in the top right corner and select "New Equipment". Fill in the metadata fields and save the record. Then upload a file to the record and look at the record preview page.
-
-## Next steps
-
-Now that you have your repository running, you can start customizing the UI of the repository.
-
-TODO: links to UI customization guides
+<Cards num={2}>
+    <Card title="Install existing repository" href="develop/create_and_run/run_instance" arrow={true}>
+        I already have an instance of a repository (for example, on GitHub) and I want to set it up locally
+    </Card>
+    <Card title="Create new repository" href="develop/create_and_run/create_instance" arrow={true}>
+        I want to create a new repository with a custom metadata schema from scratch
+    </Card>
+</Cards>

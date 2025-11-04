@@ -164,8 +164,17 @@ You can create multiple YAML files in the model directory to organize your defin
 
 For comprehensive details on metadata field types, validation rules, and advanced configuration options, see the [metadata reference](./model_reference.md).
 
-## Adding custom export formats
+## Custom export formats
 
+Inside the model directory, you can create custom export formats for your metadata schema by defining serializer classes.
+These classes convert the internal JSON representation of your metadata into various standard formats for interoperability 
+with other systems or for data exchange.
 
+See [Exports and imports](./exports_and_imports) for more information.
 
-## Adding custom import formats
+## Custom import formats
+
+In addition to export formats, you can also create custom import formats by defining deserializer classes in the model directory.
+These classes convert data from various standard formats into the internal JSON representation used by your metadata schema.
+
+See [Exports and imports](./exports_and_imports) for more information.

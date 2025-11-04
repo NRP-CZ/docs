@@ -2,21 +2,17 @@ export default {
   "index": {
     "title": "Developer reference"
   },
-  "client": {
-    "title": "Python client library"
+  "create_and_run": {
+    "title": "Create and/or run a repository"
   },
   "model": {
-    "title": "Metadata customization"
+    "title": "Model development"
   },
-  "model_reference": {
-    "title": "Metadata reference"
-  },
-  "exports_and_imports": {
-    "title": "Metadata exports and imports"
+  "client": {
+    "title": "Python client library"
   },
   "authority": {
     "title": "External authorities"
   },
   "frontend": "Front-end development",
-  "training": "Training"
 }
