@@ -3,11 +3,14 @@ export default {
         "title": "Customize",
         "display": "normal"
     },
-    "branding": {
-        "title": "Branding"
+    "repository_ui": {
+        "title": "Repository UI"
     },
-    "record": {
-        "title": "Records"
+    "model_backend": {
+        "title": "Model backend"
+    },
+    "model_ui": {
+        "title": "Model UI"
     },
     "vocabularies": {
         "title": "Vocabularies"
