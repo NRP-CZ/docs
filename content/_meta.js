@@ -27,5 +27,9 @@ export default {
   "deploy": {
     "title": "Deploy",
     "type": "page"
+  },
+  "get_started": {
+    "title": "Getting Started",
+    "display": "hidden"
   }
 }
