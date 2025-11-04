@@ -1,0 +1,49 @@
+# Configuration
+    
+InvenioRDM comes with a set of configuration options that can be adjusted to modify the behavior of various features and components.
+On top of that, NRP introduces additional configuration options that are specific to NRP-based repositories through various extension packages.
+
+Here is an overview of what could be achieved through configuration in NRP-based repositories.
+
+## Configure a NRP repository
+
+Invenio RDM configuration is based on Flask application configuration system. For more details on how to configure an InvenioRDM application, please refer to the
+[InvenioRDM Configuration Documentation](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/#setting-configuration-values).
+
+NRP-based repositories use the same mechanisms for configuration as InvenioRDM applications. You can set configuration values in the `invenio.cfg` file, environment variables,
+or variables file located in the root of your repository project.
+
+On top of that, a helper [config module](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) is available for you to use in your `invenio.cfg` file to help you configure NRP-specific features by preset-based configuration approach.
+
+An example `invenio.cfg` file using the helper config module might be as simple as:
+
+```python
+# invenio.cfg
+from invenio_i18n import lazy_gettext as _
+from oarepo import config
+
+# localization / internationalization
+config.initialize_i18n()
+
+config.configure_generic_parameters()
+
+config.configure_ui(
+    code="myrepo",
+    name=_("My NRP Repository"),
+    description=_("My NRP-based repository for research data."),
+)
+
+config.configure_cron()
+config.configure_stats()
+
+import os
+os.environ["DYLD_FALLBACK_LIBRARY_PATH"]="/opt/homebrew/lib"
+
+# datasets model registration
+from mymodel import mymodel_model
+
+mymodel_model.register()
+DASHBOARD_RECORD_CREATE_URL = "/mymodel/uploads/new"
+```
+
+Or as complex as you need it to be. The `invenio.cfg` is a regular Python script, so you can use any Python code you need to set up your repository configuration.
