@@ -1,0 +1,126 @@
+# Running an instance of a repository
+
+Look at the [Getting started](/get_started) to check that you have all the prerequisites installed.
+
+At first clone the repository to your local machine:
+
+```bash
+❯ git clone <repository-url>
+❯ cd <repository-name>
+```
+
+## Check that the basic tooling is running
+
+```bash
+❯ ./run.sh
+Usage: run.sh command [options]
+
+Commands:
+  install                    Install the repository
+  services setup             Setup docker services
+  services start             Start docker services
+  services stop              Stop docker services
+  model create [config-file]   Create a new record model
+  model update [model-name] [answers-file] Update an existing record model.
+      Answers file is optional.
+  run                        Run the repository
+      [--no-services]        Do not start docker services
+      [--no-celery]          Do not start background tasks
+  cli [subcommand]           Run the invenio-cli command
+
+  self-update                Update the runner script to the latest version
+Options:
+  --help                     Show this help message
+```
+
+## Check prerequisites
+
+Let's check if all prerequisites are fulfilled. Run the following command in the repository directory:
+
+```bash
+❯ ./run.sh cli check-requirements -d
+
+Checking pre-requirements...
+Checking Python version...
+Python version OK. Got 3.13.2.
+Checking Pipenv is installed...
+Pipenv OK. Got version 2025.0.4.
+Checking Docker version...
+Docker version OK. Got 28.3.3.
+Checking Docker Compose version...
+Docker Compose version OK. Got 2.39.2.
+Checking Node version...
+Node version OK. Got 20.9.0.
+Checking NPM version...
+NPM version OK. Got 10.1.0.
+Checking ImageMagick version...
+ImageMagick version OK. Got 7.1.2.
+Checking git version...
+git version OK. Got 2.50.1.
+All requisites are fulfilled.
+```
+
+## Install the backend and build the frontend
+
+If you are on Mac and using homebrew, you may need to patch the generated invenio.cfg to make installation work correctly. To do so, open `invenio.cfg` in a text editor and append at the end of the file the following lines:
+
+```python
+# hack to get invenio working on osx 26
+import os
+os.environ["DYLD_FALLBACK_LIBRARY_PATH"]="/opt/homebrew/lib"
+```
+
+```bash
+❯ ./run.sh install
+```
+
+The compilation will take a couple of minutes, as it needs to download and install all dependencies both for backend and frontend.
+
+## Set up database and other services
+
+After you have compiled the repository, you need to do the initial setup of the database and other services. Run the following command:
+
+```bash
+# the -N option is to skip adding demo data (in most cases you want that)
+❯ ./run.sh services setup -N
+```
+
+*Note:* If you destroy the containers, please edit the `.invenio.private` and set `services_setup=False`. Then run `./run.sh services setup` again to recreate the database and other services.
+
+## Run the repository
+
+Finally, you can run the repository using the following command:
+
+```bash
+❯ ./run.sh run
+```
+
+This command will start the background services (database, search engine, etc.), background tasks and the repository itself. At the beginning, pending tasks from the services setup will be processed, so it may take a couple of minutes before the repository is fully operational.
+
+After some time, the output will settle on:
+
+```bash
+Scheduler: Sending due task indexer
+Task invenio_records_resources.tasks.manage_indexer_queues received
+Task invenio_records_resources.tasks.manage_indexer_queues succeeded
+```
+
+This is a sign that all background tasks have been processed and the repository is running. Go to [https://127.0.0.1:5000/](https://127.0.0.1:5000/) and you should see the repository homepage.
+
+## Create an initial user
+
+To create an initial administrator user, open another terminal, change to the repository directory and run the following command:
+
+```bash
+❯ ./run.sh invenio users create -a -c <email>
+```
+
+and login with the created user.
+
+## Create the initial bucket in S3
+
+At this time the S3 storage does not have any buckets created. To create the initial bucket, log in to the minio web interface at [http://127.0.0.1:9000/](http://127.0.0.1:9000/) using the credentials that you find inside the `variables` file. Create a bucket named `default`.
+
+## Create a sample record
+
+To create a sample record, click on the "+" icon in the top right corner and select "New Equipment". Fill in the metadata fields and save the record. Then upload a file to the record and look at the record preview page.

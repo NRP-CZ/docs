@@ -1,0 +1,127 @@
+# Exports and imports
+
+The internal format for storing metadata in NRP is JSON with a structure
+defined in YAML models. However, users often need to export or import metadata
+in various standard formats for interoperability with other systems or data exchange.
+
+This guide explains how to add custom export and import formats for metadata schemas.
+We assume that you have already created a custom metadata schema as described in the
+[model customization guide](./model.md).
+
+## DataCite export
+
+The DataCite export has been pre-generated for your model in the `equipment/serializers.py` file.
+If your model is not based on the CCMM or RDM full template, you need to customize the DataCite export
+to include all required fields. For inspiration, check the [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/resources/serializers/datacite/schema.py) package.
+
+## Adding custom export formats
+
+Export formats are registered within the `equipment/model.py` file inside the "customization" section:
+
+```python
+my_model = model(
+    # ...
+    customizations=[
+        AddMetadataExport(
+            code="datacite",
+            name=_("DataCite export"),
+            mimetype="application/vnd.datacite.datacite+json",
+            serializer=DataCiteJSONSerializer(),
+        ),
+    ],
+)
+```
+
+To add a new export format for your metadata schema, you need to create a serializer class
+that converts the internal JSON representation to the desired export format. Then register
+the class as shown in the example above.
+
+### Creating a serializer class
+
+A `serializers.py` file has already been created in your model directory.
+You can add your custom serializer classes there, or create separate
+files for each serializer if you prefer.
+
+### Serializing to JSON
+
+If the export format is JSON, you can
+use the existing `flask_resources.MarshmallowSerializer` as the base class. Example:
+
+```python
+from flask_resources import BaseListSchema, MarshmallowSerializer
+from flask_resources.serializers import BaseSerializerSchema, JSONSerializer
+
+
+class MyJSONSerializer(MarshmallowSerializer):
+    """Marshmallow based serializer for records."""
+
+    def __init__(self, **options):
+        """Constructor."""
+        super().__init__(
+            format_serializer_cls=JSONSerializer, # the resulting format is JSON
+            object_schema_cls=MySchema, # schema for single object
+            list_schema_cls=BaseListSchema, # schema for list of objects
+            schema_kwargs={},
+            **options,
+        )
+
+class MySchema(BaseSerializerSchema):
+    """My schema."""
+
+    # TODO: implement the schema fields
+    title = fields.String(attribute="metadata.title")
+    serial_number = fields.String(attribute="metadata.serial_number")
+    manufacturer = fields.String(attribute="metadata.manufacturer")
+```
+
+The `MarshmallowSerializer` is responsible for calling `MySchema` on each serialized record. The `MySchema` class
+is where you define the actual fields and their serialization logic. Refer to the [Marshmallow documentation](https://marshmallow.readthedocs.io/en/stable/) for more details on defining schemas and fields.
+
+### Serializing to other formats
+
+Let's create an example: we'll add a simple CSV export format for a metadata schema called `equipment`.
+The CSV will contain only three fields: `name`, `serial_number`, and `manufacturer`.
+
+**Note:** This is a synthetic example to illustrate how to create a custom serializer. For CSV export in real scenarios, you might want to use a combination of `MarshmallowSerializer` with a format serializer that handles CSV. See [flask-resources](https://github.com/inveniosoftware/flask-resources/tree/master/flask_resources/serializers) for more details.
+
+### Create the serializer class
+
+We'll create a custom serializer by inheriting directly from `BaseSerializer`.
+
+```python
+import csv
+from flask_resources.serializers.base import BaseSerializer
+
+class CSVSerializer(BaseSerializer):
+    header = ['name', 'serial_number', 'manufacturer']
+
+    def serialize_object(self, obj: dict):
+        """Serialize a single object to CSV format."""
+        return self._create_csv(
+            [self.header, self._serialize_object(obj)]
+        )
+
+    def serialize_object_list(self, obj_list: list):
+        """Serialize a list of objects to CSV format."""
+        return self._create_csv(
+            [self.header] +
+            [self._serialize_object(obj) for obj in obj_list]
+        )
+
+    def _create_csv(self, rows):
+        """Create CSV string from rows."""
+        from io import StringIO
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerows(rows)
+        return output.getvalue()
+
+    def _serialize_object(self, obj):
+        """Serialize a single object to a CSV row."""
+        metadata = obj.get('metadata', {})
+        return [
+            metadata.get('name', ''),
+            metadata.get('serial_number', ''),
+            metadata.get('manufacturer', ''),
+        ]
+```

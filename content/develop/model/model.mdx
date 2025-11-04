@@ -1,0 +1,180 @@
+# Model customization
+
+This section describes how to customize metadata models in your NRP-based repository.
+
+## Create a new metadata schema
+
+To add a new metadata schema, use the `model create` command. You need to provide a Python-style name for the model (e.g., `equipment`). The name must be *different* from existing models and the repository name, otherwise the repository will not start.
+
+```bash
+❯ ./run.sh model create equipment
+...
+```
+
+When creating a new model, you can base it on one of the following templates:
+
+* **ccmm** (Czech Code Metadata Model)
+* **rdm** (Research Data Management)
+  * **minimal** - A basic model that supports Invenio RDM features like communities and requests. Some features may not work (e.g., records won't appear in the administration interface).
+  * **basic** - Includes commonly used fields such as creators, contributors, and resource types.
+  * **full** - Includes all Invenio RDM features.
+* **empty** (no predefined fields)
+
+We recommend starting with either `ccmm` or `rdm full` base models. You can change the preset later by editing the `model.py` file in the model directory, but this will cause data loss if you have already created records using the model.
+
+## Adding new metadata to the model
+
+After creating the model, you can customize the metadata schema by editing the `metadata.yaml` file located in the model directory (e.g., `equipment/metadata.yaml`). This file (along with other YAML files you can create in the model directory) defines the structure and format of metadata that will be stored for records of this model.
+
+### Understanding metadata types
+
+Think of **types** as categories or templates that define what kind of information can be stored and how it should be formatted. Just like a form has different field types for different purposes (text boxes for names, number fields for quantities, checkboxes for yes/no questions), metadata types specify what kind of data each field can contain.
+
+For example:
+
+* A **keyword** type is for short text like names or categories
+* An **int** type is for whole numbers like quantities or years
+* An **object** type is for grouping related information together
+
+The main blueprint for your records is called `Metadata` by default. When you add new fields to this blueprint, they become available as information fields that users can fill out when creating or editing records of this model.
+
+### Working with YAML files
+
+The `metadata.yaml` file uses **YAML format** (YAML Ain't Markup Language), which is a human-readable way to structure data. YAML is designed to be easy to read and write, but it has one critical rule: **spacing matters**.
+
+In YAML:
+
+* **Indentation** (spaces at the beginning of lines) shows the structure and hierarchy
+* Each level of nesting uses exactly **2 spaces** more than the parent level
+* **Never use tabs** - only spaces for indentation
+* Items at the same level must have identical indentation
+
+Think of it like an outline where you indent sub-items under main items, but you must be very precise with the spacing.
+
+If you're new to YAML, these resources can help you get started:
+
+* [YAML Tutorial for Beginners](https://spacelift.io/blog/yaml) - comprehensive guide with examples
+* [Learn YAML in Y Minutes](https://learnxinyminutes.com/docs/yaml/) - quick reference
+* [YAML Syntax Overview](https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html) - detailed explanation
+
+Here's an example of adding new fields to the `Metadata` definition in the `metadata.yaml` file:
+
+```yaml
+# Definition of metadata for equipment. Please do not add ccmm model here,
+# add the ccmm_preset instead.
+Metadata:
+  properties:
+    serial_number:   # this is a comment which is otherwise ignored
+      type: keyword
+      label:
+        en: Serial Number
+        cs: Sériové číslo
+      help:
+        en: The serial number of the equipment.
+        cs: Sériové číslo zařízení.
+      hint:
+        en: Unique identifier assigned by the manufacturer.
+        cs: Unikátní identifikátor přidělený výrobcem.
+    manufacturer:
+      type: keyword
+      label:
+        en: Manufacturer
+        cs: Výrobce
+      help:
+        en: The manufacturer of the equipment.
+        cs: Výrobce zařízení.
+      hint:
+        en: Name of the company that produced the equipment.
+        cs: Název společnosti, která zařízení vyrobila.
+```
+
+Notice how the indentation works in this example:
+
+* `Metadata:` is at the top level (no indentation)
+* `properties:` belongs to the `Metadata:` section and is indented 2 spaces
+* `serial_number:` and `manufacturer:` are part of the `properties` section and are indented 4 spaces (2 more than their parent)
+* `type:`, `label:`, `help:`, and `hint:` are indented 6 spaces (2 more than their parent)
+* The language codes (`en:`, `cs:`) are indented 8 spaces under their parent sections
+
+### Creating complex nested objects
+
+Sometimes you need to group related information together into more complex structures. Think of these as **containers that hold multiple related pieces of information**. For example, instead of having separate fields for warranty period and warranty provider, you can group them together under one "warranty" section.
+
+These grouped fields are called **nested objects** - they're like folders that contain related files, or sections in a form that group related questions together.
+
+**When to use nested objects:**
+
+* When several fields are closely related (like contact information: name, email, phone)
+* When you want to organize information logically (like publication details: title, journal, year, pages)
+* When the same group of fields might be repeated (like multiple authors or multiple locations)
+
+To create nested objects, you first define the structure of the group, then reference it in your main `Metadata` section.
+
+```yaml
+Warranty:
+  type: object
+  properties:
+    period:
+      type: int
+      label:
+        en: Warranty Period (months)
+        cs: Záruční doba (měsíce)
+    provider:
+      type: keyword
+      label:
+        en: Warranty Provider 
+        cs: Poskytovatel záruky
+
+Metadata:
+  type: object
+  properties:
+    warranty:
+      type: Warranty
+      label:
+        en: Warranty Information
+        cs: Informace o záruce
+```
+
+**What this looks like in practice:**
+
+When someone creates a record using this nested object structure, they will fill in data like this:
+
+```json
+{
+  "metadata": {
+    "warranty": {
+      "period": 24,
+      "provider": "Siemens Global Services"
+    }
+  }
+}
+```
+
+Instead of having separate top-level fields, the warranty information is grouped together logically. This approach offers several benefits:
+
+* **Easier to understand** - related information stays together
+* **More organized** - you can see at a glance what belongs to warranty versus other aspects
+* **Expandable** - you can easily add more warranty-related fields later (like warranty start date, warranty type, etc.) without cluttering the main level
+
+### Organizing with multiple YAML files
+
+You can create multiple YAML files in the model directory to organize your definitions better and reference them from the `model.py` file. This approach helps keep your metadata definitions manageable and well-organized, especially for complex schemas.
+
+### Additional resources
+
+For comprehensive details on metadata field types, validation rules, and advanced configuration options, see the [metadata reference](./model_reference.md).
+
+## Custom export formats
+
+Inside the model directory, you can create custom export formats for your metadata schema by defining serializer classes.
+These classes convert the internal JSON representation of your metadata into various standard formats for interoperability 
+with other systems or for data exchange.
+
+See [Exports and imports](./exports_and_imports) for more information.
+
+## Custom import formats
+
+In addition to export formats, you can also create custom import formats by defining deserializer classes in the model directory.
+These classes convert data from various standard formats into the internal JSON representation used by your metadata schema.
+
+See [Exports and imports](./exports_and_imports) for more information.

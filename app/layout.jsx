@@ -46,7 +46,7 @@ export default async function RootLayout({ children }) {
       <body>
         <Layout
           navbar={navbar}
-          footer={<Footer>MIT {new Date().getFullYear()} © <Link href="https://cesnet.cz"> CESNET a.l.e.</Link></Footer>}
+          footer={<Footer>MIT {new Date().getFullYear()} © <Link href="https://cesnet.cz"> CESNET a.l.e.</Link>. <span>&nbsp;Contact us at&nbsp;</span><Link href="mailto:cesnet-invenio@eosc.cz"> cesnet-invenio@eosc.cz</Link></Footer>}
           editLink="Edit this page on GitHub"
           docsRepositoryBase="https://github.com/NRP-CZ/docs"
           sidebar={{ defaultMenuCollapseLevel: 1 }}
