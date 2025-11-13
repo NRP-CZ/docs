@@ -1,3 +1,6 @@
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+
 # Configuration
     
 InvenioRDM comes with a set of configuration options that can be adjusted to modify the behavior of various features and components.
@@ -10,10 +13,9 @@ Here is an overview of what could be achieved through configuration in NRP-based
 Invenio RDM configuration is based on Flask application configuration system. For more details on how to configure an InvenioRDM application, please refer to the
 [InvenioRDM Configuration Documentation](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/#setting-configuration-values).
 
-NRP-based repositories use the same mechanisms for configuration as InvenioRDM applications. You can set configuration values in the `invenio.cfg` file, environment variables,
-or variables file located in the root of your repository project.
+NRP-based repositories use the same mechanisms for configuration as InvenioRDM applications. You can set configuration values in the `invenio.cfg` file, environment variables, or `variables` file located in the root of your repository project.
 
-On top of that, a helper [config module](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) is available for you to use in your `invenio.cfg` file to help you configure NRP-specific features by preset-based configuration approach.
+On top of that, a helper [config module](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) is available for you to use in your `invenio.cfg` file to help you configure NRP-specific features by a preset-based configuration approach.
 
 An example `invenio.cfg` file using the helper config module might be as simple as:
 
@@ -47,3 +49,20 @@ DASHBOARD_RECORD_CREATE_URL = "/mymodel/uploads/new"
 ```
 
 Or as complex as you need it to be. The `invenio.cfg` is a regular Python script, so you can use any Python code you need to set up your repository configuration.
+
+## Configuration helpers (`configure_*`)
+
+Configuration helpers are utility functions that simplify the process of setting up common configuration options in NRP-based repositories.
+They can be used in your `invenio.cfg` file to quickly configure various aspects of your repository without needing to manually set each configuration constant.
+
+Common helpers are provided for NRP repositories by the [oarepo.config](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) Python module.
+
+All helpers set configuration constants in the caller module (typically `invenio.cfg`) using `oarepo.config.base.set_constants_in_caller` and read environment/variables via `oarepo.config.base.load_configuration_variables` where applicable.
+
+---
+
+<Cards num={3}>
+  <Card title="Configuration Reference" href="/customize/configure/reference" arrow={true} >
+    Detailed reference of configuration helpers available for NRP-based repositories.
+  </Card>
+</Cards>
