@@ -1,16 +1,10 @@
 import { Cards } from "nextra/components";
 import { Card } from "@/components/card";
 
-**TODO: RDM 12 version, update to RDM14**
+# Front-end development of NRP repositories
 
-# Front-end development in Invenio
-
-The following topics cover front-end development in Invenio Framework repository applications.
-It provides a comprehensive overview of how to build and maintain the front-end components of an Invenio-based
-repository, covering everything from setting up your environment developing and integrating
-custom pages and UI components into a repository site.
-
-Invenio is based on the Flask Python micro framework and as such, it inherits and builds on much of front-end ecosystem from it.
+The following guide provides an in-depth look at front-end development for NRP (National Repository Platform) repositories.
+It provides comprehensive information on how to build, customize, and maintain the user interface components of NRP-based repository applications.
 
 ## Intended audience
 
@@ -19,11 +13,11 @@ and core NRP developers or anyone wanting to contribute to the project's front-e
 
 ## Frontend Architecture Overview
 
-Our repositories follow a hybrid frontend architecture:
+NRP repositories use a hybrid approach combining server-side rendering with Jinja/JinjaX templates and client-side interactivity using React.
 
-- **Record Detail Pages**: Built primarily with Jinja/JinjaX templates for server-side rendering
-- **Interactive UI Components**: Implemented with React for rich, dynamic user experiences
-- **Simple interactive elements**: Can be implemented with JQuery
+- **Jinja/JinjaX** for server-side rendering of record detail pages and other primarily static content
+- **React** for interactive UI components and mini-applications 
+
 
 This approach leverages the strengths of both technologies: server-rendered content for faster initial page loads and SEO benefits, combined with React's component-based architecture for complex interactive elements.
 
