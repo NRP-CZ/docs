@@ -4,5 +4,5 @@ export default {
     "colors": "Colors",
     "fonts": "Fonts",
     "copywriting": "Copywriting",
-    "logo": "Logo"
+    "images": "Image assets"
 }
