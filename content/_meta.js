@@ -21,7 +21,6 @@ export default {
     "type": "page"
   },
   "customize": {
-    "title": "Customize",
     "type": "page"
   },
   "deploy": {

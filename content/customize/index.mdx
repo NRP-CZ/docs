@@ -1,7 +1,3 @@
----
-sidebarTitle: Overview
----
-
 import { Cards } from 'nextra/components'
 import { Card } from "@/components/card";
 
@@ -13,103 +9,117 @@ NRP (National Repository Platform) builds upon [InvenioRDM](https://inveniordm.d
 
 While InvenioRDM provides a unified data model and theming layer, NRP allows each repository to define its **own metadata schema** and corresponding **frontend components** that render, edit, and validate metadata in a tailored way.
 
-This section explains how the customization layers fit together and what makes NRP's customization capabilities unique.
-
----
+This section explains how the customization layers fit together and what NRP-specific customizations are available to you.
 
 ## InvenioRDM foundations
 
-InvenioRDM offers a robust and extensible customization system covering:
+InvenioRDM provides a solid theming and customization system including:
 
+### On the backend side
+
+- **Flask app Configuration**  
+  Easiest way to change settings like site name, default language, feature toggles, or more complex things like changing service or REST API resource implementation (where allowed), is to
+  set exposed Flask app config variables of Invenio app and modules.
+
+- **Python package entry points**  
+  Each InvenioRDM module is implemented as a Python package that can provide its own:
+  - REST API resources
+  - Database models
+  - Background tasks
+
+  One can leverage this mechanism to override existing functionality or provide new functionality by creating own Python packages and registering own package entry points.
+
+These backend mechanisms form the foundation for InvenioRDM's flexibility — and they continue to apply directly in NRP, where repositories build on them to implement repository and record model extensions.
+
+### On the frontend side:
 - **Theming and look & feel:**  
-  Custom Jinja templates, site branding, LESS/CSS overrides, and asset management.  
-  See the official guide: [InvenioRDM Look and Feel Customization](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/)
+  Override or create static assets, LESS/CSS styles. Backed by Semantic UI theming system.
+  See the [InvenioRDM Look and Feel Customization](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/) for more.
 
-- **Frontend components:**  
-  React-based pages for record deposit, search, and detail view, organized in “bundles” built via Webpack or Rspack.
+- **JS components and asset pipeline:**  
+  React-based UI components & mini-apps used for rendering interactive elements & pages like record deposition, search.
+  Organized into Webpack "bundles" & built via Rspack. All bundles automatically discovered using Python package's entry points
+  and collected into a single repository-level Rspack project. Furthermore some default UI components can be overriden using the [React-Overridable](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/override_components/) mechanism.
 
 - **Templating and asset pipeline:**  
-  Each Python package can provide its own Jinja templates and static files, automatically discovered via Invenio's entry points.
+  Each Python package can provide its own server-rendered Jinja templates and static files, or override some other package's templates and static files. Automatically discovered using package's entry points and Flask templating mechanisms. More on this in the [RDM Templating](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/templates/) docs.
 
 These foundations apply equally to NRP repositories.
 
----
-
 ## What NRP adds
 
-NRP extends the InvenioRDM architecture with a **model-driven customization layer**.  
-Each repository is backed by a Python package that defines:
+Here is an introduction to NRP-specific concepts and customization layers on top of InvenioRDM.
 
-1. **A custom metadata schema**  
-   Defined in JSON Schema, it specifies the structure of records stored in the repository.
+### CCMM (Czech Core Metadata Model)
 
-2. **Generated UI configuration**  
-   From the metadata schema, NRP generates a corresponding `ui.json` that describes how fields are displayed and edited — including labels, hints, input components, and validation rules.
+NRP introduces the **CCMM (Czech Core Metadata Model)** as a flexible metadata schema that repositories can adopt or extend.
+This schema serves as an alternative to RDM record schema, as a starting point for defining the structure of records in NRP repositories.
 
-3. **Custom React components and templates**  
-   The repository package can include its own React components and Jinja templates for:
-   - Record detail page (`record_detail.jsx`, `record_detail.html`)
-   - Deposit form fields
-   - Metadata previews, editors, or panels specific to that repository's schema
+### Multiple record models
 
-4. **Automatic discovery and integration**  
-   During build time, NRP's frontend toolchain automatically collects and merges all UI components, templates, and assets from installed packages into a unified frontend build.
+For InvenioRDM, there is a single pre-defined metadata model (RDM record schema) that applies to all records, with
+only limited customization options (e.g. adding a few simple extra custom fields to the model).
 
----
+In NRP, each repository can define one or more **record models** — each with its own:
 
-## Levels of customization
+1. **Metadata schema**  
+   Specifies the structure of records as stored in the repository. Create a completely custom one, or build on top of pre-defined schemas like the CCMM or RDM record schema.
+2. **Serialization & validation**
+    From the metadata schema, NRP generates a corresponding Marshmallow schema that handles serialization, deserialization, and validation of records in the backend APIs.
+3. **Import & export formats**  
+   Importers and exporters from/to other metadata formats (e.g. JSON, XML, BibTeX), based on the schema.
+3. **UI representation**
+   How model records are displayed and edited throughout the frontend application.
 
-There are three typical levels of customization in NRP:
+Every aspect of the record model implementation could be customized in greater or lesser extent, depending on the repository's needs.
+Tooling is provided to make it easy to [define & generate new record model packages](/customize/model_backend/model), or extend existing models like the ones for CCMM or RDM schema.
 
-| Level | Scope | Example |
-|-------|-------|---------|
-| **Repository-level** | Global look and feel, branding, theming | Changing typography, color palette, logo, base pages layout, copywriting |
-| **Model-level** | Record model related pages & components | Changing record detail page, search result item, deposition form |
-| **Component-level** | Fine-grained overrides of UI components | Overriding how a date field or vocabulary selector is rendered |
+### Record submission workflows
 
-Each level builds on the previous one, allowing you to customize globally or locally depending on your repository's needs.
+InvenioRDM provides a basic record submission and approval workflow out of the box, applied to all submitted records, and there's not much possibility customize it.
+In NRP, each repository can define its own more complex **record submission workflows**, on a per user community basis, that govern how records are submitted, reviewed, and published.
 
----
+### Custom Vocabularies
 
-## How this differs from InvenioRDM
+InvenioRDM provides a set of pre-defined controlled vocabularies (e.g. for resource types, languages, licenses) that are shared across all records.
+Vocabulary item schema is rather fixed and there's no possibility to extend it with custom fields. Also there's no UI for managing vocabulary items once the
+repository is deployed and vocabulary fixtures are loaded. Only a simple hierarchy of type/subtype relationships is supported for some vocabulary types (resource type).
 
-| Aspect | InvenioRDM | NRP |
-|--------|------------|-----|
-| **Metadata model** | Single RDM schema (applies to all records) | One or more custom record schema |
-| **Frontend** | Specific components implemented for a single RDM record schema | Higher-level components composed from shared RDM & NRP components |
-| **Form configuration** | Static implementation specific to RDM record schema | Start with a basic form & plug-in more form fields according to record schema |
-| **Search results** | Only single RDM schema-based type of record search result possible | Each record schema can have its own search result representation |
-| **Customization goal** | Branding and small UI tweaks | Full domain-specific metadata UI per repository |
-
-This means that in NRP, customizing the repository frontend is not just about changing colors or layout — it's about connecting your **metadata model** directly to your **user interface**.
-
----
+In NRP, each repository can define its own **custom controlled vocabularies**, with possibility to extend the vocabulary item schema with custom vocabulary fields.
+You can also use complex hierarchies of vocabulary items (parent-child relationships). UI for managing vocabulary items directly in the repository frontend is provided
+to privileged users.
 
 ## What's next
 
-The following sections will guide you through:
-
-- Adjusting the theme and templates of your repository
-- Customizing the **record detail page**, **deposit form** and **search results** for your metadata schema
-- Implementing custom React components and building assets using the NRP toolchain
-
-For background reference, consult the upstream [InvenioRDM customization documentation](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/)
+The following sections will guide you through various customization options available to you in NRP-based repositories.
+For a detailed reference on InvenioRDM base, please consult the official [InvenioRDM customization documentation](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/)
+There are two major levels of customizations available:
 
 ## Repository-level Customizations
 
-These affect **global look and feel, branding, and theming** across the repository. They generally do **not require coding**.
+These affect **global behavior, look and feel, branding, and theming** across the repository.
 
 <Cards>
-  <Card title='Branding & Theme' arrow href="/customize/branding/theme">
-    <p>Change typography, color palette, logo, base page layout, and copywriting.</p>
+  <Card title='⚙️ Site settings' arrow href="/customize/configure">
+    Change site name, description, default language, feature toggles, and other global application-wide settings.
   </Card>
-
-  <Card title='Translations' arrow href="/customize/translations">
-    Translate the UI into your language or customize existing labels and hints.
+  <Card title='🎨 Branding & Theme' arrow href="/customize/repository_ui/branding/theme">
+    Change overall repository styling like typography, color palette, logo, base page layout, and copywriting.
   </Card>
-
-  <Card title='Vocabularies (initial data)' arrow href="/customize/vocabularies/initial_data">
-    Provide default values for controlled vocabularies used across records.
+  <Card title='📄 Pages & templates' arrow href="/customize/repository_ui/branding/templating">
+    Change or replace repository pages. Override blocks of content on a page with custom content or create your own custom pages.
+  </Card>
+  <Card title='⚛️ React components' arrow href="/customize/repository_ui/react">
+    Replace default React components, or some parts of it, with your own components.
+  </Card>
+  <Card title='🌍 Internationalization' arrow href="/customize/repository_ui/i18n">
+    Customize or translate texts, labels, hints & other strings into your language.
+  </Card>
+  <Card title='✅ Workflows' arrow href="/customize/workflows">
+    Define or customize a lifecycle of repository records -- how they are created, approved, published, accessed, retracted, processed.
+  </Card>
+  <Card title='📊 Initial data' arrow href="/customize/vocabularies/initial_data">
+    Provide your own controlled vocabularies entries or other extra fixtures to be imported on initial repository set up.
   </Card>
 </Cards>
 
@@ -120,43 +130,17 @@ These affect **global look and feel, branding, and theming** across the reposito
 These customizations are **specific to a repository's record models**. They affect pages and components related to records, search results, and forms.
 
 <Cards>
-  <Card title='Custom metadata fields' arrow href="/customize/record/custom_fields">
-    Add new metadata fields to records. Supports simple types like text, dates, or controlled vocabularies.
+  <Card title='Record metadata' arrow href="/customize/model_backend/model">
+    Create & customize record metadata models based on pre-defined schemas (like CCMM or RDM), or define completely custom metadata schemas.
+    Customize serialization, validation, import/export formats, and backend behavior.
   </Card>
-  <Card title='Record landing page' arrow href="/customize/record/detail">
-    Change the order or visibility of fields on the record detail page, or provide custom React components for advanced models.
+  <Card title='Record landing page' arrow href="/customize/model_ui/detail">
+    Change content displayed on the record detail page, including metadata fields, layout, and additional components.
   </Card>
-  <Card title='Record deposition form' arrow href="/customize/record/deposit">
-    Reorder fields in the deposit form or provide custom UI components for new field types.
+  <Card title='Search result item' arrow href="/customize/model_ui/search">
+    Change how a record will appear in search results, including which metadata fields are shown and their layout.
   </Card>
-  <Card title='Search results item' arrow href="/customize/record/search">
-    Customize how search results are displayed, including fields, ordering, and faceting.
-  </Card>
-  <Card title='Record workflows' arrow href="/customize/workflows">
-    Customize approval processes and workflows for the repository’s records.
-  </Card>
-</Cards>
-
----
-
-## Component-level Customizations
-
-These require **coding experience in Python, Jinja, or React/JS**. They allow **fine-grained overrides** of UI components.
-
-<Cards>
-  <Card title='Page templates' arrow href="/customize/branding/templating">
-    Modify page layouts or create your own templates using Jinja or React.
-  </Card>
-  <Card title='Complex custom fields' arrow href="/customize/record/complex_fields">
-    Add metadata fields with complex data types, nested structures, or special widgets.
-  </Card>
-  <Card title='Complex validation' arrow href="/customize/record/complex_validation">
-    Implement advanced validation rules for metadata fields, enforced in deposit forms and backend APIs.
-  </Card>
-  <Card title='Editable vocabularies' arrow href="/customize/vocabularies/editable">
-    Allow users to create or extend controlled vocabulary items dynamically.
-  </Card>
-  <Card title='Fine-grained component overrides' arrow href="/customize/record/components">
-    Override default React components for fields, record pages, or search items to change behavior or appearance.
+  <Card title='Record deposition form' arrow href="/customize/model_ui/deposit">
+    Implement a deposit form for a model used for record creation & edit. Customize which metadata fields are included.
   </Card>
 </Cards>
