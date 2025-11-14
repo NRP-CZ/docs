@@ -7,9 +7,9 @@ import 'nextra-theme-docs/style.css'
 export const metadata = {
   metadataBase: new URL('https://github.com/NRP-CZ/docs'),
   title: {
-    template: '%s - NRP Docs'
+    template: '%s - NRP Invenio Docs'
   },
-  description: 'NRP Documentation',
+  description: 'NRP Invenio Documentation Site',
   docsRepositoryBase: 'https://github.com/NRP-CZ/docs',
   footer: {
     text: 'CESNET z.s.p.o. 2024',
@@ -33,7 +33,7 @@ export default async function RootLayout({ children }) {
     <Navbar
       logo={
         <div>
-          <b>NRP</b>{' '}
+          <b>NRP Invenio</b>{' '}
           <span style={{ opacity: '60%' }}>Documentation</span>
         </div>
       }

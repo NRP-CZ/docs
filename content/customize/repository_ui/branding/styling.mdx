@@ -1,26 +1,29 @@
 import { Cards, FileTree, Callout, Steps } from "nextra/components";
 import { Difficulty } from "@/components/difficulty";
-
-**TODO: RDM 12 version, update to RDM14**
+import { Card } from "@/components/card";
 
 # Styling <Difficulty level="intermediate" />
 
-Styling rules are useful when you need to customize the appearance of existing UI components and elements in your repository site.
-This can include changing the color scheme, fonts, sizing, or other visual aspects.
+Styling rules let you customize the appearance of existing UI components and elements in your repository site --  
+color schemes, typography, spacing, shapes, shadows, and more.
 
 ## Prerequisites
 
-Before diving into styling, it's recommended that you have a basic understanding of:
-- **[CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)** (Cascading Style Sheets): a styling language used to control the layout and appearance of web pages.
-- **[LESS](https://lesscss.org/)**: a CSS preprocessor that extends the functionality of CSS with features like variables, nesting, and mixins.
+Before proceeding, ensure you are familiar with:
+
+- **[CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)** — the core styling language of the web.
+- **[LESS](https://lesscss.org/)** — a CSS preprocessor adding variables, nesting, mixins, and more.
+
+
+<Callout type="warning" emoji="⚠️">Any changes made to files mentioned in this docs require running a [development server with assets watcher](/installation/run_instance#run-frontend-assets-builder-optional) for changes to take effect.</Callout>
 
 ## Global Variables
 
-The `site.variables` file allows you to define or override LESS variables that are used as defaults by all existing UI elements site-wide.
-This file is located in the `ui/branding/semantic-ui/less/globals` folder:
+Global UI variables for a repository site can be defined or overridden inside the `site.variables` file located under the `assets/less/site/globals` folder in your repository project structure.
+This file lets you define or override LESS variables used as defaults by any existing UI element site-wide.
 
 <FileTree>
-  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
+  <FileTree.Folder name="/assets/semantic-ui/less/site/globals" defaultOpen>
     <FileTree.Folder name="less" defaultOpen>
       <FileTree.Folder name="globals" defaultOpen>
         <FileTree.File name="site.variables" active={true} />
@@ -33,14 +36,16 @@ This file is located in the `ui/branding/semantic-ui/less/globals` folder:
 For a complete list of possible LESS styling variables, please refer to:
 
 <Cards>
-  <Cards.Card
+  <Card
     title="Invenio Theme Global Variables Reference"
     href="https://github.com/inveniosoftware/invenio-theme/blob/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme/globals/site.variables"
   />
-  <Cards.Card
+  <Card
     title="SemanticUI Default Theme Variables Reference"
     href="https://github.com/Semantic-Org/Semantic-UI/blob/master/src/themes/default/globals/site.variables"
   />
+  <Card title="InvenioRDM Theming Documentation" href="https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/theme/" />
+    
 </Cards>
 
 You can also define your own variables here and use it later in your custom styling rules.
@@ -51,7 +56,7 @@ The `site.overrides` is used for global styling rules, such as any font faces or
 overrides:
 
 <FileTree>
-  <FileTree.Folder name="ui/branding/semantic-ui" defaultOpen>
+  <FileTree.Folder name="/assets/semantic-ui/less/site/globals" defaultOpen>
     <FileTree.Folder name="less" defaultOpen>
       <FileTree.Folder name="globals" defaultOpen>
         <FileTree.File name="site.variables" active={false} />
@@ -62,11 +67,11 @@ overrides:
 </FileTree>
 
 
-## Customize Components
+## Customize Individual UI Components
 
-To customize the appearance of a UI component, you can override its default variables and/or style rules.
+To customize the appearance of a specific UI component, you can override either its default variables and/or style rules.
 
-For a full list of UI components usable in a NRP repository site, please refer to:
+For a full list of UI components available in a NRP repository site for you to customize, please refer to the:
 
 <Cards>
   <Cards.Card
@@ -79,12 +84,12 @@ For a full list of UI components usable in a NRP repository site, please refer t
   />
 </Cards>
 
- Here's an example of how to customize the  [`Button`](https://semantic-ui.com/elements/button.html) component:
+Here's an example of how to customize the  [`Button`](https://semantic-ui.com/elements/button.html) component:
 
-### Variable Overrides
+### Using Variable Overrides
 
 Look up the default variable definitions for the component you want to customize under the default `{componentType}/{component}.variables` definition
-and find out a variable that you want to tweak to get the desired effect. Then override that variable by defining it in the `{componentType}/{component}.variables` file under the [`branding`](/customize/branding/theme#creatingoverriding-files-under-the-branding-folder) folder.
+and find out a variable that you want to tweak to get the desired effect. Then override that variable by defining it in the `{componentType}/{component}.variables` file under the `/assets/semantic-ui/less/site/` folder structure in your repository project.
 
 <Cards>
   <Cards.Card
@@ -97,7 +102,7 @@ and find out a variable that you want to tweak to get the desired effect. Then o
   />
 </Cards>
 
-If we were tasked to tweak the buttons to have a **shadow** of size `16px` and that cool **rounded borders** with radius of `8px`, we need to go through the following process:
+If we were tasked to **tweak the buttons to have a **shadow** of size `16px` and that cool rounded borders with radius of `8px`**, we need to go through the following process:
 
 <Steps>
 #### Find the right variable names
@@ -121,15 +126,15 @@ We can see there, that the variables controlling the border radius and shadows a
   of the component of interest.
 </Callout>
 
-#### Create .variables file with customizations
+#### Create a `.variables` file with customizations
 
-In order to override values of these LESS variables, we create a corresponding `button.variables` file inside the [`branding`](/customize/branding/theme#createoverride-files-under-branding-folder) folder structure. We need to respect the theme folder structure imposed by Semantic UI:
+In order to override values of these LESS variables, we create a corresponding `button.variables` file. We need to respect the theme folder structure as imposed by Semantic UI theming system:
 
-`{themeName}/{componentType}s/{componentName}.variables`
+`{componentType}s/{componentName}.variables`
 
-As we use the `default` theme and the Button is a [component of type `element`](https://github.com/Semantic-Org/Semantic-UI/blob/master/src/definitions/elements/button.less#L15), the correct path would end with: `default/elements/button.variables`. Place just the variables that we need to customize there and we're done.
+As the Button is a [component of type `element`](https://github.com/Semantic-Org/Semantic-UI/blob/master/src/definitions/elements/button.less#L15), the correct path for that file would be: `/assets/semantic-ui/less/site/elements/button.variables`. Place the variables that you want to override there and you are done!
 
-```less filename="ui/branding/semantic-ui/less/default/elements/button.variables" copy
+```less filename="/assets/semantic-ui/less/site/elements/button.variables" copy
 @borderRadius: 8px;
 @shadowDistance: 16px;
 ```
@@ -145,8 +150,8 @@ As we use the `default` theme and the Button is a [component of type `element`](
 
 For situations, where there is no suitable variable defined on the component you want to tweak, you can completely override or add your own style rules for such a component.
 
-For example, there is no way to affect button's `min-height` attribute using LESS variables. If we were tasked to change buttons on our site to have
-`min-height` of `2rem`, we need to do the following:
+For example, there is no way to affect button's `min-height` attribute using LESS variables. If we were tasked to **change buttons on our site to have
+`min-height` of `2rem`**, we need to do the following:
 
 <Steps>
 #### Find the rule you want to override
@@ -178,14 +183,14 @@ controlling `min-height` there, it is `ui.button`):
 
 #### Define custom rules in overrides
 
-Using a similar approach to [overriding variables](#create-custom-variables-file), we put our style rules 
-into a custom overrides file. The path needs to respect the theme folder structure imposed by Semantic UI:
+Using a similar approach to [overriding variables](#using-variable-overrides), we put our style rules 
+into a custom `.overrides` file. The path needs to respect the theme folder structure as imposed by the Semantic UI:
 
-`{themeName}/{componentType}s/{componentName}.overrides`
+`/{componentType}s/{componentName}.overrides`
 
-We redefine the `ui.button` class there:
+We then redefine the `ui.button` style there:
 
-```less filename="ui/branding/semantic-ui/less/default/elements/button.overrides" copy {5}
+```less filename="/assets/semantic-ui/less/site/elements/button.overrides" copy {5}
 .ui.button {
   cursor: pointer;
   display: inline-block;
@@ -208,15 +213,15 @@ We redefine the `ui.button` class there:
   yet.
 </Callout>
 
-#### (optional) Combine with custom variables
+#### (Optional) Combine with custom variables
 
 You can further combine the two customization approaches described here. Create a custom LESS variable and reference it from this overriden rule, to make `min-height` easily tweakable like other variable-driven button attributes:
 
-```less filename="ui/branding/semantic-ui/less/default/elements/button.variables" copy
+```less filename="/assets/semantic-ui/less/site/elements/button.variables" copy
 @minHeight: 2rem;
 ```
 
-```less filename="ui/branding/semantic-ui/less/default/elements/button.overrides" copy {5}
+```less filename="/assets/semantic-ui/less/site/elements/button.overrides" copy {5}
 .ui.button {
   cursor: pointer;
   display: inline-block;
