@@ -8,12 +8,12 @@ On top of that, NRP introduces additional configuration options that are specifi
 
 Here is an overview of what could be achieved through configuration in NRP-based repositories.
 
-## Configure a NRP repository
+## Invenio.cfg file
 
 Invenio RDM configuration is based on Flask application configuration system. For more details on how to configure an InvenioRDM application, please refer to the
 [InvenioRDM Configuration Documentation](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/#setting-configuration-values).
 
-NRP-based repositories use the same mechanisms for configuration as InvenioRDM applications. You can set configuration values in the `invenio.cfg` file, environment variables, or `variables` file located in the root of your repository project.
+NRP-based repositories use the same mechanisms for configuration as InvenioRDM applications. You can set configuration values in the primary Invenio configuration file -- `invenio.cfg`, via environment variables (prefixed by `INVENIO_`), or `variables` file located in the root of your repository project.
 
 On top of that, a helper [config module](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) is available for you to use in your `invenio.cfg` file to help you configure NRP-specific features by a preset-based configuration approach.
 
