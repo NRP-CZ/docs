@@ -3,6 +3,8 @@ import { Footer, Layout, Link, Navbar } from 'nextra-theme-docs'
 import { Head } from 'nextra/components'
 import { getPageMap } from 'nextra/page-map'
 import 'nextra-theme-docs/style.css'
+import Image from 'next/image'
+import RequiredPublicity from  '../public/images/ENG_eu-msmt-eosc-loga-barevne-ochrana-zona-paticka-bg.svg'
 
 export const metadata = {
   metadataBase: new URL('https://github.com/NRP-CZ/docs'),
@@ -46,7 +48,9 @@ export default async function RootLayout({ children }) {
       <body>
         <Layout
           navbar={navbar}
-          footer={<Footer>MIT {new Date().getFullYear()} © <Link href="https://cesnet.cz"> CESNET a.l.e.</Link>. <span>&nbsp;Contact us at&nbsp;</span><Link href="mailto:cesnet-invenio@eosc.cz"> cesnet-invenio@eosc.cz</Link></Footer>}
+          footer={<Footer className='x:flex-col x:width-full x:items-center'>
+            <Image src={RequiredPublicity} height={150} alt="Required publicity logos" />
+            <p className="x:mt-md">MIT {new Date().getFullYear()} © <Link href="https://cesnet.cz"> CESNET a.l.e.</Link>. <span>&nbsp;Contact us at&nbsp;</span><Link href="mailto:cesnet-invenio@eosc.cz"> cesnet-invenio@eosc.cz</Link></p></Footer>}
           editLink="Edit this page on GitHub"
           docsRepositoryBase="https://github.com/NRP-CZ/docs"
           sidebar={{ defaultMenuCollapseLevel: 1 }}

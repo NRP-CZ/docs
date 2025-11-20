@@ -1,8 +1,6 @@
 import { Tabs } from "nextra/components";
 import { Difficulty } from "@/components/difficulty"
 
-**TODO: RDM 12 version, update to RDM14**
-
 # Copywriting <Difficulty level="easy" />
 
 In this section, you'll explore how to tailor the language and messaging across your site to align with your brand voice and resonate with your target audience.
@@ -20,7 +18,7 @@ This setting determines the name of the site to be displayed on the header and u
 <Tabs items={["invenio.cfg", "variables"]}>
   <Tabs.Tab>
 ```python copy
-config.configure_generic_parameters(
+config.configure_ui(
     # ...
     name=_("My new NRP repository!"),
     # ...
@@ -42,7 +40,7 @@ The title shown on the front page of the repository site.
 <Tabs items={["invenio.cfg", "variables"]}>
   <Tabs.Tab>
 ```python copy
-config.configure_generic_parameters(
+config.configure_ui(
     # ...
     description=_("My Repository site description"),
     # ...
@@ -55,3 +53,15 @@ INVENIO_REPOSITORY_DESCRIPTION = 'My Repository site description';
 ```
   </Tabs.Tab>
 </Tabs>
+
+There are more texts configurable via Invenio application configuration variables. For a more info, please consult the [Configuration Reference](/customize/configure/reference).
+
+## Template texts
+
+If you need more advanced text customization (beyond site name and title or other texts controlled via Invenio application config variable), you can override Jinja templates. This allows you to change most of the text appearing on the repository pages, including buttons, labels, hints, and other UI elements. For a detailed guide on how to override templates, please refer to the [Templating Customization](/customize/repository_ui/branding/templating) section.
+
+## Best Practices & Tips
+
+- Use translation functions (`_("") / lazy_gettext`) when writing custom template texts — this ensures that your custom text can later be translated into supported languages.
+- Keep your branding copy concise and clear — front-page titles and slogans are powerful, so make sure they reflect your repository’s mission.
+- Use environment-specific variables for settings that might differ between development, staging, and production deployments (e.g. a slightly different front-page title per environment).

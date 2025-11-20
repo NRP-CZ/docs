@@ -11,6 +11,21 @@ While InvenioRDM provides a unified data model and theming layer, NRP allows eac
 
 This section explains how the customization layers fit together and what NRP-specific customizations are available to you.
 
+## Customization Hierarchy
+
+InvenioRDM defines a clear **instance-scoped customization hierarchy** that determines how configuration, templates, translations, and assets are resolved at runtime. NRP repositories inherit this model. The key idea is that your **repository project instance is the top-most layer** that can override most defaults provided by upstream packages and modules.
+
+The hierarchy flows from **most specific to least specific**:
+
+1. **Instance configuration and assets** — anything defined inside your repository project (configuration values, `/assets`, `/templates`, translations, `/ui`) could override lower-level layer defaults.
+2. **Extension packages** — themes or modules you install (such as `oarepo-theme` or other NRP packages) provide defaults that can be extended or overridden by your instance.
+3. **InvenioRDM and Invenio base packages** — the final fallback layer containing core templates, translations, and theme variables.
+
+Because all customization is resolved through this layered approach, you can safely override text, branding, messages, or templates at the instance level without modifying upstream code. This ensures a clean separation between **your repository’s identity** and **the shared platform code**.
+
+For the original reference, see the InvenioRDM documentation:  
+[InvenioRDM Customization Hierarchy](https://inveniordm.docs.cern.ch/operate/customize/#customization-hierarchy).
+
 ## InvenioRDM foundations
 
 InvenioRDM provides a solid theming and customization system including:

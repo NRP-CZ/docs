@@ -2,7 +2,7 @@ export default {
     "theme": "Theme",
     "styling": "Styling",
     "colors": "Colors",
-    "fonts": "Fonts",
     "copywriting": "Copywriting",
-    "images": "Image assets"
+    "assets": "Assets",
+    "fonts": "Fonts",
 }

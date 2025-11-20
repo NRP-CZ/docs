@@ -1,84 +1,138 @@
 import { Difficulty } from "@/components/difficulty";
-import { Callout, FileTree, Cards } from "nextra/components";
+import { Callout, FileTree, Cards, Steps, Tabs } from "nextra/components";
 
-**TODO: RDM 12 version, update to RDM14**
+# Templating <Difficulty level="easy" />
 
-# Templating <Difficulty level="intermediate" />
+InvenioRDM uses **Jinja templates** as the primary mechanism for rendering server-side HTML.  
+Templating allows you to redefine page layouts, override sections of existing pages, or introduce entirely new pages into your repository UI.
 
-Templating is used to customize mainly a large portions of the user interface and/or
-to change page layouts, or to create a completely new pages for the Invenio repository.
+With InvenioRDM 14+, templating interacts closely with the **theming system**, which determines which templates are used for each view and how they are combined with assets, configuration, and extensions.
 
-## Changing The Templates
+This page explains how template resolution works, how to override templates, and how the inheritance hierarchy shapes the final rendered interface.
 
-What templates are used to render which pages, is determined mostly by [Invenio site configuration](/customize/branding/theme#modifying-invenio-configuration).
-It is a common convention that configuration options regarding the templates usually contains the `_TEMPLATE` suffix in the name.
+---
 
-Jinja templates are `.html` files with Jinja syntax. Any custom templates should be created and placed under the registered `templates` folder.
+## Understanding Template Layers in NRP Invenio Repositories
 
-## Template Inheritance And Composition
+InvenioRDM provides a layered template system composed of:
 
-It is a common practice to compose the final page from one or more templates by leveraging Jinja's [Template inheritance](https://jinja.palletsprojects.com/en/stable/templates/#template-inheritance) mechanism.
+1. **Invenio-Theme base templates**  
+   Provide the general HTML skeleton (layout, header/footer blocks, page wrappers).
 
-Usually you would have a [base page template](https://github.com/inveniosoftware/invenio-theme/blob/master/invenio_theme/templates/invenio_theme/page.html), which provides just the overall page layout and a few extension points (e.g.: `{% block header %}`).
-Other templates inheriting from it (`{% extends "base.html" %}`) could then extend the base template by providing their own content for the extension points. (e.g. by providing a header text for the `header` block).
+2. **Invenio-App-RDM (RDM) templates**  
+   Define page-level templates for record detail, search, deposit, homepage, and more.
 
-## Referencing Templates
+3. **Oarepo UI templates (NRP base templates)**  
+   Extend and customize some RDM templates with NRP-specific branding, components, and layouts.
 
-Template references (either in Invenio site config, or when referenced from other templates) are resolved as paths **relative** to the registered `templates` folders.
-For example with this file structure:
+4. **Instance templates (your repository)**  
+   Templates you add under your instance’s registered `templates/` folder override any matching upstream template.
+
+5. **Model-specific templates (per each of your record model)**  
+   Each record model may introduce their own templates that extend or override base RDM templates to customize the UI for records
+   of that specific model type.
+
+This layering follows the same **customization hierarchy** as other parts of the theming system.  
+The rule is simple: **your templates always take precedence** over the ones shipped by libraries and modules.
+
+See also:  
+**InvenioRDM Customization Hierarchy**  
+https://inveniordm.docs.cern.ch/operate/customize/#customization-hierarchy
+
+---
+
+## Changing the Templates
+
+Which templates are used for each page is primarily controlled by the **configuration variables** in 
+Invenio application configuration (e.g. `invenio.cfg`).
+
+Template-related configuration keys typically end with **`_TEMPLATE`**, for example:
+
+- `THEME_BASE_TEMPLATE`
+- `HEADER_TEMPLATE`
+- `RDM_SEARCH_TEMPLATE`
+- `COMMUNITIES_BASE_TEMPLATE`
+
+To override a template:
+
+1. Create a new template file under your instance’s `templates/` folder.
+2. Set the corresponding config variable (if applicable) to point to your template.
+3. Ensure the path is given **relative to the registered templates directory**.
+
+---
+
+## Template Locations and Resolution
+
+All templates are resolved by searching through the **registered template folders** in the order governed by the Flask application bootstrap.
+
+For instance, if you define:
 
 <FileTree>
   <FileTree.Folder name="myrepo" defaultOpen>
-    <FileTree.Folder name="ui" defaultOpen>
-        <FileTree.Folder name="branding" defaultOpen>
-            <FileTree.Folder name="semantic-ui" defaultOpen>
-              <FileTree.Folder name="templates" defaultOpen>
-                <FileTree.Folder name="custom" defaultOpen>
-                    <FileTree.File name="myfooter.html"/>
-                </FileTree.Folder>
-                </FileTree.Folder>
-            </FileTree.Folder>
+      <FileTree.Folder name="templates" defaultOpen>
+        <FileTree.Folder name="custom" defaultOpen>
+          <FileTree.File name="myfooter.html" />
         </FileTree.Folder>
-    </FileTree.Folder>
+      </FileTree.Folder>
   </FileTree.Folder>
 </FileTree>
 
-wherever I'd like to use `myfooter.html` template, I would refer to it as `custom/myfooter.html`.
+Then any reference to `custom/myfooter.html` in your configuration will resolve to that file.
+If a module (e.g., `invenio-app-rdm`) also ships a `custom/myfooter.html` (sharing the same relative path under the `templates` folder), your instance's version **automatically overrides it**.
 
-## Example
+## Template Inheritance and Composition
 
-<Callout type="info">
-TODO: this part needs more work.
-</Callout>
+Jinja provides powerful mechanisms for composing templates via **template inheritance**.
 
-
-## Advanced Templating with JinjaX
-
-In NRP-based Invenio repositories, apart from using regular Jinja macros, it is possible to
-use and create a reusable Jinja snippets / components with a clearly defined interface of accepted
-properties (usage is similar to React UI components) by using the [JinjaX](https://github.com/jpsca/jinjax) extension.
-
-You can recongnize JinjaX components by the camel-cased filename, `.jinja` file extension and usually the:
+A common pattern is that a base template defines structural blocks:
 ```jinja
-{# def message="hello world!", ... #}
+{% block page_header %}{% endblock %}
+{% block page_content %}{% endblock %}
 ```
-properties definition header.
 
-<Callout type="info">
-TODO: this part needs more work.
-- how to register my JinjaX components
-- how to discover which JinjaX components are available to me
-- how to reference JinjaX component
-</Callout>
+Then, child templates extend the base and fill in those blocks:
+  ```jinja
+  {% extends "base.html" %}
+  
+  {% block page_header %}
+    <h1>My Custom Header</h1>
+  {% endblock %}
+  
+  {% block page_content %}
+    <p>This is my custom content.</p>
+  {% endblock %}
+  ```
 
-This article only describes, how you can customize or change the templates used across the
-repository site. If you wish to learn more about development of own custom templates and JinjaX
-components, have a look at:
+In NRP Invenio repositories, most templates follow this pattern, allowing you to override just the parts you need while reusing common layout and structure from upstream templates. Base page layout is provided by the [Oarepo-UI](https://github.com/oarepo/oarepo-ui) package and extended in child templates by referencing it as `{% extends "oarepo_ui/base_page.html" %}`.
 
-<Cards>
-  <Cards.Card
-    title="Front-end Development"
-    href="/develop/frontend"
-  />
-</Cards>
+## Example: Overriding a Footer Template
 
+<Steps>
+### 1. Create Your Custom Footer Template
+
+```jinja
+{% extends "invenio_app_rdm/footer.html" %}
+
+{% block footer_right %}
+  <p>Custom footer text for my repository.</p>
+{% endblock %}
+```
+
+### 2. Configure Your Repository to Use the Custom Footer
+
+<Tabs items={["invenio.cfg", "variables"]}>
+  <Tabs.Tab>
+```python copy
+THEME_FOOTER_TEMPLATE="custom/myfooter.html"
+```
+  </Tabs.Tab>
+   <Tabs.Tab>
+```python copy
+INVENIO_THEME_FOOTER_TEMPLATE="custom/myfooter.html"
+```
+  </Tabs.Tab>
+</Tabs>
+</Steps>
+
+This just scratches the surface of what you can achieve with templating in NRP Invenio repositories. For a more in-depth Jinja template development
+reference, please head over to the [Jinja templates](/customize/repository_ui/jinja) section.
