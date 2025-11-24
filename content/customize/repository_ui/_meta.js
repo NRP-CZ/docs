@@ -5,6 +5,9 @@ export default {
     "branding": {
         "title": "Branding"
     },
+    "menus": {
+        "title": "Menus"
+    },
     "resources": {
         "title": "Resource views"
     },

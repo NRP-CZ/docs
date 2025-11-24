@@ -12,7 +12,7 @@ export const metadata = {
     template: '%s - NRP Invenio Docs'
   },
   description: 'NRP Invenio Documentation Site',
-  docsRepositoryBase: 'https://github.com/NRP-CZ/docs',
+  docsRepositoryBase: 'https://github.com/NRP-CZ/docs/blob/main/',
   footer: {
     text: 'CESNET z.s.p.o. 2024',
   },
@@ -52,7 +52,7 @@ export default async function RootLayout({ children }) {
             <Image src={RequiredPublicity} height={150} alt="Required publicity logos" />
             <p className="x:mt-md">MIT {new Date().getFullYear()} © <Link href="https://cesnet.cz"> CESNET a.l.e.</Link>. <span>&nbsp;Contact us at&nbsp;</span><Link href="mailto:cesnet-invenio@eosc.cz"> cesnet-invenio@eosc.cz</Link></p></Footer>}
           editLink="Edit this page on GitHub"
-          docsRepositoryBase="https://github.com/NRP-CZ/docs"
+          docsRepositoryBase={metadata.docsRepositoryBase}
           sidebar={{ defaultMenuCollapseLevel: 1 }}
           pageMap={pageMap}
         >
