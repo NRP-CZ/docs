@@ -5,63 +5,35 @@ import { Card } from "@/components/card";
 # Custom Menus <Difficulty level="intermediate" />
 
 InvenioRDM exposes site menus (top nav, dashboard tabs, user dropdowns, etc.) as configurable **menus** composed of **submenus**.
-Implementation is based on the [Flask-Menu](https://flask-menu.readthedocs.io/en/latest/) extension.3 
-You can **add new submenus** (register them programmatically) or **modify properties of existing submenus** via instance configuration. The approach below follows the InvenioRDM docs on menu customization.
+Implementation is based on the [Flask-Menu](https://flask-menu.readthedocs.io/en/latest/) extension.
+You can **add new submenus** (register them programmatically) or **modify properties of existing submenus** via instance configuration. Menu customization in NRP Invenio repositories
+is fully compatible with [InvenioRDM docs on menu customization](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/menus/). You can refer to this docs to learn how
+to customize existing menus or add custom submenus.
 
-<Cards>
-<Card title="InvenioRDM – Change menus" href="https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/menus/">
-    Official InvenioRDM documentation on how to customize menus and submenus.
-</Card>
-</Cards>
+## List of menus
 
-## What you can change
+To find out what built-in menus are registered by default and can be customized, please refer to the [InvenioRDM docs -- list of menus](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/menus/#list-of-menus).
 
-Each submenu shares the same set of configurable properties:
+In NRP Invenio repositories, there might be a few more, depending on your record models & enabled set of features.
+To learn about currently registered menus and submenus in your specific repository site, run the following CLI commands:
 
-- `endpoint` — Flask endpoint used when the menu is clicked (e.g. `"invenio_app_rdm_users.uploads"`).  
-- `order` — numeric ordering; lower numbers render further left.  
-- `text` — label (use translation helpers like `lazy_gettext` / `_()` for i18n).  
-- `visible_when` — callable that returns `True`/`False` to show or hide the submenu dynamically (use `flask_menu.menu.CONDITION_TRUE` / `CONDITION_FALSE` for simple cases).  
-
-See the full list in the official docs.
-
----
-
-## Add a new submenu (recommended for new items)
-
-To add submenus you register them on the target menu object during application finalization. Typical workflow:
-
-1. Create a registration function (commonly in `ext.py`).
-2. Register it at the `invenio_base.finalize_app` entry point in your `setup.cfg` / `pyproject.toml`.
-3. Reinstall the package (entry point changes require reinstall) and restart the server.
-
-Example `ext.py`:
+```shell
+./run.sh invenio shell
+```
 
 ```python
-# ext.py
-from invenio_app_rdm.menus import user_dashboard_menu  # import the menu object
-from invenio_i18n import lazy_gettext as _
-
-def finalize_app(app, **kwargs):
-    # register a new submenu named "myuploads" on the user dashboard
-    user_dashboard_menu.register(
-        "myuploads",
-        endpoint="my_package.views.my_uploads",
-        order=4,
-        text=_("My uploads"),
-        # visible_when defaults to always visible; provide a callable to change it
-    )
+from flask_menu import current_menu
+[(menu.name, [submenu.name for submenu in menu.children]) for menu in current_menu.children]
+# 
+# [('plus', ['create_myrecord', 'community']),
+#  ('main', ['about_repository', 'communities', 'stats']),
+#  ('settings', ['admin', 'profile', 'security', 'oauthclient', 'applications']),
+#  ('actions', ['deposit']),
+#  ('dashboard', ['uploads', 'communities', 'requests']),
+#  ('admin_navigation',
+#   ['dashboard', 'Communities', 'Site management', 'System']),
+#  ('profile-admin', ['administration']),
+#  ('breadcrumbs', ['settings']),
+#  ('communities',
+#   ['requests', 'members', 'settings', 'curation_policy', 'about'])]
 ```
-
-Example `pyproject.toml` entry points:
-
-```toml
-[tool.poetry.plugins."invenio_base.apps"]
-my_package = "my_package.ext:finalize_app"
-```
-
-<Callout type="info">
-**Important notes:**
-Entry points are read at installation time — reinstall your package after changes.
-You must restart the server for changes to appear.
-</Callout>
