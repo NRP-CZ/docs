@@ -9,7 +9,7 @@ export default {
         "title": "Menus"
     },
     "resources": {
-        "title": "Resource views"
+        "title": "UI Resources"
     },
     "jinja": {
         "title": "Jinja templates"
