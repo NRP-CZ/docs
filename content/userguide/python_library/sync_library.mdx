@@ -1,0 +1,279 @@
+import {Callout} from 'nextra/components'
+import {Difficulty} from '@/components/difficulty'
+
+# NRP Sync Client Library <Difficulty level="intermediate" />
+
+The NRP Sync Client Library provides a Python synchronous API for programmatically interacting with NRP repositories. It's built on top of `httpx` and provides high-level abstractions for working with records, files, and requests.
+
+<Callout type="info" emoji="ℹ️">
+    This library is designed for synchronous Python applications. If you need an asynchronous API,
+    use the async client library instead. If you're building command-line tools, consider using
+    the nrp-cmd CLI application.
+</Callout>
+
+## Key Features
+
+- **Synchronous API**: Simple, blocking operations for straightforward scripting
+- **Type-safe**: Full type annotations for better IDE support
+- **Connection pooling**: Efficient HTTP connection management
+- **Progress tracking**: Built-in progress bar support for file operations
+- **Retry logic**: Automatic retry on transient failures
+- **Multi-repository**: Work with multiple repositories simultaneously
+
+## Prerequisites
+
+- Python 3.12 or higher
+- Basic understanding of Python programming
+- Access to an NRP repository (or any Invenio RDM repository)
+
+## Installation
+
+```bash
+pip install nrp-cmd
+```
+
+## Quick Start
+
+### Basic Example
+
+```python
+from nrp_cmd.sync_client import get_sync_client
+
+# Get a client for a repository
+client = get_sync_client("https://your-repository.org")
+
+# Create a new record
+record = client.records.create({
+    "metadata": {
+        "title": "My First Record",
+        "creators": [{"name": "John Doe"}],
+        "resourceType": {"id": "dataset"}
+    }
+})
+
+print(f"Created record: {record.id}")
+
+# Upload a file
+file = client.files.upload(
+    record,
+    key="data.csv",
+    metadata={"description": "My data file"},
+    source="path/to/data.csv"
+)
+
+print(f"Uploaded file: {file.key}")
+
+# Publish the record
+published = client.records.publish(record)
+print(f"Published record: {published.id}")
+```
+
+## Client Architecture
+
+The sync client is organized into several components:
+
+### Repository Client
+
+The main entry point that provides access to all functionality:
+
+```python
+client = get_sync_client(repository)
+```
+
+The client has three main sub-clients:
+
+- **`client.records`**: Operations on records (create, read, update, delete, search, publish)
+- **`client.files`**: File operations (upload, download, list, delete)
+- **`client.requests`**: Request/workflow operations (submit, accept, decline)
+
+### Configuration
+
+The client uses configuration from `~/.nrp/invenio-config.json` by default, but you can provide custom configuration:
+
+```python
+from nrp_cmd.config import Config, RepositoryConfig
+from yarl import URL
+
+# Create custom configuration
+config = Config()
+config.add_repository(RepositoryConfig(
+    alias="my-repo",
+    url=URL("https://your-repository.org/api"),
+    token="your-access-token",
+    verify_tls=True
+))
+
+# Use custom configuration
+client = get_sync_client("my-repo", config=config)
+```
+
+### Connection Management
+
+The library handles connection pooling automatically for efficient HTTP connection reuse.
+
+## Record Status
+
+Records can be in different states:
+
+```python
+# Work only with draft records
+draft_client = client.records.draft_records
+drafts = draft_client.search(q="title:test")
+
+# Work only with published records  
+published_client = client.records.published_records
+published = published_client.search(q="title:test")
+```
+
+## Error Handling
+
+The library provides specific exception types:
+
+```python
+from nrp_cmd.errors import (
+    RepositoryCommunicationError,
+    RepositoryClientError,
+    StructureError
+)
+
+try:
+    # Reading a draft record by ID
+    record = client.records.draft_records.read("non-existent-id")
+except RepositoryCommunicationError as e:
+    print(f"Network error: {e}")
+except RepositoryClientError as e:
+    print(f"Client error: {e}")
+```
+
+## Progress Tracking
+
+For long-running operations like file uploads/downloads:
+
+```python
+# Upload with progress tracking
+file = client.files.upload(
+    record,
+    key="large-file.zip",
+    metadata={},
+    source="path/to/large-file.zip",
+    progress="Uploading large file"  # Shows progress bar
+)
+
+# Download with progress tracking
+client.files.download(
+    file,
+    sink="path/to/save.zip",
+    progress="Downloading file"
+)
+```
+
+## Working with Multiple Repositories
+
+```python
+# Connect to multiple repositories
+repo1 = get_sync_client("https://repo1.org")
+repo2 = get_sync_client("https://repo2.org")
+
+# Search draft records in both
+results1 = repo1.records.draft_records.search(q="climate")
+results2 = repo2.records.draft_records.search(q="climate")
+
+# Copy record from one to another
+record1 = results1.hits.hits[0]
+record2 = repo2.records.create(record1.metadata)
+```
+
+## Data Streaming
+
+The library supports streaming data for efficient memory usage:
+
+```python
+from nrp_cmd.sync_client.streams import FileSource, FileSink
+
+# Stream upload from file
+source = FileSource("large-file.zip")
+client.files.upload(record, "file.zip", {}, source=source)
+
+# Stream download to file
+sink = FileSink("downloaded.zip")
+client.files.download(file, sink=sink)
+```
+
+## Advanced Topics
+
+### Scanning All Records
+
+For retrieving all records (not just a page):
+
+```python
+# Scan through all draft records matching query
+with client.records.draft_records.scan(q="resourceType:dataset") as records:
+    for record in records:
+        print(f"Processing: {record.id}")
+        # Process each record...
+
+# Scan through published records
+with client.records.published_records.scan(q="resourceType:dataset") as records:
+    for record in records:
+        print(f"Processing published: {record.id}")
+        # Process each record...
+```
+
+### Working with Models
+
+If your repository has multiple record types (models):
+
+```python
+# Work with a specific model
+dataset_client = client.records.with_model("datasets")
+dataset = dataset_client.create({
+    "metadata": {"title": "Dataset Record"}
+})
+
+# Search draft records within a specific model
+results = dataset_client.draft_records.search(q="climate")
+
+# Search published records within a specific model
+published_results = dataset_client.published_records.search(q="climate")
+```
+
+### Idempotent Operations
+
+For operations that can be safely retried:
+
+```python
+# Create with idempotent flag if your PID is deterministic
+record = client.records.create(
+    data={"metadata": {...}, "id": "my-fixed-id"},
+    idempotent=True
+)
+```
+
+## Next Steps
+
+- [Records API Documentation](userguide/python_library/sync_library_records.mdx) - Complete guide to record operations
+- [Files API Documentation](userguide/python_library/sync_library_files.mdx) - File upload, download, and management
+- [Requests API Documentation](userguide/python_library/sync_library_requests.mdx) - Working with workflows and requests
+
+## API Reference
+
+### Main Functions
+
+- **`get_sync_client(repository, refresh=False, config=None)`** - Get a client for a repository
+- **`resolve_record_id(url, config=None, refresh=False)`** - Resolve a record URL to a client and normalized URL
+
+### Client Properties
+
+- **`client.records`** - SyncRecordsClient instance
+- **`client.files`** - SyncFilesClient instance
+- **`client.requests`** - SyncRequestsClient instance
+- **`client.config`** - Repository configuration
+- **`client.info`** - Repository information
+
+### Types
+
+- **`Record`** - Record data structure
+- **`RecordList`** - List of records with pagination
+- **`File`** - File metadata and links
+- **`Request`** - Request/workflow data
+- **`RecordStatus`** - Enum: ALL, PUBLISHED, DRAFT

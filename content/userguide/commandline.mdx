@@ -2,11 +2,7 @@ import {Callout} from 'nextra/components'
 import {Difficulty} from '@/components/difficulty'
 import {ToDo} from '@/components/todo'
 
-**TODO: RDM 12 version, update to RDM14**
-
-
 # NRP commandline tools <Difficulty level="easy" />
-
 
 <Callout type="info" emoji="ℹ️">
     NRP commandline tools can currently be used only for NRP repositories
@@ -15,10 +11,9 @@ import {ToDo} from '@/components/todo'
     ARL or Islandora.
 </Callout>
 
-
 ## Prerequisites
 
-- python 3.12 or higher
+- python 3.13 or higher
 - curl
 
 ## Example
@@ -27,15 +22,15 @@ import {ToDo} from '@/components/todo'
 # add a repository, will ask for token
 nrp-cmd add repository https://data.narodni-repozitar.cz/ catchall --default
 
-# create a new record and upload file to it. Store the record url to variable @rec
+# create a new record and upload file to it. Store the record url to variable rec
 nrp-cmd create record --community brno \
         '{"title": "My Record"}' \
-        /tmp/myfile.txt '{"title":"My file"}' @rec
+        /tmp/myfile.txt '{"title":"My file"}' --set rec
 
 # or with metadata in file
 nrp-cmd create record --community brno \
         metadata.json \
-        /tmp/myfile.txt /tmp/myfile-metadata.json @rec
+        /tmp/myfile.txt /tmp/myfile-metadata.json --set rec
 
 # publish the record
 nrp-cmd publish record @rec
@@ -45,26 +40,23 @@ Bulk changes to records:
 
 ```bash
 # get all records with publisher being 'myorg'
-nrp-cmd scan records "metadata.publisher:myorg" @ids
+nrp-cmd scan records "metadata.publisher:myorg" --set ids
 
 # download them together with files to the current directory as a backup
 nrp-cmd download record @ids
 
 # After carefully inspecting them, 
 # change the publisher to 'myorg2' inside all the records
-nrp-cmd update record @ids --path publisher myorg2
+nrp-cmd update record @ids --path metadata.publisher myorg2
 ```
 
 ## Installation
 
-### Binary distribution for Linux/64bit
+### Using uvx
 
-<Callout type="warning" emoji="⚠️">
-    Not yet released, use the pip version instead.
-</Callout>
+At first install the uv tool, see [uv installation](https://docs.astral.sh/uv/getting-started/installation/) for instructions.
 
-Download the latest release from [github](https://github.com/NRP-CZ/nrp-cmd/releases) and place it somewhere to your PATH.
-Then just run the `nrp-cmd`.
+Then just call `uvx nrp-cmd` to run the actual version of the `nrp-cmd` tool.
 
 ### Using pip and virtualenv
 
@@ -73,13 +65,15 @@ Run the following command to install the tool:
 ```bash
 python3 -m venv nrp-cmd
 source nrp-cmd/bin/activate
-pip install nrp-invenio-client
+pip install nrp-cmd
 ```
 
 For better comfort, create an alias in your `.bashrc`/`.zshrc` file:
 
 ```bash
-alias nrp-cmd="<path-to-nrp-invenio-client>/bin/nrp-cmd"
+alias nrp-cmd="<path-to-nrp-cmd>/bin/nrp-cmd"
+# or
+alias nrp-cmd="uvx nrp-cmd"
 ```
 
 Create a new terminal and try running `nrp-cmd`.
@@ -92,7 +86,6 @@ The file contains sensitive information, such as tokens, so make sure it is not 
 Call the `nrp-cmd --help` command to get a list of available commands,
 or `nrp-cmd <command> --help` to get help for a specific command.
 
-
 ## Managing repositories
 
 ### Adding a repository
@@ -100,10 +93,13 @@ or `nrp-cmd <command> --help` to get help for a specific command.
 The tool can work with multiple repositories. Each repository is
 identified by an alias and one of the repositories is set as a default.
 
+If you do not add any repository, you can still download public records,
+but you will not be able to create or modify records nor access restricted records.
+
 To add a repository, invoke:
 
 ```bash
-nrp-cmd add repository <servername> <alias> [--token token] [--anonymous] [--default] [--no-tls-verify]
+nrp-cmd add repository <servername> <alias> [--token token] [--anonymous] [--default] [--no-verify-tls]
 ```
 
 where the `servername` is either the full URL of the server, or just the
@@ -121,18 +117,15 @@ anonymous access to the repository - you will be able to read public records, bu
 not to create or modify them.
 
 If you specify the `--default` option, the repository will be set as the default one.
+The first repository added will be set as default automatically.
 
-If you specify the `--no-tls-verify` option, the tool will not verify the TLS certificate
+If you specify the `--no-verify-tls` option, the tool will not verify the TLS certificate
 of the server. This is useful for testing purposes, but not recommended for production use.
 
-### Selecting the default repository
-
-A default repository is used when no repository alias is specified in the command.
-The first repository added will be set as default. To change the default repository,
-run:
+**Hint**: For locally developed repository, use the following command:
 
 ```bash
-nrp-cmd select repository <alias>
+nrp-cmd add repository https://127.0.0.1:5000/ --no-verify-tls
 ```
 
 ### Listing known repositories
@@ -149,6 +142,16 @@ Repositories
  ───────────────────────────────────────────
   repo    https://127.0.0.1:5000/   ✓
 
+```
+
+### Selecting the default repository
+
+A default repository is used when no repository alias is specified in the command.
+The first repository added will be set as default. To change the default repository,
+run:
+
+```bash
+nrp-cmd select repository <alias>
 ```
 
 ### Removing a repository
@@ -180,7 +183,7 @@ To refresh the information, use the `--refresh` option.
 
 Sample output:
 
-```
+```text
 Repository 'repo'                                                
                                                                  
   Name                  NR Document repository                   
@@ -231,14 +234,14 @@ The following operations are available:
 To search the repository, invoke one of the following commands (search and list are synonyms):
 
 ```bash
-nrp-cmd search records [--repository <alias>] [modifiers] <query> [@variable]
-nrp-cmd list records [--repository <alias>] [modifiers] <query> [@variable]
+nrp-cmd search records [--repository <alias>] [modifiers] <query> [--set variable]
+nrp-cmd list records [--repository <alias>] [modifiers] <query> [--set variable]
 ```
 
 The optional query is a query string in the OpenSearch format. For example:
 
 ```bash
-nrp-cmd search records "title:mytitle" @mytitle_ids
+nrp-cmd search records "metadata.title:mytitle" --set mytitle_ids
 ```
 
 ### Modifiers
@@ -252,9 +255,8 @@ If not specified, all communities will be searched. This option can be specified
 * `--size` - number of results to return. Default is 10.
 * `--page` - page number to return. Default is 1.
 * `--sort` - sort order. The default is `bestmatch`. The supported values are `bestmatch`, `newest`, `oldest`.
-* `--drafts` - if specified, only draft records will be returned.
-* `--mine` - if specified, only user's records will be returned.
-* `--published` - if specified, only published records will be returned.
+* `--draft` / `--no-draft` - if specified, only draft records will be returned.
+* `--published` / `--no-published` - if specified, only published records will be returned.
 * `--output-format <format>` - format of the output. The default is `yaml`.
 The supported formats are `json` and `yaml`.
 
@@ -265,10 +267,8 @@ If the user is logged in, the search will also return private records.
 
 ### Variables
 
-If you specify the `@variable`, the urls of found records will be stored in the variable and can be used
+If you specify the `--set variable`, the urls of found records will be stored in the variable and can be used
 in subsequent commands, such as `get` or `update`.
-
-If you specify the '@+variable', the identifiers of found records will be appended to the variable.
 
 ### Output
 
@@ -288,6 +288,7 @@ links:
   next: ...
   prev: ...
 ```
+
 #### Pagination
 
 To get the next page, run the command with `--page` option. For example:
@@ -363,7 +364,7 @@ Several representations can be used to identify a record:
 
 * `id` - this is the `id` field from search hit.
 * `https://repository/api/model/id` - the `self` url of the record
-* `https://repository/api/user/model/id` - the `self` url of the draft record
+* `https://repository/api/model/id/draft` - the `self` url of the draft record
 * `https://repository/model-ui/id` - the `self_html` url of the record. The HTML page
 must contain api metadata inside the head tag.
 * `doi:10.3323/1234567` - a DOI allocated by the repository
@@ -410,8 +411,8 @@ The placeholders will be sanitized and `..` and leading `/` will be removed.
 multiple records with their files, use:
 
 ```bash
-nrp-cmd search records "title:mytitle" @mytitle_ids
-nrp-cmd get record @mytitle_ids --download -o 'data/{id}'
+nrp-cmd search records "title:mytitle" --set mytitle_ids
+nrp-cmd download record @mytitle_ids -o 'data/{id}'
 ```  
 
 ### Downloading a complete record
@@ -450,11 +451,12 @@ This call will create the following structure:
 To create a record, invoke
 
 ```bash
-nrp-cmd create record [--model <model>] <metadata> [<file> <file_metadata> ...] [@variable]
+nrp-cmd create record [--model <model>] <metadata> [<file> <file_metadata> ...] [--set variable]
 ```
 
 where the `model` is the name of the model and the `metadata` is either a json string beginning with `{`
 containing the metadata, or path on the filesystem to a file containing the metadata in either json or yaml format.
+In case of path, the path must start with `/`, `./` or `../`.
 A `-` can be used to read the metadata from stdin.
 
 If model is not specified, either the repository must contain just one model or the model must be specified 
@@ -473,7 +475,7 @@ All options:
 The command will output the created record to stdout, for example in yaml:
 
 ```yaml
-# nrp-cmd create record documents '{"metadata":{"title": "blah"}}' @blah
+# nrp-cmd create record documents '{"metadata":{"title": "blah"}}' --set blah
 
 id: z2rrt-pz252
 $schema: local://documents-1.0.0.json
@@ -503,7 +505,7 @@ metadata:
   title: blah
 ```
 
-If you specify the `@variable`, the identifier of the created record will be stored in the variable and can be used
+If you specify the `--set variable`, the identifier of the created record will be stored in the variable and can be used
 in subsequent commands, such as `get` or `update`:
 
 ```yaml
@@ -561,8 +563,6 @@ You can not update other parts of the record using this command.
 
 ### Deleting a record
 
-<ToDo/> Not yet implemented
-
 To delete a record, invoke
 
 ```bash
@@ -570,22 +570,6 @@ nrp-cmd delete record <pid>
 ```
 
 where the `pid` is the record identifier in any of the supported formats, as defined above.
-
-### Validating a record
-
-<ToDo/> Not yet implemented
-
-To validate a record, invoke
-
-```bash
-nrp-cmd validate record <pid>
-```
-
-The command will perform a validation of the record and output the validation errors to stdout.
-If the record is invalid, the command will return a non-zero exit code.
-
-**Note:** the validation is performed by saving the record, so internal revision number is
-increased by one. This implementation might change in the future.
 
 ## Files
 
@@ -625,33 +609,34 @@ metadata:
 # ... more files here
 ```
 
-Alternatively, you can use the `--expand` option when getting a record and then taking the files section from the output:
+Alternatively, you can get a record and then take the files section from the output:
 
 ```yaml
-# ❯ nrp-cmd get record @blah --files
+# ❯ nrp-cmd get record @blah --output-format yaml
 
 mid: draft/documents/z2rrt-pz252
 id: z2rrt-pz252
 $schema: local://documents-1.0.0.json
 created: '2024-03-14T13:30:01.133502+00:00'
 files:
-- key: p8.toml
-  storage_class: L
-  checksum: md5:d70b90d02e92e8ccb83100a324ac0f29
-  size: 578
-  created: '2024-03-14T13:50:24.671439+00:00'
-  updated: '2024-03-14T13:50:24.804383+00:00'
-  status: completed
-  metadata:
-    description: project file
-  mimetype: application/octet-stream
-  version_id: 813511ba-fd02-4b13-888d-19cc145a7072
-  file_id: aae1b651-2245-4853-bfb5-03f42fd41703
-  bucket_id: 73c3d9ec-e4f2-4109-9212-de9e85ecd302
-  links:
-    commit: https://127.0.0.1:5000/api/docs/z2rrt-pz252/draft/files/p8.toml/commit
-    content: https://127.0.0.1:5000/api/docs/z2rrt-pz252/draft/files/p8.toml/content
-    self: https://127.0.0.1:5000/api/docs/z2rrt-pz252/draft/files/p8.toml
+  entries:
+  - key: p8.toml
+    storage_class: L
+    checksum: md5:d70b90d02e92e8ccb83100a324ac0f29
+    size: 578
+    created: '2024-03-14T13:50:24.671439+00:00'
+    updated: '2024-03-14T13:50:24.804383+00:00'
+    status: completed
+    metadata:
+      description: project file
+    mimetype: application/octet-stream
+    version_id: 813511ba-fd02-4b13-888d-19cc145a7072
+    file_id: aae1b651-2245-4853-bfb5-03f42fd41703
+    bucket_id: 73c3d9ec-e4f2-4109-9212-de9e85ecd302
+    links:
+      commit: https://127.0.0.1:5000/api/docs/z2rrt-pz252/draft/files/p8.toml/commit
+      content: https://127.0.0.1:5000/api/docs/z2rrt-pz252/draft/files/p8.toml/content
+      self: https://127.0.0.1:5000/api/docs/z2rrt-pz252/draft/files/p8.toml
 links:
 ```
 
@@ -688,8 +673,6 @@ nrp-cmd upload file <pid> <file> [<metadata>]
 where the `pid` is the record identifier in any of the supported formats, as defined above.
 If the metadata is not passed, the file will be uploaded with empty metadata.
 
-# Everything after this is TODO for both implementation and checking
-
 ### Updating file metadata
 
 To update file metadata, invoke
@@ -703,22 +686,6 @@ where the `pid` is the record identifier in any of the supported formats, as def
 with `{` containing the metadata, or path on the filesystem to a file containing the metadata
 in either json or yaml format.
 
-Alternatively, you can use the following command:
-
-```bash
-nrp-cmd update file <pid> <file-key> --set <path>=<value> --set <path>=<value> ...
-```
-
-where the `path` is the path to the metadata field and `value` is the new value.
-
-### Re-uploading a file
-
-To reupload a file, invoke
-
-```bash
-nrp-cmd replace file <pid> <file-key> <file> [<metadata>]
-```
-
 ### Deleting a file
 
 To delete a file, invoke
@@ -727,16 +694,18 @@ To delete a file, invoke
 nrp-cmd delete file <pid> <file-key>
 ```
 
-## Publish and edit published document
+### Re-uploading a file
 
-<ToDo/> Not yet implemented
+To reupload a file, delete the file and upload it again.
+
+## Publish and edit published document
 
 ### Publishing a draft
 
 To publish a draft, invoke
 
 ```bash
-nrp-cmd publish draft <pid> [version]
+nrp-cmd publish record <pid>
 ```
 
 where the `pid` is the record identifier in any of the supported formats, as defined above.
@@ -752,17 +721,25 @@ and print the validation errors instead of the record.
 To edit a published record, invoke
 
 ```bash
-nrp-cmd edit record <pid>
+nrp-cmd edit record <pid> [--set variable]
 ```
 
 where the `pid` is the record identifier in any of the supported formats, as defined above.
+The pid must point to a published record and might be '@variable'.
 The command will create draft record and output it to stdout.
 
-If you use a variable instead of the pid, the variable will be updated with the new identifier.
+### Creating a new version of a published record
+
+If you want to replace files in a published record, you need to create a new version of the record.
+To create a new version, invoke
+
+```bash
+nrp-cmd version record <pid> [--set variable]
+```
 
 ## Requests
 
-<ToDo/> Not yet implemented
+<ToDo/> This section is not yet verified, please use with care and report any issues.
 
 ### Listing requests on a record
 
@@ -809,19 +786,16 @@ documents_publish_draft:
 
 ### Creating a request
 
+
 To create a request, invoke
 
 ```bash
-nrp-cmd create request <pid> <type> <metadata> [--submit] [@variable]
+nrp-cmd create request <request_type_id> <record_id> [variable] [--submit]
 ```
 
-where the `pid` is the record identifier in any of the supported formats, as defined above,
-`type` is the type of the request and `metadata` is either a json string beginning with `{`
-containing the metadata, or path on the filesystem to a file containing the metadata in either json or yaml format.
+where the `request_type_id` is the type of the request and `record_id` is the record identifier in any of the supported formats, as defined above.
 
-You can store the identifier of the created request in a variable by appending `@variable` to the command.
-It will store the `<pid>/<request_id>` into the variable, so later on you'll use this single variable
-instead of pid and request_id.
+You can store the identifier of the created request in a variable by providing the variable name as the third positional argument.
 
 If you specify the `--submit` option, the request will be submitted immediately after creation.
 
@@ -832,7 +806,7 @@ To get a request, invoke
 ```bash
 nrp-cmd get request <request-id>
 
-# or
+# or (using a stored variable)
 
 nrp-cmd get request @variable
 ```
@@ -850,7 +824,7 @@ If the request has not been submitted, you can update the metadata of the reques
 ```bash
 nrp-cmd update request <request-id> <metadata>
 
-# or
+# or (using a stored variable)
 
 nrp-cmd update request @variable <metadata>
 ```
@@ -859,14 +833,6 @@ where `request-id` is the identifier of the request and `metadata` is either a j
 with `{` containing the metadata, or path on the filesystem to a file containing the metadata
 in either json or yaml format.
 
-You might also use the `--set` option to update the metadata:
-
-```bash
-nrp-cmd update request <request-id> --set <path>=<value> --set <path>=<value> ...
-```
-
-where the `path` is the path to the metadata field and `value` is the new value.
-
 ### Submitting a request
 
 To submit a request, invoke
@@ -874,7 +840,7 @@ To submit a request, invoke
 ```bash
 nrp-cmd submit request <pid> <request-id> [<message>]
 
-# or
+# or (using a stored variable)
 
 nrp-cmd submit request @variable [<message>]
 ```
@@ -890,7 +856,7 @@ To cancel a request, invoke
 ```bash
 nrp-cmd cancel request <request-id> [<message>]
 
-# or
+# or (using a stored variable)
 
 nrp-cmd cancel request @variable [<message>]
 ```
@@ -905,7 +871,7 @@ To accept a request, invoke
 ```bash
 nrp-cmd accept request <request-id> [<message>]
 
-# or
+# or (using a stored variable)
 
 nrp-cmd accept request @variable [<message>]
 ```
@@ -920,7 +886,7 @@ To decline a request, invoke
 ```bash
 nrp-cmd decline request <request-id> [<message>]
 
-# or
+# or (using a stored variable)
 
 nrp-cmd decline request @variable [<message>]
 ```
