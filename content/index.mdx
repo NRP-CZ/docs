@@ -1,34 +1,65 @@
 import { Cards, Callout } from 'nextra/components'
 import { Card } from "@/components/card";
 
-# Czech National Repository Platform
+# NRP Invenio Documentation
 
-<Callout type="warning" emoji="⚠️">
-  This documentation is a work in progress and may contain inaccuracies or omissions.
-  If you have any questions, please contact us at nrp-support@cesnet.cz.
+<Callout type="warning" emoji="🚧">
+  This documentation is a work in progress and may contain inaccuracies or missing information.  We are actively working to improve it.
+  If you have any questions, please contact us at cesnet-invenio@eosc.cz.
 </Callout>
 
-Czech National Repository Platform is a set of infrastructure services
-intended to support the operation of digital repositories in the Czech Republic.
 
-The platform hosts repositories built using several frameworks, including:
+The **Czech National Repository Platform (NRP)** is a nationwide initiative that provides a unified, sustainable ecosystem for operating digital repositories across the Czech Republic. It aligns standards, services, and infrastructure to support the effective management, preservation, and dissemination of research outputs and cultural heritage.
 
-* Invenio Platform - a digital repository platform based on Invenio RDM, provided by CESNET
-* Clarin DSpace - a digital repository platform based on DSpace, provided by LINDAT/CLARIN
-* ARL - a digital repository platform used on the Czech Academy of Sciences
+This site documents the **Invenio-based part of NRP**, which forms one of the core technological pillars of the platform. While the broader NRP ecosystem spans multiple repository technologies and shared national services, the content here is focused exclusively on repositories based on **InvenioRDM**.
 
-This document focuses mostly on the Invenio Platform. For information about the other platforms,
-please refer to their respective documentation pages.
+## Scope
 
-## Getting help
+This documentation covers:
 
-If you need assistance, please reach out to our support team at cesnet-invenio@eosc.cz.
+- The architecture, configuration, development and operation of NRP repositories based on [**InvenioRDM** software](https://inveniordm.docs.cern.ch/).
+- **NRP-specific extensions** for Invenio, including:
+  - metadata model tooling  
+  - vocabulary and taxonomy management  
+  - UI customization and frontend build processes  
+  - packaging, deployment, and orchestration patterns
+- Guidance for **users**, **developers**, **integrators**, and **administrators** working on Invenio-based services under the NRP umbrella.
+
+## Relationship to the NRP Project
+
+This site complements the high-level documentation available at: https://docs.nrp.eosc.cz/
+
+The main NRP documentation describes:
+
+- project governance  
+- national shared services (authentication, PID infrastructure, harvesting, long-term preservation)  
+- institution onboarding  
+- interoperability standards  
+- overall platform architecture
+
+## Intended Audience
+
+- **Software engineers and frontend developers** working with NRP Invenio modules  
+- **Repository administrators and DevOps teams** deploying or configuring Invenio-based repositories  
+- **Institutional integrators** adapting Invenio to local institutional needs while maintaining NRP compatibility
+- **End users and researchers** seeking guidance on using NRP Invenio repositories effectively
+
+## What's Next?
 
 <Cards num={2}>
-  <Card title="Get started with Invenio Repository" href="/installation" arrow={true}/>
-  <Card title="User guide" href="/userguide" arrow={true}/>
+  <Card title="Get started with Invenio Repository" href="/installation" arrow={true}>
+    Start your journey with NRP Invenio by creating and running your first repository instance.
+  </Card>
+  <Card title="User guide" href="/userguide" arrow={true}>
+    Learn how to use NRP Invenio repositories effectively as an end user.
+  </Card>
+  <Card title="Administrator guide" href="/administration" arrow={true}>
+    Comprehensive guide for repository administrators on managing and maintaining NRP Invenio repositories.
+  </Card>
+  <Card title="Customization guide" href="/customize" arrow={true}>
+    Learn how to customize and extend NRP Invenio repositories to meet your specific needs.
+  </Card>
+  <Card title="Deployment guide" href="/deploy" arrow={true}>
+    Instructions for deploying and scaling NRP Invenio repositories in various environments.
+  </Card>
 </Cards>
-
-<Callout type="warning" emoji="⚠️">
-  Add links to the other platforms here.
-</Callout>

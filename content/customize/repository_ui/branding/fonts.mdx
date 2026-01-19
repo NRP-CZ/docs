@@ -1,26 +1,41 @@
-import { Steps } from "nextra/components";
-import { Difficulty } from "@/components/difficulty"
 
-**TODO: RDM 12 version, update to RDM14**
+import { Steps, FileTree, Callout } from "nextra/components";
+import { Difficulty } from "@/components/difficulty"
 
 # Fonts <Difficulty level="easy" />
 
-This section provides you with the guidance to tailor the typography of your site to suit your brand's style and enhance readability. To use custom fonts in your repository site, follow these steps:
+This section explains how to customize typography in an NRP Invenio repository, following the InvenioRDM theming guidelines described in the [InvenioRDM Fonts Documentation](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/font/). You can use any custom font as long as you provide the files and declare them in your LESS theme.
 
 <Steps>
+
 ### Provide font assets
 
-Copy your font asset files to `fonts` folder inside `branding` folder:
+Place your font files inside your repository-level assets folder.  
+In NRP Invenio, this follows the InvenioRDM structure:
+
+<FileTree>
+  <FileTree.Folder name="myrepo" defaultOpen>
+    <FileTree.Folder name="assets" defaultOpen>
+      <FileTree.Folder name="semantic-ui" defaultOpen>
+        <FileTree.Folder name="less" defaultOpen>
+          <FileTree.Folder name="fonts" defaultOpen>
+            <FileTree.File name="my-font.ttf" />
+            <FileTree.File name="my-heading-font.ttf" />
+          </FileTree.Folder>
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
 
 ```shell copy
-cp {my-font.ttf,my-heading-font.ttf} myrepo/ui/branding/semantic-ui/less/fonts/
+cp {my-font.ttf,my-heading-font.ttf} myrepo/assets/semantic-ui/less/fonts/
 ```
 
-### Configure font styles
+### Configure [`@font-face`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face) rules
+Define the fonts in your global stylesheet overrides, typically in your [Global stylesheet](/customize/repository_ui/branding/styling#global-stylesheet) file:
 
-Declare corresponding [`@font-face`](https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face) rules inside your [Global stylesheet](/customize/branding/styling#global-stylesheet):
-
-```less filename="ui/branding/semantic-ui/less/global/site.overrides" copy
+```less filename="/assets/semantic-ui/less/site/globals/site.overrides" copy
 @font-face {
   font-family: 'MyFont';
   src: url("~@less/fonts/my-font.ttf");
@@ -32,24 +47,19 @@ Declare corresponding [`@font-face`](https://developer.mozilla.org/en-US/docs/We
 }
 ```
 
-### Use your fonts in styles
-
-Now you can use your font in your branding style overrides.
-
-Here we set a global font face for the whole site:
-```less filename="ui/branding/semantic-ui/less/global/site.overrides" copy
+### Apply fonts in your theme
+You can now apply your custom font to any global or component-level styles.
+Global typography override (for the entire site):
+```less
 html {
-    font-family: "MyFont";
-    //...
+  font-family: "MyFont";
 }
 ```
 
-This font face will be used just for the `Header` component instances (elements having CSS classes `ui header`):
-```less filename="ui/branding/semantic-ui/less/default/elements/header.overrides" copy
-/*  */
+Component-specific typography (e.g., Semantic UI Headers):
+```less
 .ui.header {
-    font-family: "MyHeading";
-    //...
+  font-family: "MyHeading";
 }
 ```
 </Steps>

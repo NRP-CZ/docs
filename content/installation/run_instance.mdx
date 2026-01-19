@@ -1,3 +1,5 @@
+import { Callout } from 'nextra/components'
+
 # Running an instance of a repository
 
 Look at the [Getting started](/installation) to check that you have all the prerequisites installed.
@@ -74,18 +76,22 @@ os.environ["DYLD_FALLBACK_LIBRARY_PATH"]="/opt/homebrew/lib"
 ❯ ./run.sh install
 ```
 
-The compilation will take a couple of minutes, as it needs to download and install all dependencies both for backend and frontend.
+<Callout type="info">
+The command installs all necessary Python & NPM dependencies, collects and builds frontend assets from all installed packages. This process can take a while, especially on the first run when all dependencies need to be downloaded and installed.
+</Callout>
 
 ## Set up database and other services
 
-After you have compiled the repository, you need to do the initial setup of the database and other services. Run the following command:
+After successfull installation, you need to do the initial setup of the database and other services. Run the following command:
 
 ```bash
 # the -N option is to skip adding demo data (in most cases you want that)
 ❯ ./run.sh services setup -N
 ```
 
-*Note:* If you destroy the containers, please edit the `.invenio.private` and set `services_setup=False`. Then run `./run.sh services setup` again to recreate the database and other services.
+<Callout type="important">
+If you destroy the containers, please edit the `.invenio.private` and set `services_setup=False`. Then run `./run.sh services setup` again to recreate the database and other services.
+</Callout>
 
 ## Run the repository
 
@@ -105,7 +111,19 @@ Task invenio_records_resources.tasks.manage_indexer_queues received
 Task invenio_records_resources.tasks.manage_indexer_queues succeeded
 ```
 
-This is a sign that all background tasks have been processed and the repository is running. Go to [https://127.0.0.1:5000/](https://127.0.0.1:5000/) and you should see the repository homepage.
+This is a sign that all background tasks have been processed and the repository is running. Navigate to [https://127.0.0.1:5000/](https://127.0.0.1:5000/) and you should see the repository homepage.
+
+
+## Run frontend assets builder (optional)
+
+In case you want to make changes to the frontend code (LESS, JS, React components), you need to run the frontend assets builder in watch mode. Open another terminal, change to the repository directory and run the following command:
+
+```bash
+❯ ./run.sh cli assets watch
+```
+<Callout type="info">
+This command will watch for changes to the frontend code and automatically rebuild the affected assets when changes are detected.
+</Callout>
 
 ## Create administration group
 
@@ -132,7 +150,7 @@ and login with the created user.
 
 ## Create the initial bucket in S3
 
-At this time the S3 storage does not have any buckets created. To create the initial bucket, log in to the minio web interface at [http://127.0.0.1:9000/](http://127.0.0.1:9000/) using the credentials (INVENIO_S3_ACCESS_KEY, INVENIO_S3_SECRET_KEY) that you find inside the `variables` file. Create a bucket named `default`.
+At this time the S3 storage does not have any buckets created. To create the initial bucket, log in to the minio web interface at [http://127.0.0.1:9000/](http://127.0.0.1:9000/) using the credentials (`INVENIO_S3_ACCESS_KEY`, `INVENIO_S3_SECRET_KEY`) that you find inside the `variables` file. Create a bucket named `default`.
 
 ## Create a sample record
 

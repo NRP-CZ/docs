@@ -1,0 +1,189 @@
+import { Callout, Steps } from "nextra/components";
+import {ToDo} from '@/components/todo'
+
+# Internationalization (i18n)
+
+NRP Invenio repositories support full internationalization (i18n) across **Python backend**, **Jinja templates**, and **React front-end**.  
+This guide explains how translations are created, extracted, organized, and maintained.
+
+Internationalization in NRP-based repositories is built on:
+
+- **Flask-Babel / invenio-i18n** for Python & Jinja.
+- **react-i18next** for React applications.
+- **invenio-cli translation tooling** for extracting and updating `.po` files.
+- **POEdit** or similar tools for editing translation files.
+
+Translations ultimately live in standard `.po` files stored in your repository.
+
+# Overview
+
+NRP Invenio repositories support multilingual UI by combining:
+
+- **Python/Jinja message extraction** via `invenio-cli i18n`
+- **React translation management** via `react-i18next`
+- **Manual message collection** for templates or components not automatically detected
+- **Unified `.po` files** where all translation keys end up
+
+The workflow looks like this:
+
+<Steps>
+### Write translatable strings
+Use `_()` or `lazy_gettext()` in Python, `{% trans %}` in Jinja, and `i18next.t()` in React.
+
+### Extract translations
+Run `invenio-cli translations extract` (or `update`) to update `.po` files.
+
+### Edit translations
+Use POEdit or another `.po` editor.
+
+### Compile translations
+Build `.mo` files using `invenio-cli translations compile`.
+
+</Steps>
+
+## Python: Creating localisable strings
+
+In Python code (views, resources, models, UI resources), import the gettext utilities:
+
+```python
+from flask_babel import gettext as _
+# or
+from flask_babel import lazy_gettext as _
+```
+
+Use them to wrap user-visible strings:
+
+```python
+title = _("Datasets")
+description = l_("Create, publish, and manage datasets.")
+```
+<Callout type="info">Use `gettext` for immediate translation and `lazy_gettext` for delayed (lazy) translation (especially for use in configuration or class attributes).</Callout>
+
+
+## Jinja Templates: Localisable strings
+Two options exist for Jinja:
+
+1. Inline _() calls
+```jinja
+<h1>{{ _("Search results") }}</h1>
+```
+2. `{% trans %}` block
+Recommended for longer, more complex text blocks:
+```jinja
+{% trans %}
+This dataset is part of the national metadata directory.
+{% endtrans %}
+```
+
+## React: Localisable strings with react-i18next
+The front-end uses [react-i18next](https://react.i18next.com) package, matching the tooling used in InvenioRDM frontends.
+
+In NRP Invenio repositories, every react module has it's own translation bundle, defined as an
+alias in its [Webpack configuration]() <ToDo />, for example:
+
+```python filename="ui/datasets/webpack.py" copy {14}
+from invenio_assets.webpack import WebpackThemeBundle
+
+theme = WebpackThemeBundle(
+    __name__,
+    ".",
+    default="semantic-ui",
+    themes={
+        "semantic-ui": dict(
+            entry={
+            },
+            dependencies={},
+            devDependencies={},
+            aliases={
+                "@translations/my_module": "translations/my_module"
+            },
+        )
+    },
+)
+```
+
+Target path of an alias usually points to the root of a NPM package for the React
+front-end translations. This package manages strings extraction & catalog compilation
+by running NPM scripts defined in it.
+
+To mark a string for translation, just import the module using the alias and wrap the string with `i18next.t`:
+```js
+import i18next from "@translations/my_module/i18next";
+
+export function MyComponent() {
+  return <p>{i18next.t("welcome_message")}</p>;
+}
+```
+
+<ToDo />
+
+## Extracting & Managing Translations
+
+NRP repositories use the Invenio CLI tooling for extraction and compilation.
+
+### Update or extract new strings
+```shell
+invenio-cli translations extract
+```
+or
+```shell
+invenio-cli translations update
+```
+
+This:
+- extracts Python strings via Babel
+- extracts Jinja strings
+- extracts JinjaX strings
+- merges everything into .po files under: `translations/<lang>/LC_MESSAGES/messages.po`
+
+### Support new language
+
+To add support for a new language, initialize its catalog by:
+
+```shell
+invenio-cli translations init -l cs
+```
+This will initialize translation catalog for Czech (`cs`) locale.
+
+## Editing translations (`.po` files)
+
+Editing .po files is done using a tool like POEdit, which provides:
+- side-by-side source & translation
+- validation of syntax
+- search & filter
+- plural forms
+
+After updating translations, run:
+```shell
+invenio-cli translations compile
+```
+This generates `.mo` translation files used at runtime.
+
+## Strings that cannot be automatically extracted
+
+Some contexts—especially JinjaX components or certain dynamic template fragments cannot be detected automatically by Babel extractors.
+For that purpose, NRP Invenio repositories use a special file:
+```
+jinjax_messages.jinja
+```
+
+Inside this file, place any strings you want to get extracted for translation:
+```jinja filename="jinjax_messages.jinja"
+{{ _("Dataset") }}
+{{ _("Add new item") }}
+{{ _("Advanced search") }}
+```
+
+These strings will be picked up by the extractor during:
+- invenio-cli translations extract
+
+Think of this file as a “translation collector” for stray strings that cannot get
+extracted automatically.
+
+## Best Practices
+
+1. Wrap all user-facing texts in `_()`, `{% trans %}`, or `i18next.t()`.
+2. Keep translation keys stable to avoid unnecessary retranslation.
+3. Use sentence-level translation keys rather than fragments.
+4. Avoid concatenating translatable strings.
+5. Add unextractable strings into `jinjax_messages.jinja`.

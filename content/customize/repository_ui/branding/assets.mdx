@@ -1,0 +1,83 @@
+import { Tabs, Steps, Callout } from "nextra/components";
+import { Difficulty } from '@/components/difficulty'
+
+# Images & other assets <Difficulty level="easy" />
+
+This section explains how to update your repository's **logo** using the InvenioRDM theming system. Logos are part of the **instance-level theme overrides**, meaning your customization lives entirely inside your repository project and safely survives upgrades. It also teaches you how to manage assets like icons, background images or other types of assets.
+
+Before proceeding, it's important to understand how **static** and **dynamic** assets work in InvenioRDM.
+
+## Asset Types
+
+Invenio distinguishes between two categories of assets:
+
+### **Static assets**
+These are files served directly from the `/static/` directory of your instance. They are **not processed** by a build pipeline. Examples:
+- SVGs and PNGs placed under `myrepo/static/images/`
+- Files referenced directly via a configuration variable (e.g., `INVENIO_THEME_LOGO = "images/logo.svg"`)
+
+Static assets:
+- **Do not require** [asset rebuilding](/installation/run_instance#run-frontend-assets-builder-optional)
+- Require a **build step** (e.g., `./run.sh cli assets build`) only when you **create** them (for it to get linked into the output directory)
+- Are linked/copied as-is into the final `static/` output directory of the application build
+- Are ideal for logos, favicons, and simple branding images
+
+### **Dynamic assets**
+These are processed by the frontend build pipeline (Webpack or RSPack depending on your project). They usually include:
+- LESS/CSS stylesheets
+- JavaScript modules
+- Theme overrides compatible with Semantic UI or RDM UIs
+- Any other assets needing some kind of transformations (e.g., image optimization, minification)
+
+Dynamic assets:
+- Require a **build step** (e.g., `./run.sh cli assets build`) or [running a development server with asset watcher](/installation/run_instance#run-frontend-assets-builder-optional)
+- Aren't served directly -- a compiled output is served to clients by the application
+- Should be used when you need transformations, minification, or imports
+
+## Manage Static Assets - Site Logo
+
+**Logos are typically [static assets](#static-assets)**, referenced only by path from the theme configuration.
+
+<Steps>
+
+### Provide a logo asset
+
+Place your logo file (SVG or other vector format recommended) in your repository's **instance static assets directory**:
+
+```shell copy
+cp my-logo.svg myrepo/static/images/invenio-rdm.svg"
+```
+
+<Callout type="info" emoji="ℹ️">The recommended path is `static/images/invenio-rdm.svg` to align with InvenioRDM's default logo location, as set by the [configure_ui](/customize/configure/reference#configure_ui) config helper. However, you can choose any path under the `static/` directory as long as you reference it correctly in the configuration in the next step.</Callout>
+
+### Configure theme to use your logo
+
+
+<Tabs items={["invenio.cfg", "variables"]}>
+  <Tabs.Tab>
+```python copy
+THEME_LOGO="images/my-logo.svg"
+```
+  </Tabs.Tab>
+   <Tabs.Tab>
+```python copy
+INVENIO_THEME_LOGO="images/my-logo.svg"
+```
+  </Tabs.Tab>
+</Tabs>
+
+<Callout type="info" emoji="ℹ️">The path is always relative to the `static/` directory. So if your logo is at `myrepo/static/images/my-logo.svg`, you should set the config value to `images/my-logo.svg`.</Callout>
+</Steps>
+
+## Manage Dynamic Assets
+
+For dynamic types of assets (e.g., fonts, icons, background images, or images used in LESS), you can place them in your repository's **instance-level assets directory** -- `/assets`.
+
+### Reference dynamic assets
+
+You can reference dynamic assets in your LESS or JavaScript files using defined aliases:
+
+- `~@less/` - refers to the `/assets/semantic-ui/less/` directory (commonly used in LESS files)
+- `@js/` - refers to the `/assets/semantic-ui/js/` directory (commonly used in JavaScript files)
+
+You can see a detailed example of dynamic asset usage under the [Fonts](/customize/repository_ui/branding/fonts) section.

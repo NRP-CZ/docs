@@ -1,0 +1,359 @@
+# Configuration Reference
+ 
+This page provides a reference of configuration helpers available in NRP-based repositories through the `oarepo.config` module.
+
+## `configure_generic_parameters`
+
+A comprehensive setup helper that initializes a broad set of **repository-wide configuration defaults**.  
+
+It covers core aspects such as site URLs, authentication, security headers, localization, database, search, cache, job backends, file storage, and RDM-specific features.
+
+Use this as a **baseline initializer** for a NRP repository before applying any of your custom config overrides.
+
+_Defined in `oarepo/config/generic_parameters.py`._
+
+### Parameters
+
+| Name      | Type                  | Default                              | Description |
+|-----------|-----------------------|--------------------------------------|-------------|
+| languages | sequence of tuples    | `(("cs", _("Czech")),)` | Sequence of (code, translated-name) pairs to register as available languages. |
+
+The helper reads additional environment/variable flags and exposes many other optional behaviors; consult the implementation for the full list.
+
+### Effect
+Calling `configure_generic_parameters()` has a wide-ranging impact on application configuration:
+
+#### 🌐 Application & Site URLs
+- Defines `SITE_UI_URL` and `SITE_API_URL` using either environment-provided values or constructed defaults from host/port.
+- Sets `APP_ALLOWED_HOSTS` to allow local access (`0.0.0.0`, `localhost`, `127.0.0.1`).
+
+#### 🔒 Security
+- Configures **default security headers** (`APP_DEFAULT_SECURE_HEADERS`) including `Content-Security-Policy`, HTTPS enforcement, frame options, and cookie security.
+- Enables secure cookies (`SESSION_COOKIE_SECURE=True`) and sets sane `Strict-Transport-Security` defaults.
+- Enables local login and fine-grained security features (registration, password recovery, confirmation) via environment toggles (`INVENIO_SECURITY_*`).
+- Configures rate limits for guest and authenticated users (`RATELIMIT_GUEST_USER`, `RATELIMIT_AUTHENTICATED_USER`).
+
+#### 👥 Authentication
+- Enables OAuth/autologin redirects (`OAUTHCLIENT_AUTO_REDIRECT_TO_EXTERNAL_LOGIN`).
+- Defines empty `OAUTHCLIENT_REMOTE_APPS` ready to be populated with external identity providers.
+- Sets `ACCOUNTS_LOGIN_VIEW_FUNCTION` to auto-redirect when single external login is configured.
+
+#### 🗃️ Database
+- Constructs `SQLALCHEMY_DATABASE_URI` from `INVENIO_DATABASE_*` environment variables if not provided directly.
+- Uses PostgreSQL by default.
+
+#### 🌍 Internationalization
+- Sets default locale (`BABEL_DEFAULT_LOCALE="en"`) and timezone (`Europe/Prague`).
+- Registers available UI languages from the `languages` argument into `I18N_LANGUAGES`.
+
+#### 📦 File Storage & S3
+- Defaults to S3-based storage with fallback to local:
+  - `FILES_REST_STORAGE_FACTORY = "invenio_s3.s3fs_storage_factory"`
+  - Constructs `S3_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY`.
+- Adds S3 endpoint to CSP’s `default-src`.
+- Defines `FILES_REST_STORAGE_CLASS_LIST` and default storage class.
+- Sets file serving cache max-age (`SEND_FILE_MAX_AGE_DEFAULT = 300`).
+
+#### 👤 User Profiles
+- Allows editing of profile info (`USERPROFILES_READ_ONLY = False`).
+
+#### 📚 Search
+- Configures OpenSearch connection (`SEARCH_INDEX_PREFIX`, `SEARCH_HOSTS`, `SEARCH_CLIENT_CONFIG`).
+- Supports SSL and certificate-based setups through environment variables.
+
+#### 🧠 Caching & Background Tasks
+- Enables Redis caching (`INVENIO_CACHE_TYPE = "redis"`).
+- Constructs Redis URLs for caches, sessions, communities, and Celery results.
+- Configures Celery broker (RabbitMQ by default) and Redis result backend.
+
+#### 🧾 JSON Schemas & Record Configuration
+- Sets `RECORDS_REFRESOLVER_CLS`, `RECORDS_REFRESOLVER_STORE`, and `JSONSCHEMAS_HOST`.
+- Optionally imports and sets `VOCABULARIES_*` configuration classes if `oarepo-vocabularies` is available.
+
+#### 🧩 RDM-Specific Settings
+- Enables RDM features (`INVENIO_RDM_ENABLED=True`).
+- Sets defaults for:
+  - Persistent identifiers (`RDM_PERSISTENT_IDENTIFIERS`, `RDM_PARENT_PERSISTENT_IDENTIFIERS`).
+  - User moderation, metadata-only records, file enablement.
+  - Archive download support.
+  - DOI/DataCite test mode.
+- Configures **identifier validation schemes** for persons, organizations, funders, affiliations, etc. (`VOCABULARIES_*_SCHEMES`, `RDM_RECORDS_*_SCHEMES`).
+
+#### 📧 Email
+- Sets `MAIL_DEFAULT_SENDER` (from environment or placeholder).
+- Enables `MAIL_SUPPRESS_SEND` if configured in environment.
+
+#### 🧮 Miscellaneous
+- Defines rate limits and quota defaults (`APP_RDM_DEPOSIT_FORM_QUOTA`, `FILES_REST_DEFAULT_QUOTA_SIZE`).
+- Sets `SECRET_KEY` from environment.
+- Provides `DASHBOARD_RECORD_CREATE_URL` placeholder (to be customized).
+- Clears default Invenio record routes and endpoints (since NRP provides replacements).
+
+#### ⚙️ Environment-driven
+The helper relies heavily on `load_configuration_variables()` to pull all `INVENIO_*` prefixed environment variables (or values from an equivalent `.env`/variable store).  
+All discovered values are injected into the caller scope via `set_constants_in_caller()`.
+
+
+### Example
+
+```python
+from invenio_i18n import lazy_gettext as _
+from oarepo import config
+
+config.configure_generic_parameters(
+    languages=(("en", _("English")), ("cs", _("Czech"))),
+)
+```
+
+## `configure_ui`
+
+Configures **UI branding, theming, and build-time integration** for an NRP or InvenioRDM-based repository.  
+This helper establishes the front-end metadata, asset pipeline defaults, theme template layout, and optional analytics integration.
+
+_Defined in `oarepo/config/ui.py`._
+
+---
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| `code` | `str` | `"myrepo"` | Short repository identifier used in internal theme names, URLs, and build integration. |
+| `name` | `str` | `_('My Repository')` | Translated display name for the repository, used in UI titles and metadata. |
+| `description` | `str` | `""` | Human-readable description of the repository displayed in various templates and metadata. |
+| `use_default_frontpage` | `bool` | `False` | If `True`, uses the standard default front page layout instead of a custom one. |
+| `show_frontpage_intro` | `bool` | `True` | Controls whether the front-page introduction (hero/intro section) is displayed. |
+| `analytics` | `bool` | `False` | Enables analytics integration. Set to `"matomo"` to enable Matomo tracking (requires additional environment vars). |
+
+---
+
+### Effects
+
+Calling `configure_ui()` populates numerous **UI- and frontend-related configuration constants**:
+
+#### 🎨 Theming & Templates
+- Defines the **application theme chain** (`APP_THEME`) including the repository code, `oarepo`, and `semantic-ui` layers.
+- Points to a custom `INSTANCE_THEME_FILE` (`./less/theme.less`) for repository-specific LESS theme overrides.
+- Configures all core page **templates** (e.g., `BASE_TEMPLATE`, `HEADER_TEMPLATE`, `FOOTER_TEMPLATE`, `FRONTPAGE_TEMPLATE`, `SETTINGS_TEMPLATE`, etc.).
+- Ensures template load order avoids Invenio issues by explicitly setting `SETTINGS_TEMPLATE` and `HEADER_TEMPLATE`.
+- Enables `SEARCH_UI_SEARCH_TEMPLATE` for InvenioRDM-style search results.
+
+#### 👔 Branding & Identity
+- Sets `THEME_SITENAME`, `THEME_FRONTPAGE_TITLE`, and `REPOSITORY_NAME` based on `name` parameter.
+- Defines `REPOSITORY_DESCRIPTION` for use in metadata and templates.
+- Configures `THEME_LOGO`, optional `THEME_FRONTPAGE_LOGO`, and intro visibility (`THEME_SHOW_FRONTPAGE_INTRO_SECTION`).
+- `THEME_FRONTPAGE` toggles whether the default front page is used.
+
+#### 📊 Analytics Integration
+- If `analytics="matomo"` and the deployment is **not local**, adds Matomo tracking:
+  - `MATOMO_ANALYTICS_TEMPLATE = "oarepo_ui/matomo_analytics.html"`
+  - Reads `INVENIO_MATOMO_ANALYTICS_URL` and `INVENIO_MATOMO_ANALYTICS_SITE_ID` from environment.
+  - Extends the `Content-Security-Policy` to allow Matomo endpoint URLs.
+
+#### 🧩 Frontend Build Configuration
+- Configures frontend build pipeline defaults:
+  - `JAVASCRIPT_PACKAGES_MANAGER = "pnpm"`
+  - `ASSETS_BUILDER = "rspack"`
+  - `WEBPACKEXT_NPM_PKG_CLS = "pynpm:PNPMPackage"`
+  - `WEBPACKEXT_PROJECT = "oarepo_ui.webpack:project"`
+- These ensure compatibility with the NRP/RDM Rspack + pnpm-based build s
+
+
+### Example
+
+```python
+config.configure_ui(
+    code="myrepo",
+    name=_("My NRP Repository"),
+    description=_("My NRP-based repository for research data."),
+    analytics="matomo",
+    use_default_frontpage=False,
+    show_frontpage_intro=True,
+)
+```
+
+## `configure_cron`
+
+Register default Celery beat schedules for background tasks such as indexing, session cleanup, statistics processing, and cache invalidation.  
+Additional cron definitions can be provided via keyword arguments.
+
+_Defined in `oarepo/config/cron.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **\*\*extra_cron_items** | `dict[str, Any]` | `{}` | Extra Celery beat entries to merge into the default schedule (e.g., additional periodic jobs). |
+
+### Effect
+
+Defines the `CELERY_BEAT_SCHEDULE` constant in the caller’s module.  
+The schedule includes default periodic jobs for:
+
+- **Record indexing queue management:** every 10 seconds  
+- **Session cleanup:** every 60 minutes  
+- **IP deletion:** every 6 hours  
+- **Statistics event processing:** hourly at minutes 25 and 55  
+- **Statistics aggregation:** hourly at minute 0  
+- **Community cache clearing:** daily at 01:00 UTC  
+- **Expired access token cleanup:** daily at 00:04 UTC  
+
+Any extra cron items passed as keyword arguments are merged into the schedule before being set.
+
+### Example
+
+```python
+from oarepo import config
+from datetime import timedelta
+from celery.schedules import crontab
+
+config.configure_cron(
+    my_custom_task={
+        "task": "my_package.tasks.cleanup_temp",
+        "schedule": crontab(minute=30, hour=3),  # every day at 03:30 UTC
+    },
+)
+```
+
+## `configure_stats`
+
+Enable and initialize repository & record-level statistics collection and aggregation features provided by `invenio-stats`.  
+This helper activates event receivers and imports default event, aggregation, and query definitions from `invenio-app-rdm`.
+
+_Defined in `oarepo/config/stats.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **enable** | `bool` | `True` | Whether to enable registration of statistics event receivers and related analytics features. |
+
+### Effect
+
+- Sets `STATS_REGISTER_RECEIVERS` to control activation of statistics event receivers.  
+- Imports and applies default `STATS_EVENTS`, `STATS_AGGREGATIONS`, `STATS_QUERIES`, and `STATS_PERMISSION_FACTORY` from `invenio_app_rdm.config`.  
+- Makes these constants available to the caller, so that the repository inherits the default InvenioRDM statistics setup.
+
+### Example
+
+```python
+from oarepo import config
+
+# Enable statistics collection and aggregation
+config.configure_stats()
+
+# Disable all statistics receivers (e.g., in development)
+config.configure_stats(enable=False)
+```
+
+## `configure_vocabulary`
+
+Register or extend controlled vocabularies used in the repository.  
+Each vocabulary is identified by a short `code` and associated metadata parameters that describe its configuration or source.
+
+_Defined in `oarepo/config/vocabulary.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **code** | `str` | — | Unique identifier for the vocabulary type (e.g., `"licenses"`, `"languages"`). |
+| **\*\*kwargs** | `dict[str, Any]` | `{}` | Arbitrary metadata for the vocabulary, such as loader configuration, schema, or labels. |
+
+### Effect
+
+- Updates the `INVENIO_VOCABULARY_TYPE_METADATA` dictionary in the caller's configuration with a new entry keyed by `code`.  
+- Makes vocabulary type metadata available at runtime for vocabulary registration and CLI loading.  
+- Supports multiple calls to incrementally register several vocabularies.
+
+### Example
+
+```python
+from oarepo import config
+
+config.configure_vocabulary(
+    "licenses",
+    pid_type="lic",
+    hierarchical=True,
+    name={"en": "Licenses", "cs": "Licence"},
+)
+```
+
+## `configure_communities`
+
+Configure community-related settings, role definitions, and permission policies for Invenio Communities integration.  
+Defines how community membership and CRUD permissions are structured within the repository.
+
+_Defined in `oarepo/config/communities.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **communities_roles** | `list[dict]` | `None` (uses built-in defaults) | Optional custom role definitions. If omitted, defaults to the built-in ordered list of `"owner"`, `"curator"`, and `"member"` roles. Each role dictionary can include fields such as `name`, `title`, `description`, `is_owner`, `can_manage`, and `can_manage_roles`. |
+
+### Default role definitions
+
+If `communities_roles` is not provided, the following default roles are applied:
+
+- **owner**  
+  - `name`: `"owner"`  
+  - `title`: `_('Community owner')`  
+  - `description`: `_('Can manage community.')`  
+  - `is_owner`: `True`  
+  - `can_manage`: `True`  
+  - `can_manage_roles`: `["owner", "curator", "member"]`  
+
+- **curator**  
+  - `name`: `"curator"`  
+  - `title`: `_('Curator')`  
+  - `description`: `_('Can curate records.')`  
+  - `can_manage`: `True`  
+  - `can_manage_roles`: `["member"]`  
+
+- **member**  
+  - `name`: `"member"`  
+  - `title`: `_('Member')`  
+  - `description`: `_('Community member with read permissions.')`  
+
+### Effect
+
+Sets the following constants in the caller module:
+
+- `COMMUNITIES_REGISTER_UI_BLUEPRINT = False`  
+- `COMMUNITIES_PERMISSION_POLICY = DefaultCommunitiesPermissionPolicy`  
+  - A custom permission policy extending `CommunityPermissionPolicy`, granting `Administration` and `SystemProcess` privileges for core actions.  
+  - If `oarepo_communities` is installed, integrates the `PrimaryCommunityRole` generator for finer-grained role control.  
+- `COMMUNITIES_ROLES` — list of role dictionaries (ordered by importance).
+
+### Example
+
+```python
+from invenio_i18n import lazy_gettext as _
+from oarepo import config
+
+config.configure_communities(
+    communities_roles=[
+        dict(
+            name="root",
+            title=_("Root administrator"),
+            description=_("Can administer community."),
+            is_owner=True,
+            can_manage=True,
+            can_manage_roles=["root", "librarian", "reader"],
+        ),
+        dict(
+            name="librarian",
+            title=_("Librarian"),
+            description=_("Can curate community records."),
+            can_manage=True,
+            can_manage_roles=["reader"],
+        ),
+        dict(
+            name="reader",
+            title=_("Reader"),
+            description=_("Can read community records."),
+        ),
+    ]
+)
+```

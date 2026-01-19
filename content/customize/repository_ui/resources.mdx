@@ -1,3 +1,220 @@
-**TODO: RDM 12 version, update to RDM14**
+import { Callout, Steps, Cards, FileTree } from "nextra/components";
+import { Difficulty } from "@/components/difficulty";
 
-# Resource view classes
+# UI Resource Views <Difficulty level="advanced" />
+
+InvenioRDM uses the `flask-resources` framework to structure its REST APIs using *resources*, *resource configs*, and *resource components*.  
+NRP-based Invenio repositories extend this architecture with **UI resources** — resource classes that render **HTML front-end views** in addition to API responses (typically JSON).
+
+UI resources provide a structured and declarative way to implement page-level views, keeping routing logic, permissions, and template context preparation consistent, configurable & extensible.
+
+If you are interested in how to build custom API resources, you'll find more in the [InvenioRDM -- Building Resources](https://inveniordm.docs.cern.ch/maintenance/internals/resource/) docs.
+
+## What are UI Resources?
+
+UI resources mirror the structure of Invenio's API resources but serve **rendered templates** rather than JSON. They consist of:
+
+- **UIResource** - the view/controller class
+- **UIResourceConfig** - configuration describing routes, templates, permissions, and components
+- **UIResourceComponent** - specialised rendering logic that hooks into specific stage of view rendering. Prepares or modifies template context before rendered, e.g. by calling to service layer
+
+Reference implementations:
+
+- `UIResource` Base class:  
+  https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/base.py
+
+- Base record model UI resource (view controller class for record model specific UI):
+  https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py#L107
+
+- Example repository usage (each record model has its own UI resource class, that can be further customized):
+  https://github.com/NRP-CZ/datarepo/blob/main/ui/datasets/__init__.py
+
+## Why UI Resources?
+
+UI resources define how front-end pages are routed & rendered, they are responsible for:
+
+- routing and view configuration
+- clean separation of logic through resource components  
+- invocation of service layer & preparation of context data for UI templates
+- rendering of Jinja templates
+
+## Structure Overview
+
+A typical UI resource module includes:
+
+<FileTree>
+  <FileTree.Folder name="myrepo/ui/mymodel" defaultOpen>
+    <FileTree.Folder name="templates"/>
+    <FileTree.File name="__init__.py" />
+    <FileTree.File name="components.py" />
+  </FileTree.Folder>
+</FileTree>
+
+
+* **`__init__.py`** - Contains definitions for both the `MymodelUIResourceConfig` and `MymodelUIResource`, this is how your views for `mymodel` record model gets routed and rendered.
+* **`components.py`** - If present, contains any custom UI resource components implementation, to customize template context before render.
+* **`templates`** - Contains Jinja (or JinjaX) templates registered and rendered by `MymodelUIResource`
+
+## Resource Configuration
+
+`UIResourceConfig` declares the behavior of a UI resource:
+
+Following options may be typically present and configurable:
+- `blueprint_name` - name of Flask blueprint
+- `url_prefix` - prefix applied to all routes handled by a resource
+- `routes` — route map configuration for Flask
+- `templates` - maps route names to specific Jinja templates
+- `components` — list of registered resource components
+- `search_component` - declares the React component used to render search result items of that specific record model.
+
+Example:
+
+```python filename="ui/articles/__init__.py" copy
+from oarepo_ui.resources.base import UIResourceConfig
+from .components import ArticleContextComponent
+
+class ArticleUIResourceConfig(UIResourceConfig):
+    blueprint_name = "articles"
+    url_prefix = "/articles"
+    template = "articles/detail.html"
+    components = [ArticleContextComponent]
+    #...
+```
+
+## Resource Class
+
+`UIResource` implements controller-like methods:
+
+```python filename="ui/articles/__init__.py" copy
+from oarepo_ui.resources.base import UIResource
+
+class ArticleUIResource(UIResource):
+    """UI resource for Article records pages."""
+```
+
+This controller is responsible for rendering pages related to certain record model, like:
+
+```python
+    routes: Mapping[str, str] = {
+        "search": "",
+        "deposit_create": "/uploads/new",
+        "deposit_edit": "/uploads/<pid_value>",
+        "record_detail": "/records/<pid_value>",
+        "record_latest": "/records/<pid_value>/latest",
+        "record_export": "/records/<pid_value>/export/<export_format>",
+        "published_file_preview": "/records/<pid_value>/files/<path:filepath>/preview",
+        "draft_file_preview": "/records/<pid_value>/preview/files/<path:filepath>/preview",
+    }
+    """Routes for records resource, mapping route names to URL patterns."""
+```
+
+For every view method, it can also define rendering lifecycle hooks (which can later be leveraged
+by Resource Components), e.g:
+```python
+    def deposit_edit(
+        self,
+        **kwargs: Any,
+    ) -> ResponseReturnValue:
+        """Return edit page for a record."""
+        #...
+        extra_context: dict[str, Any] = {}
+
+        # Here any registered components have access to
+        # & can customize any passed context arg
+        self.run_components(
+            "before_ui_edit",
+            extra_context=extra_context,
+            #...
+        )
+```
+
+Workflow of such controller view methods typically looks like:
+- validate & parse HTTP request args & headers
+- call into the service layer to fetch data
+- call registered resource components to process or generate template context
+- render the assigned view Jinja template with processed context
+
+## Resource Components
+
+Components extend the behavior of a UI resource via lifecycle hooks:
+
+```python filename="ui/articles/components.py" copy
+from oarepo_ui.resources.components import UIResourceComponent
+
+class ArticleContextComponent(UIResourceComponent):
+    def before_detail(self, resource, request, extra_context, **kwargs):
+        extra_context["publisher_highlight_color"] = "red"        
+```
+
+Common rendering lifecycle hooks include:
+- `before_detail`
+- `after_detail`
+- `before_search`
+- `before_render_template`
+- `before_ui_edit`
+- `before_ui_create`
+
+More hooks can be found or created by defining them in the `UIResource`-based class view methods.
+
+E.g. to define a `before_my_custom_page` hook:
+```python filename="ui/articles/__init__.py" copy {14-17}
+from oarepo_ui.resources.base import UIResourceConfig
+from .components import ArticleContextComponent
+
+class ArticleUIResourceConfig(UIResourceConfig):
+    blueprint_name = "articles"
+    url_prefix = "/articles"
+    template = "articles/detail.html"
+    components = [ArticleContextComponent]
+    #...
+
+    def my_custom_page(self):
+        #...
+        my_context = {}
+        self.run_components(
+            "before_my_custom_page",
+            extra_context=extra_context,
+        )
+        #...
+        return current_oarepo_ui.catalog.render(
+            self.get_jinjax_macro(
+                "my_custom_page",
+            ),
+            **my_context,
+        )
+```
+
+We now implement the hook as a method of a resource component:
+```python filename="ui/articles/components.py" copy {7-9}
+from oarepo_ui.resources.components import UIResourceComponent
+
+class ArticleContextComponent(UIResourceComponent):
+    def before_detail(self, resource, request, extra_context, **kwargs):
+        extra_context["publisher_highlight_color"] = "red"
+
+    def before_my_custom_page(self, extra_context):
+        extra_context["foo"] = "bar"
+```
+
+## Template Rendering
+UI resources render the template declared in their config.
+Template context comes from resource view methods.
+Context is extended via resource components.
+Templates live in the resource's registered `templates/` directory.
+
+Example structure:
+<FileTree>
+    <FileTree.Folder name="ui/articles/templates" defaultOpen>
+        <FileTree.Folder name="articles" defaultOpen>
+            <FileTree.File name="RecordDetail.jinja" />
+        </FileTree.Folder>
+    </FileTree.Folder>
+</FileTree>
+
+## Further reading
+
+<Cards>
+    <Cards.Card title="InvenioRDM Resource Architecture" href="https://inveniordm.docs.cern.ch/maintenance/internals/resource/" />
+    <Cards.Card title="OARepo-UI Base UI Resource" href="https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/base.py" />
+    <Cards.Card title="Flask Resources" href="https://flask-resources.readthedocs.io/en/latest/" />
+</Cards>

@@ -1,79 +1,107 @@
 import { Tabs, Cards, Steps, FileTree, Callout } from "nextra/components";
 import { Card } from "@/components/card";
 
-**TODO: RDM 12 version, update to RDM14**
-
 # Theme
 
-This guide will help you tailor the look and feel of your Invenio repository instance to reflect your brand's identity.
-We'll walk you through step-by-step instructions for configuring key elements of your theme, including color schemes, typography, slogans, and logos.
+This guide explains how theming works in a **InvenioRDM-based NRP repository**.  
+NRP repositories rely on a layered theming architecture built on top of **Semantic UI**, **Invenio Themes**, and the **oarepo-theme** package.  
+Through this system, you can adapt colors, typography, layouts, and styling of UI components to better match the visual identity of your institution.
 
-<Callout type="info">
-The theming system used by Invenio is based on <a href="https://semantic-ui.com/usage/theming.html">Semantic UI theming</a>
-and the <a href="https://github.com/inveniosoftware/invenio-theme/tree/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme">Invenio Semantic UI theme</a> package.
-</Callout>
+NRP repositories use the **Semantic UI** theming system through a layered setup:
 
-The user interface of a typical Invenio repository site consists of configuration-driven page templates and themed Semantic UI elements,
-which are initially configured to use the default Invenio theme. You can customize the appearance of your site using the methods described below.
+- [`oarepo-theme`](https://github.com/oarepo/oarepo-theme/tree/main/oarepo_theme/assets/semantic-ui/less/oarepo) — the NRP theme overlay for NRP repositories
+- [`invenio-app-rdm`](https://github.com/inveniosoftware/invenio-app-rdm/tree/master/invenio_app_rdm/theme/assets/semantic-ui/less/invenio_app_rdm/theme) — the RDM UI theme for InvenioRDM-based repositories
+- [`invenio-theme`](https://github.com/inveniosoftware/invenio-theme/tree/master/invenio_theme/assets/semantic-ui/less/invenio_theme/theme) — the core Semantic UI theme for any Invenio applications
+
+NRP theming tries to preserve the **default UI elements & look & feel of InvenioRDM**, but allows you to extend or override any part of the presentation layer using the mechanisms described below.
 
 ## Theming Methods
 
-### Modifying Invenio Configuration
+NRP repositories use the standard InvenioRDM theming system.
+Following methods are available to customize the built-in themes:
 
-You can customize your site's theme by setting configuration options in either the `invenio.cfg` file or the `variables` file (where each key must be prefixed with `INVENIO_`) located in the root of your repository project:
+<Callout type="info">
+If you are unfamiliar with InvenioRDM theming, we recommend reviewing the [InvenioRDM Theming Documentation](https://inveniordm.docs.cern.ch/maintenance/internals/theming/) first.
+</Callout>
+
+### 1. Modify Invenio application Configuration
+
+Basic theme-related UI settings can be configured via the Invenio configuration files or environment variables:
 
 <FileTree>
   <FileTree.Folder name="myrepo" defaultOpen>
-    <FileTree.Folder name="..." />
-    <FileTree.File name="..." />
-    <FileTree.File name="invenio.cfg" active={true} />
-    <FileTree.File name="variables" active={true} />
+    <FileTree.File name="invenio.cfg" active />
+    <FileTree.File name="variables" active />
+    <FileTree.Folder name="…" />
   </FileTree.Folder>
 </FileTree>
 
-For a complete list of possible configuration options, please refer to:
+This is a simplest way to change site-wide appearance, for cases where a configuration option is available.
+For a reference on how to configure these settings, please consult the [Configuration](/customize/configure) docs.
 
 <Cards>
-  <Cards.Card title="Invenio Theme Configuration Options Reference" href="https://invenio-theme.readthedocs.io/en/latest/configuration.html" />
+  <Card
+    title="Invenio-Theme Configuration Reference"
+    href="https://invenio-theme.readthedocs.io/en/latest/configuration.html"
+  >
+    Configuration options provided by the Invenio-Theme package.
+  </Card>
 </Cards>
 
-### Creating/Overriding Files under the Branding Folder
+### 2. Create or Override Asset Files
 
-You can also place custom files or customize existing ones under the `branding` folder created in your project:
+In NRP repositories (following InvenioRDM conventions), repository-level theming customizations are placed in the project's
+top-level **assets folder**.
+
+Your repository structure will typically contain:
 
 <FileTree>
   <FileTree.Folder name="myrepo" defaultOpen>
-    <FileTree.Folder name="ui" defaultOpen>
-        <FileTree.Folder name="branding" defaultOpen>
-            <FileTree.Folder name="semantic-ui" defaultOpen>
-              <FileTree.Folder name="js"></FileTree.Folder>
-              <FileTree.Folder name="less" defaultOpen></FileTree.Folder>
-              <FileTree.Folder name="templates"></FileTree.Folder>
-            </FileTree.Folder>
-            <FileTree.Folder name="templates" />
-            <FileTree.File name="__init__.py" />
-            <FileTree.File name="webpack.py" />
-        </FileTree.Folder>
+    <FileTree.Folder name="assets" defaultOpen>
+      <FileTree.Folder name="semantic-ui" defaultOpen>
+        <FileTree.Folder name="less" />
+        <FileTree.Folder name="js" />
+        <FileTree.Folder name="templates" />
+      </FileTree.Folder>
+      <FileTree.File name="webpack.py" />
     </FileTree.Folder>
+    <FileTree.Folder name="templates" />
+    <FileTree.File name="invenio.cfg" />
   </FileTree.Folder>
 </FileTree>
 
-When customizing your brand theme, you'll likely spend most of your time working within the `ui/branding/semantic-ui/less` and `templates` folders.
+Customizing the theme when using this method typically involves:
+
+- creating Semantic UI **LESS variables** (e.g. for colors, fonts, spacing) and using them to override default component styles
+- adding or overriding **LESS components**
+- adding custom assets such as images, fonts, or JavaScript files
+
+This structure aligns with the theming approach used in InvenioRDM itself and keeps all visual overrides together at the repository level.
 
 ## Theme Hierarchy
 
-Invenio applies the following theme hierarchy when applying any styling rules and variables:
+Invenio applies theming through a layered cascade.  
+NRP inherits this cascade but adds the **oarepo-theme** layer as additional wrapper around the RDM base theme.
+This wrapper extends the theme with NRP-specific adjustments and components.
 
 <Steps>
-### [Semantic UI theme](https://semantic-ui.com/usage/theming.html)
 
-Default theme settings provided by Semantic UI are applied.
+### Semantic UI Base Theme
+The default global theme as provided by Semantic UI package.  
+Defines the core variables, reset, layout, and standard UI components.
 
-### [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html)
+### Invenio Theme (invenio-theme)
+Extends Semantic UI with basic Invenio defaults for typography, buttons, color palette, layout helpers, header/footer blocks, grid variations.
 
-Deafult theme settings packaged by the [Invenio Theme](https://invenio-theme.readthedocs.io/en/latest/index.html) are applied, extending or overriding pre-existing settings with custom values.
+### InvenioRDM UI (invenio-app-rdm)
+Adds RDM-specific branding, templates, components, search UI, forms, and deposit interfaces.
 
-### [Branding](#creatingoverriding-files-under-the-branding-folder)
+### **Oarepo Theme (NRP base theme)**
+NRP-specific extension layer over the RDM theme --
+adjusted defaults for NRP repositories, NRP-specific branding, typography, variable and additional components.
 
-Your customizations made in the [branding](#creatingoverriding-files-under-the-branding-folder) folder is applied on top.
+### Your Project Branding
+Everything placed under `assets/less` overrides the layers above.  
+This is where repository-level customization occurs.
+
 </Steps>

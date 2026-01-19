@@ -1,20 +1,19 @@
 import {Difficulty} from '@/components/difficulty'
 
-**TODO: RDM 12 version, update to RDM14**
-
 # Colors <Difficulty level="easy" />
 
-Setting a brand color affects the primary color tone of your repository site,
-other important UI elements either directly use this color or derive its appearance from it.
+Setting a brand color affects the primary color tone of your repository site. Many UI elements either directly use this color or derive their appearance from it.
 
-```less filename="ui/branding/semantic-ui/less/globals/site.variables" copy
+In NRP Invenio repositories, the main theme colors are defined in the [`site.variables`](/customize/repository_ui/branding/styling#global-variables) file.
+
+```less filename="/assets/semantic-ui/less/site/globals/site.variables" copy
 @brandColor: rgba(13, 95, 137, 0.8);
 ```
 
-For further branding purposes, the most prominent and persistent UI elements are page header and footer 
-and actionable elements (like buttons). You can
-either set them to the `@brandColor` defined above, or
-override appearance of those by modifying the following CSS variables:
+## Component Colors and Accents
+
+The most prominent and persistent UI elements for branding are the page header, footer, and actionable elements (like buttons).
+You can either set them to the @brandColor defined above or override their appearance with more specific variables:
 
 ```less filename="ui/branding/semantic-ui/less/globals/site.variables" copy
 /* Override @primaryColor to override the site-wide primary accents on actionable elements. */
@@ -30,7 +29,13 @@ override appearance of those by modifying the following CSS variables:
 
 /* Footer */
 @footerLightColor: @brandColor;
-@footerDarkColor: /* a shade of your brandColor */;
+/* a shade of your brandColor */
+@footerDarkColor: darken(@brandColor, 15%); 
 ```
 
-If you are interested into more available color customizations, please refer to the [global](/customize/branding/styling#global-variables) and [component-specific](/customize/branding/styling#variable-overrides) variable references.
+For a full list of available global and component-specific variables, see the [global variables](/customize/repository_ui/branding/styling#global-variables) and [component-specific variables](/customize/repository_ui/branding/styling#variable-overrides) sections.
+
+## Workflow Summary
+
+- Edit `.variables` or `.overrides` files inside `/assets/semantic-ui/less/`. Either the global variables file or component-specific files.
+- Run development server with assets watcher.

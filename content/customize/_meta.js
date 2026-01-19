@@ -1,7 +1,10 @@
 export default {
     "index": {
-        "title": "Customize",
+        "title": "Overview",
         "display": "normal"
+    },
+    "configure": {
+        "title": "Configure"
     },
     "repository_ui": {
         "title": "Repository UI"

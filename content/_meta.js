@@ -4,10 +4,6 @@ export default {
     "title": "NRP Documentation",
     "display": "hidden"
   },
-  "overview": {
-    "title": "Overview",
-    "type": "page"
-  },
   "installation": {
     "title": "» Get Started",
     "type": "page"
@@ -21,7 +17,6 @@ export default {
     "type": "page"
   },
   "customize": {
-    "title": "Customize",
     "type": "page"
   },
   "deploy": {
