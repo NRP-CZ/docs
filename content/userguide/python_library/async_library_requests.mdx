@@ -1,0 +1,728 @@
+import {Callout} from 'nextra/components'
+
+# Requests API
+
+Complete guide to working with requests and workflows using the async client library.
+
+## Overview
+
+The Requests API provides methods to manage workflows, approvals, and record lifecycle operations. Requests are used for operations that require approval or multi-step processing. Access it via `client.requests`.
+
+```python
+from nrp_cmd.async_client import get_async_client
+
+client = await get_async_client("https://your-repository.org")
+requests_client = client.requests
+```
+
+<Callout type="info" emoji="ℹ️">
+    Not all repositories use requests for workflow management. Some operations like publish
+    may happen immediately without creating a request. Check your repository's configuration.
+</Callout>
+
+## Understanding Requests
+
+Requests represent workflow actions like:
+- Publishing a draft record
+- Editing published metadata
+- Creating a new version
+- Deleting a published record
+- Community submission
+
+Request lifecycle:
+1. **Created** - Request created but not submitted
+2. **Submitted** - Awaiting review/approval
+3. **Accepted** - Approved and executed
+4. **Declined** - Rejected by reviewer
+5. **Cancelled** - Cancelled by creator
+6. **Expired** - Time limit exceeded
+
+## Listing Applicable Requests
+
+### Check Available Request Types
+
+```python
+# Get all applicable requests for a record
+record = await client.records.read("abc-123")
+request_types = await client.requests.applicable_requests(record)
+
+for req_type in request_types.hits:
+    print(f"Type: {req_type.type_id}")
+    print(f"  Name: {req_type.name}")
+    print(f"  Description: {req_type.description}")
+    print(f"  Can create: {req_type.links.actions.create is not None}")
+```
+
+### Check Specific Request Type
+
+```python
+# Check if publish request is available
+request_types = await client.requests.applicable_requests(record)
+
+publish_type = next(
+    (rt for rt in request_types.hits if rt.type_id == "publish_draft"),
+    None
+)
+
+if publish_type:
+    print(f"Can publish: {publish_type.links.actions.create}")
+else:
+    print("Publish not available")
+```
+
+## Creating Requests
+
+### Create Request Using Request Type
+
+```python
+# Get applicable requests
+record = await client.records.read("abc-123")
+request_types = await client.requests.applicable_requests(record)
+
+# Find publish request type
+publish_type = next(
+    rt for rt in request_types.hits 
+    if rt.type_id == "publish_draft"
+)
+
+# Create the request
+request = await client.requests.create(
+    publish_type,
+    payload={}
+)
+
+print(f"Request created: {request.id}")
+print(f"Status: {request.status}")
+```
+
+### Create and Submit in One Step
+
+```python
+# Create and immediately submit
+request = await client.requests.create(
+    publish_type,
+    payload={},
+    submit=True
+)
+
+print(f"Request submitted: {request.id}")
+print(f"Status: {request.status}")
+```
+
+### Create Request by Type Name
+
+```python
+# Create by type name (shorthand)
+request = await client.requests.create(
+    record,
+    "publish_draft",
+    payload={},
+    submit=True
+)
+```
+
+### Create with Message/Payload
+
+```python
+# Create with additional information
+request = await client.requests.create(
+    record,
+    "edit_published_record",
+    payload={
+        "title": "Request to edit metadata",
+        "description": "Need to update the abstract"
+    }
+)
+```
+
+## Listing Requests
+
+### List All Requests
+
+```python
+# Get all requests user has access to
+all_requests = await client.requests.all()
+
+print(f"Total requests: {all_requests.hits.total}")
+for req in all_requests.hits.hits:
+    print(f"- {req.title} ({req.type}) - {req.status}")
+```
+
+### List Requests for a Record
+
+```python
+# Get requests for specific record
+record = await client.records.read("abc-123")
+record_requests = await client.requests.all(topic=record)
+
+for req in record_requests.hits.hits:
+    print(f"Request: {req.type}")
+    print(f"  Status: {req.status}")
+    print(f"  Created: {req.created}")
+```
+
+### Filter by Status
+
+```python
+# Get only submitted requests
+submitted = await client.requests.submitted()
+
+# Get only created (not yet submitted)
+created = await client.requests.created()
+
+# Get only accepted requests
+accepted = await client.requests.accepted()
+
+# Get declined requests
+declined = await client.requests.declined()
+
+# Get cancelled requests
+cancelled = await client.requests.cancelled()
+
+# Get expired requests
+expired = await client.requests.expired()
+```
+
+### Filter Requests for Topic
+
+```python
+# Get submitted requests for a record
+record_submitted = await client.requests.submitted(topic=record)
+
+# Get all accepted requests for a record
+record_accepted = await client.requests.accepted(topic=record)
+```
+
+### Search with Custom Parameters
+
+```python
+# Search with additional filters
+results = await client.requests.all(
+    params={
+        "status": "submitted",
+        "sort": "newest",
+        "size": 50
+    }
+)
+```
+
+## Reading Individual Requests
+
+### Read Request by ID
+
+```python
+# Read a specific request
+request = await client.requests.read_request("request-uuid-here")
+
+print(f"Request: {request.title}")
+print(f"Type: {request.type}")
+print(f"Status: {request.status}")
+print(f"Created by: {request.created_by}")
+print(f"Receiver: {request.receiver}")
+```
+
+### Access Request Details
+
+```python
+request = await client.requests.read_request("request-id")
+
+# Basic info
+print(f"ID: {request.id}")
+print(f"Number: {request.number}")
+print(f"Status: {request.status}")
+print(f"Created: {request.created}")
+print(f"Updated: {request.updated}")
+
+# Parties
+print(f"Created by: {request.created_by}")
+print(f"Receiver: {request.receiver}")
+
+# Status checks
+print(f"Is open: {request.is_open}")
+print(f"Is closed: {request.is_closed}")
+print(f"Is expired: {request.is_expired}")
+
+# Links
+print(f"Self URL: {request.links.self_}")
+if hasattr(request.links, 'topic'):
+    print(f"Topic: {request.links.topic}")
+```
+
+## Submitting Requests
+
+### Submit a Created Request
+
+```python
+# Create request first
+request = await client.requests.create(
+    record,
+    "publish_draft",
+    payload={}
+)
+
+# Submit it later
+submitted = await client.requests.submit(request)
+print(f"Request submitted: {submitted.status}")
+```
+
+### Submit with Message
+
+```python
+# Submit with additional message
+submitted = await client.requests.submit(
+    request,
+    payload={"message": "Ready for review"}
+)
+```
+
+### Submit by URL
+
+```python
+from yarl import URL
+
+# Submit using request URL
+request_url = URL("https://repository.org/api/requests/request-id")
+submitted = await client.requests.submit(request_url)
+```
+
+## Accepting Requests
+
+### Accept a Request
+
+<Callout type="warning" emoji="⚠️">
+    Only users with appropriate permissions can accept requests.
+    Typically this is community curators or administrators.
+</Callout>
+
+```python
+# Accept a submitted request
+request = await client.requests.read_request("request-id")
+
+if request.status == "submitted":
+    accepted = await client.requests.accept(request)
+    print(f"Request accepted: {accepted.status}")
+```
+
+### Accept with Comment
+
+```python
+# Accept with approval message
+accepted = await client.requests.accept(
+    request,
+    payload={"message": "Looks good, approved!"}
+)
+```
+
+## Declining Requests
+
+### Decline a Request
+
+```python
+# Decline a submitted request
+request = await client.requests.read_request("request-id")
+
+if request.status == "submitted":
+    declined = await client.requests.decline(request)
+    print(f"Request declined: {declined.status}")
+```
+
+### Decline with Reason
+
+```python
+# Decline with explanation
+declined = await client.requests.decline(
+    request,
+    payload={
+        "message": "Please fix the metadata issues before resubmitting"
+    }
+)
+```
+
+## Cancelling Requests
+
+### Cancel Your Own Request
+
+```python
+# Cancel a request you created
+request = await client.requests.read_request("request-id")
+
+if request.status == "created":
+    cancelled = await client.requests.cancel(request)
+    print(f"Request cancelled: {cancelled.status}")
+```
+
+### Cancel with Message
+
+```python
+# Cancel with explanation
+cancelled = await client.requests.cancel(
+    request,
+    payload={"message": "No longer needed"}
+)
+```
+
+## Complete Workflow Examples
+
+### Publish with Manual Approval
+
+```python
+async def publish_with_approval(record):
+    """Submit record for publication approval."""
+    # Check if publish request is available
+    request_types = await client.requests.applicable_requests(record)
+    
+    publish_type = next(
+        (rt for rt in request_types.hits if rt.type_id == "publish_draft"),
+        None
+    )
+    
+    if not publish_type:
+        print("Publish not available for this record")
+        return None
+    
+    # Create and submit request
+    request = await client.requests.create(
+        publish_type,
+        payload={"title": "Request to publish dataset"},
+        submit=True
+    )
+    
+    print(f"✓ Publish request submitted: {request.id}")
+    print(f"  Status: {request.status}")
+    print(f"  Number: {request.number}")
+    
+    return request
+
+# Use it
+record = await client.records.read("abc-123")
+request = await publish_with_approval(record)
+
+# Check status later
+if request:
+    current = await client.requests.read_request(request.id)
+    print(f"Current status: {current.status}")
+```
+
+### Edit Published Record with Approval
+
+```python
+async def request_metadata_edit(record, reason):
+    """Request permission to edit published metadata."""
+    # Create edit request
+    request = await client.requests.create(
+        record,
+        "edit_published_record",
+        payload={
+            "title": "Request to edit metadata",
+            "description": reason
+        },
+        submit=True
+    )
+    
+    print(f"✓ Edit request submitted: {request.id}")
+    
+    # Wait for approval...
+    # Once approved, you'll get a draft to edit
+    
+    return request
+
+# Use it
+published = await client.records.read("published-123")
+request = await request_metadata_edit(
+    published,
+    "Need to update author affiliations"
+)
+```
+
+### Curator Workflow - Process Pending Requests
+
+```python
+async def process_pending_requests():
+    """Process all pending requests (curator workflow)."""
+    # Get all submitted requests
+    pending = await client.requests.submitted()
+    
+    print(f"Processing {pending.hits.total} pending requests")
+    
+    for request in pending.hits.hits:
+        print(f"\nRequest #{request.number}:")
+        print(f"  Type: {request.type}")
+        print(f"  Title: {request.title}")
+        print(f"  Created by: {request.created_by}")
+        
+        # Get the record being published
+        if hasattr(request.links, 'topic'):
+            # In real scenario, you'd review the record
+            # For demo, auto-approve
+            
+            decision = input("Accept (a), Decline (d), Skip (s)? ").lower()
+            
+            if decision == 'a':
+                accepted = await client.requests.accept(
+                    request,
+                    payload={"message": "Approved"}
+                )
+                print(f"  ✓ Accepted")
+            elif decision == 'd':
+                reason = input("  Reason: ")
+                declined = await client.requests.decline(
+                    request,
+                    payload={"message": reason}
+                )
+                print(f"  ✗ Declined")
+            else:
+                print(f"  ⊙ Skipped")
+
+# Use it (as curator)
+await process_pending_requests()
+```
+
+### Monitor Request Status
+
+```python
+import asyncio
+
+async def wait_for_request_completion(request_id, timeout=300, poll_interval=5):
+    """Wait for request to be completed (accepted or declined)."""
+    start_time = asyncio.get_event_loop().time()
+    
+    while True:
+        request = await client.requests.read_request(request_id)
+        
+        if request.status == "accepted":
+            print("✓ Request accepted!")
+            return request, "accepted"
+        
+        elif request.status == "declined":
+            print("✗ Request declined")
+            return request, "declined"
+        
+        elif request.status == "cancelled":
+            print("⊙ Request cancelled")
+            return request, "cancelled"
+        
+        # Check timeout
+        elapsed = asyncio.get_event_loop().time() - start_time
+        if elapsed > timeout:
+            print("⌛ Timeout waiting for request")
+            return request, "timeout"
+        
+        # Wait before checking again
+        await asyncio.sleep(poll_interval)
+
+# Use it
+request = await client.requests.create(
+    record,
+    "publish_draft",
+    {},
+    submit=True
+)
+
+final_request, status = await wait_for_request_completion(request.id)
+```
+
+### Batch Request Processing
+
+```python
+from nrp_cmd.types.requests import Request
+
+async def batch_submit_for_publication(record_ids):
+    """Submit multiple records for publication."""
+    results = []
+    
+    for record_id in record_ids:
+        try:
+            record = await client.records.read(record_id)
+            
+            # Try to publish (might create request or publish directly)
+            result = await client.records.publish(record)
+            
+            if isinstance(result, Request):  # It's a request
+                results.append({
+                    "record_id": record_id,
+                    "status": "pending_approval",
+                    "request_id": result.id
+                })
+            else:  # It's a published record
+                results.append({
+                    "record_id": record_id,
+                    "status": "published",
+                    "published_id": result.id
+                })
+        
+        except Exception as e:
+            results.append({
+                "record_id": record_id,
+                "status": "error",
+                "error": str(e)
+            })
+    
+    return results
+
+# Use it
+record_ids = ["draft-1", "draft-2", "draft-3"]
+results = await batch_submit_for_publication(record_ids)
+
+for result in results:
+    print(f"{result['record_id']}: {result['status']}")
+```
+
+### Handle Auto-Approval vs Manual Approval
+
+```python
+from nrp_cmd.types.requests import Request
+
+async def publish_record_smart(record):
+    """Publish record, handling both auto and manual approval."""
+    result = await client.records.publish(record)
+    
+    # Check if result is a Request or Record
+    if isinstance(result, Request):
+        # It's a request - needs approval
+        print(f"Request created: {result.id}")
+        print(f"Status: {result.status}")
+        print("Waiting for curator approval...")
+        
+        # Could poll here or return the request
+        return {"type": "request", "data": result}
+    else:
+        # It's a published record - auto-approved
+        print(f"Published immediately: {result.id}")
+        print(f"URL: {result.links.self_html}")
+        return {"type": "record", "data": result}
+
+# Use it
+record = await client.records.read("abc-123")
+result = await publish_record_smart(record)
+
+if result["type"] == "request":
+    # Handle request workflow
+    request = result["data"]
+    # Monitor or notify...
+else:
+    # Already published
+    published = result["data"]
+    # Use the published record...
+```
+
+### Request Lifecycle Example
+
+```python
+async def complete_request_lifecycle():
+    """Demonstrate complete request lifecycle."""
+    # 1. Create draft record
+    draft = await client.records.create({
+        "metadata": {
+            "title": "Request Lifecycle Demo",
+            "creators": [{"person_or_org": {"name": "Demo User"}}],
+            "resource_type": {"id": "dataset"}
+        }
+    })
+    print(f"✓ Created draft: {draft.id}")
+    
+    # 2. Check applicable requests
+    request_types = await client.requests.applicable_requests(draft)
+    print(f"✓ Available request types: {len(request_types.hits)}")
+    
+    # 3. Create publish request
+    publish_type = next(
+        rt for rt in request_types.hits 
+        if rt.type_id == "publish_draft"
+    )
+    request = await client.requests.create(
+        publish_type,
+        payload={"message": "Ready for publication"}
+    )
+    print(f"✓ Created request: {request.id} (status: {request.status})")
+    
+    # 4. Submit request
+    submitted = await client.requests.submit(request)
+    print(f"✓ Submitted request (status: {submitted.status})")
+    
+    # 5. List requests for this record
+    record_requests = await client.requests.all(topic=draft)
+    print(f"✓ Record has {len(record_requests.hits.hits)} request(s)")
+    
+    # 6. Curator accepts (if you have permission)
+    # accepted = await client.requests.accept(submitted)
+    # print(f"✓ Accepted request (status: {accepted.status})")
+    
+    return request
+
+# Run the demo
+request = await complete_request_lifecycle()
+```
+
+## Error Handling
+
+```python
+from nrp_cmd.errors import (
+    RepositoryCommunicationError,
+    RepositoryClientError
+)
+
+try:
+    request = await client.requests.create(
+        record,
+        "publish_draft",
+        {},
+        submit=True
+    )
+except RepositoryClientError as e:
+    if "permission" in str(e).lower():
+        print("You don't have permission to create this request")
+    elif "already" in str(e).lower():
+        print("Request already exists for this record")
+    else:
+        print(f"Request creation failed: {e}")
+except RepositoryCommunicationError as e:
+    print(f"Network error: {e}")
+```
+
+## Request Status Reference
+
+| Status | Description | Can Submit | Can Accept | Can Decline | Can Cancel |
+|--------|-------------|-----------|-----------|------------|-----------|
+| `created` | Created but not submitted | ✓ | - | - | ✓ |
+| `submitted` | Awaiting review | - | ✓ | ✓ | - |
+| `accepted` | Approved and executed | - | - | - | - |
+| `declined` | Rejected | - | - | - | - |
+| `cancelled` | Cancelled by creator | - | - | - | - |
+| `expired` | Time limit exceeded | - | - | - | - |
+
+## API Reference
+
+### Methods
+
+- **`applicable_requests(topic, params=None)`** - Get available request types for a record
+- **`create(type_, payload, submit=False)`** - Create request from RequestType
+- **`create(topic, type_name, payload, submit=False)`** - Create request by type name
+- **`all(*, topic=None, params=None)`** - List all accessible requests
+- **`created(*, topic=None, params=None)`** - List created requests
+- **`submitted(*, topic=None, params=None)`** - List submitted requests
+- **`accepted(*, topic=None, params=None)`** - List accepted requests
+- **`declined(*, topic=None, params=None)`** - List declined requests
+- **`expired(*, topic=None, params=None)`** - List expired requests
+- **`cancelled(*, topic=None, params=None)`** - List cancelled requests
+- **`read_request(request_id)`** - Read a single request
+- **`submit(request, payload=None)`** - Submit a request
+- **`accept(request, payload=None)`** - Accept a request
+- **`decline(request, payload=None)`** - Decline a request
+- **`cancel(request, payload=None)`** - Cancel a request
+
+### Request Object Properties
+
+- **`id`** - Unique identifier
+- **`number`** - Human-readable number
+- **`type`** - Request type ID
+- **`title`** - Request title
+- **`description`** - Request description
+- **`status`** - Current status
+- **`created`** - Creation timestamp
+- **`updated`** - Last update timestamp
+- **`created_by`** - Creator information
+- **`receiver`** - Receiver/approver information
+- **`is_open`** - Whether request is open
+- **`is_closed`** - Whether request is closed
+- **`is_expired`** - Whether request has expired
+- **`links`** - Related URLs (self, topic, actions, etc.)

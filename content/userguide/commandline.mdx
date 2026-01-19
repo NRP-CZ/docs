@@ -270,8 +270,6 @@ If the user is logged in, the search will also return private records.
 If you specify the `--set variable`, the urls of found records will be stored in the variable and can be used
 in subsequent commands, such as `get` or `update`.
 
-<!-- TODO: Verify if --set +variable syntax works for appending to variables -->
-
 ### Output
 
 ```yaml
@@ -788,9 +786,6 @@ documents_publish_draft:
 
 ### Creating a request
 
-<!-- TODO: Update this section - actual signature is: nrp-cmd create request REQUEST_TYPE_ID RECORD_ID [VARIABLE] [--submit]
-     The order is different: type_id comes first, then record_id, then optional variable name as positional arg (not @variable).
-     The metadata parameter doesn't appear in the actual help. Need to verify if this section needs rewrite. -->
 
 To create a request, invoke
 
@@ -824,8 +819,6 @@ see the `get record` command for details.
 
 ### Updating a request with a new metadata
 
-<!-- TODO: Verify this section - actual help doesn't show update request command. Need to check if this is implemented. -->
-
 If the request has not been submitted, you can update the metadata of the request by invoking
 
 ```bash
@@ -839,8 +832,6 @@ nrp-cmd update request @variable <metadata>
 where `request-id` is the identifier of the request and `metadata` is either a json string beginning
 with `{` containing the metadata, or path on the filesystem to a file containing the metadata
 in either json or yaml format.
-
-<!-- TODO: Verify if --set option exists for update request command -->
 
 ### Submitting a request
 

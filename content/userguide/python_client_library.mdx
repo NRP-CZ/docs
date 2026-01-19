@@ -1,567 +1,108 @@
-**TODO: RDM 12 version, update to RDM14**
-
 # NRP Invenio repository python client
 
-A python library for accessing invenio-based repositories.
+The NRP Python Client Library provides a comprehensive API for programmatically interacting with NRP and other Invenio RDM repositories. It enables you to build applications, scripts, and workflows that manage research data, files, and repository operations.
+
+## Overview
+
+The library offers both synchronous and asynchronous clients, allowing you to choose the programming model that best fits your use case. Both clients provide high-level abstractions for working with:
+
+- **Records**: Create, read, update, delete, search, and publish research data records
+- **Files**: Upload, download, manage, and delete files attached to records
+- **Requests**: Handle workflows, approvals, and record lifecycle operations
+
+### Key Features
+
+- **Dual API**: Choose between sync and async clients based on your needs
+- **Type-safe**: Full type annotations for better IDE support and code reliability
+- **Connection pooling**: Efficient HTTP connection management
+- **Progress tracking**: Built-in progress bar support for file operations
+- **Retry logic**: Automatic retry on transient failures
+- **Multi-repository**: Work with multiple repositories simultaneously
+- **Modern Python**: Built for Python 3.12+ with modern patterns
+
+### When to Use
+
+**Sync Client** - Best for:
+- Simple scripts and automation tasks
+- Command-line tools
+- Straightforward data migration
+- Learning and experimentation
+
+**Async Client** - Best for:
+- High-performance applications
+- Concurrent operations across multiple repositories
+- Web applications and APIs
+- Large-scale data processing
+
+**CLI Tool** - For interactive command-line use, consider the `nrp-cmd` CLI application instead.
 
 ## Installation
 
 ```bash
-pip install nrp-invenio-client
+pip install nrp-cmd
 ```
 
-## Imports
+## Quick Examples
 
-Will use the following imports in the examples:
+### Synchronous Client
 
 ```python
-from pprint import pprint
-from nrp_invenio_client import NRPInvenioClient
+from nrp_cmd.sync_client import get_sync_client
+
+# Connect to a repository
+client = get_sync_client("https://your-repository.org")
+
+# Create a new record
+record = client.records.create({
+    "metadata": {
+        "title": "My Research Data",
+        "creators": [{"name": "John Doe"}],
+        "resource_type": {"id": "dataset"}
+    }
+})
+
+print(f"Created record: {record.id}")
 ```
 
-## Instantiating the client
-
-### Using config file
-
-The client configuration file can be used to store parameters for repositories. The file is in YAML format and
-is located in `~/.nrp/config.yaml` by default. The file can contain multiple repositories, each with its own
-alias. The alias is used to select the repository to use. One of the repositories is a default repository, which
-is used if no alias is specified.
-
-To use the config file, you need to create it first. The easiest way is to use the `nrp` command line tool:
-
-```bash
-nrp add alias https://repo.du.cesnet.cz repo --default
-```
-
-This will create a config file with a repository with alias `repo` and default repository set to it.
-It will also try to open your browser, let you log in and create and store an access token.
-
-Then, in your python code you instantiate the client like this:
+### Asynchronous Client
 
 ```python
-client = NRPInvenioClient.from_config()
+import asyncio
+from nrp_cmd.async_client import get_async_client
 
-## or
-client = NRPInvenioClient.from_config(alias="repo")
+async def main():
+    # Connect to a repository
+    client = await get_async_client("https://your-repository.org")
+    
+    # Create a new record
+    record = await client.records.create({
+        "metadata": {
+            "title": "My Research Data",
+            "creators": [{"name": "John Doe"}],
+            "resource_type": {"id": "dataset"}
+        }
+    })
+    
+    print(f"Created record: {record.id}")
+
+asyncio.run(main())
 ```
 
-You can pass the location of the config file as well via the `config_file` argument.
+## API Documentation and Examples
 
-*Note:* If `NRP_INVENIO_CLIENT_ABC` environent variable is set, it will be used instead of the value from the config file.
-The ABC is uppercase version of the config key, e.g. `NRP_INVENIO_CLIENT_SERVER_URL` will be used instead of `server_url`
-from the config file.
+Comprehensive guides with practical examples for working with the client library:
 
-### Using parameters
+### Synchronous Client
 
-To bypass the config file completely, you can instantiate the client with parameters:
+- [Sync Client Overview](userguide/python_library/sync_library.mdx) - Getting started with the synchronous API
+- [Records API](userguide/python_library/sync_library_records.mdx) - Create, read, update, delete, and search records
+- [Files API](userguide/python_library/sync_library_files.mdx) - Upload, download, and manage file attachments
+- [Requests API](userguide/python_library/sync_library_requests.mdx) - Handle workflows, approvals, and lifecycle operations
 
-```python
-client = NRPInvenioClient(
-    server_url     = "https://repo.du.cesnet.cz",
-    token          = "api token",
-    verify         = "/path/to/cert.pem",   # True by default, might be False to disable SSL verification
-    retry_count    = 10,                    # idempotent requests will be retried 10 times
-    retry_interval = 10,                    # retry interval in seconds if server is busy.
-                                            # Exponential backoff is used from retry_interval - 10 * retry_interval
-)
-```
+### Asynchronous Client
 
-## Data structures
+- [Async Client Overview](userguide/python_library/async_library.mdx) - Getting started with the async/await API
+- [Records API](userguide/python_library/async_library_records.mdx) - Asynchronously manage records with full examples
+- [Files API](userguide/python_library/async_library_files.mdx) - Concurrent file operations and streaming
+- [Requests API](userguide/python_library/async_library_requests.mdx) - Async workflow and approval management
 
-The responses from the server are represented as python objects, not as plain dictionaries.
-To get the plain dictionary, call the `to_dict` method on the object.
-
-## Getting repository information
-
-To get information about the invenio repository, we will use the `info` endpoint (/.well-known/info). Note that this endpoint
-is NRP extension, it is not present in vanilla Invenio.
-
-### General information
-
-The general repository information is available at `/.well-known/info/repository` endpoint. Use the following code to get it:
-
-```python
-pprint(client.info.repository.to_dict())
-
-{
-  "name": "NRP Invenio repository",
-  "description": "NRP Invenio repository",
-  "version": "1.0.0",
-  "invenio_version": "12.0.38",
-  "links": {
-    "self": "https://repo.du.cesnet.cz/api/info/repository",
-    "models": "https://repo.du.cesnet.cz/api/info/models",
-  },
-  "features": [
-    "drafts",
-    "requests",
-    "files"
-  ],
-  "transfers": [
-    "local-file",
-    "direct-s3",
-    "url-fetch"
-  ]
-}
-```
-
-Properties on the NRPRepositoryInfo objects are: `name`, `description`, `version`, `invenio_version`,
-`links`, `features`, `transfers` and contain exactly the same payload as in the example above.
-
-
-### Models
-
-The repository can enumerate the models it supports, at the `/.well-known/info/models` endpoint. Use the following code to get it:
-
-```python
-pprint(client.info.models.to_dict())
-
-{
-   "datasets": {
-     "name": "Datasets",
-     "description": "This model contains datasets.",
-     "schemas": ["local://documents-1.0.0", "local://documents-2.0.0"],
-     "version": "1.0.0",
-     "features": [
-       "drafts",
-       "requests",
-       "files",
-       "custom_fields"
-     ],
-     "links": {
-      "api": "https://myserver.cesnet.cz/api/datasets",
-      "html": "https://myserver.cesnet.cz/datasets",
-      "user": "https://myserver.cesnet.cz/api/user/datasets",
-      "published":  "https://myserver.cesnet.cz/api/datasets",
-      "drafts": "https://myserver.cesnet.cz/api/drafts/datasets",
-      "schema": "https://myserver.cesnet.cz/info/schemas/datasets-v1.0.0.json",
-      "model": "https://myserver.cesnet.cz/info/models/datasets-v1.0.0.json",
-      "openapi": "https://myserver.cesnet.cz/info/openapi/datasets-v1.0.0.json"
-     }
-   }
- }
-```
-
-Properties on the NRPModelInfo objects are: `name`, `description`, ``schemas`,
-`version`, `features`, `links` and contain exactly the same payload as in the example above.
-Additionally, the `url` property is available, which contains `links.api` and `user_url`
-containing the `links.user` endpoint (the exact values of the links are just examples, user should not
-rely on their exact structure).
-
-## Searching within repository
-
-### Searching vs. scanning
-
-The client supports two modes of searching within
-the repository: searching and scanning.
-
-Searching is used when you want to have the results sorted by relevance
-(or any other criteria). You will get only a limited number of records,
-at most 10000. This limit can not be changed.
-
-Scanning, on the other hand, gives you all records that match the query.
-Scanning is more resource intensive than searching and server requires
-you to be authenticated to use it.
-
-### API principles
-
-To initiate a search, you need to create a search request via `client.search` method:
-
-```python
-client = NRPInvenioClient.from_config()
-request = client.search("datasets")
-```
-
-On the request, you can set various parameters, such as query, page, size, etc.
-
-```python
-## pagination - not used when scanning
-request.page(2)
-
-## pagination - not used when scanning
-request.size(10)
-
-## ordering - not used when scanning
-request.order_by("+title", ...)
-
-## select only specific records
-request.published()
-request.drafts()
-
-## only return selected fields
-request.fields("metadata.title", "metadata.description", ...)
-
-## filter by query (either SOLR string or opensearch json)
-request.query("metadata.title:foo")
-```
-
-### Using the search endpoint
-
-Finally, execute the request:
-
-```python
-response = request.execute()
-```
-
-The response will contain the results of the search:
-
-```python
-print(response.total)
-print(response.total_error)
-for record in response:
-    print(record.to_dict())
-```
-
-The records returned from the iterator are instances of `NRPRecord` class.
-
-### Using the scan endpoint
-
-For scanning, you need to use the `scan` method instead of `request`:
-
-```python
-with request.scan() as response:
-    for record in response:
-        print(record)
-```
-
-## Record operations
-
-### Getting a record from the repository
-
-To get a record from the repository, you need to know its:
-
-* model-aware id
-* model and id within the model
-* doi
-* API url
-* HTML url
-
-#### Getting a record by model-aware id
-
-```python
-client = NRPInvenioClient.from_config()
-rec: NRPRecord = client.records.get("datasets/1234", include_files=True, include_requests=True)
-```
-
-#### Getting a record by model and id within the model
-
-```python
-client = NRPInvenioClient.from_config()
-model_id = "datasets"
-record_id = "1234"
-rec: NRPRecord = client.records.get_by_id(f"{model_id}/{record_id}", include_files=True, include_requests=True)
-```
-
-#### Getting a record by DOI or urls
-
-```python
-from nrp_invenio_client.config import NRPConfig
-from nrp_invenio_client.records import record_getter
-
-config = NRPConfig()
-rec = record_getter(config, record_doi_or_url, include_files, include_requests)
-```
-
-**Note:** The `record_getter` function is a helper function that can be used to get a record by any identifier,
-including mid, doi, api url and html url. For the `mid`, you can pass a `client` object that will be used
-instead of the config's default repository client.
-
-### Creating a record
-
-To create a record, call the `create` method on the `records` object:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.create("datasets", {"title": "My dataset"})
-```
-
-The first argument is the name of the model to create the record in, the second argument is the
-metadata of the record. The method returns the created record (an instance of `NRPRecord` class).
-
-**Note:** If the model supports draft records, this call will create a draft record and the
-`mid` on the record class will be in the form of `draft/model/id`.
-
-### Updating a record
-
-To update a record, you might call the `save` method on the record object:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("draft/datasets/1234")
-rec.metadata["title"] = "My dataset"
-rec.save()
-```
-
-This will ensure that optimistic locking is used when updating the record.
-
-**Note:** For draft-enabled models you can update only draft records.
-
-### Deleting a record
-
-To delete a record, call the `delete` method on the `record` object:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("draft/datasets/1234")
-rec.delete()
-```
-
-**Note:** For draft-enabled models you can delete only draft records.
-
-## Publish and edit published records
-
-### Publishing a record
-
-To publish a record, call the `publish` method on the `record` object:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("draft/datasets/1234")
-published_record = rec.publish(version="v1")
-```
-
-You can optionally specify the "human-readable" version of the record to publish.
-
-### Editing a published record
-
-To edit a published record, you need to create a new draft record at first. To do so,
-call the `edit` method on the published `record` object:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234")
-draft = rec.edit()
-```
-
-The `draft` object is a new draft record, which is a copy of the published record.
-After you make the changes, you can save the draft record and publish it.
-
-## Files
-
-### Downloading record files
-
-To download files from a record, you need at first get the record with files included:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_files=True)
-```
-
-With this option, there is a `files` property on the record object,
-which is a collection (class `NRPRecordFiles`) of `NRPFile` objects.
-To download the file, call the `download` method on the file object:
-
-```python
-for fo in rec.files:
-    fo.download("/path/to/downloaded/file")
-```
-
-**Note:** The current implementation of the `download` method uses a single thread download, which might be slow.
-If you need to download multiple files, you might want to use a tool for a parallel download, such as `aria2c`, `axel` or `hget`. To use it,
-get the `fo.content` url and download the file using a tool of your choice.
-
-
-If you do not want to save the file but just get the content, you can call the open method:
-
-```python
-for fo in rec.files:
-    with fo.open() as f:
-        print(f.read()) # do whatever here
-```
-
-**Note:** The `open` method returns a file-like object, which is a `requests.Response` object.
-
-### Uploading record files
-
-To upload a file to a record, you need to get the record first:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_files=True)
-```
-
-Then, you can upload the file:
-
-```python
-with open("filename.txt", "rb") as stream:
-    rec.files.create("filename.txt", {"description": "My file"}, stream)
-```
-
-The first argument is the name of the file, the second argument is the metadata of the file and the third argument is the file stream
-that needs to be open in binary mode.
-
-**Note:** The implementation may use chunked upload if the server supports it. A prerequisite for a chunked upload
-is that the opened stream supports the `seek` method and is able to tell its length.
-
-### Updating file metadata for record files
-
-To update the metadata of a file, you need to get the record first:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_files=True)
-```
-
-Then, you can update the file metadata:
-
-```python
-file = rec.files.get("filename.txt")
-file.metadata["description"] = "My updated file"
-file.save()
-```
-
-### Replacing file content
-
-To replace the content of a file, you need to get the record first:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_files=True)
-```
-
-Then, you can replace the file content:
-
-```python
-file = rec.files.get("filename.txt")
-with open("filename.txt", "rb") as stream:
-    file.replace(stream)
-```
-
-### Deleting record files
-
-To delete a file from a record, you need to get the record first:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_files=True)
-```
-
-Then, you can delete the file:
-
-```python
-file = rec.files.get("filename.txt")
-file.delete()
-```
-
-## Requests
-
-Requests are used to ask for certain operations to be performed on a record. Each repository can provide
-a custom set of operations, examples of such operations are "publish", "unpublish", "delete", "edit",
-"access private files" etc.
-
-### Getting requests for a record
-
-To get requests for a record, you need to get the record first:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_requests=True)
-```
-
-Then, you can get the requests (instances of NRPRecordRequests) from the record:
-
-```python
-requests: NRPRecordRequests = rec.requests
-
-for req_type in requests:
-    print(f"Request type {req_type.type_id}")
-    print("Open requests of this type:")
-    for req in req_type.submitted_requests:
-        print(req.to_dict())
-```
-
-You can iterate all requests of this type using `for req in req_type` or you can get subsets of requests:
-
-* `req_type.submitted_requests` - open requests
-* `req_type.cancelled_requests` - expired requests (closed)
-* `req_type.accepted_requests` - accepted requests (closed)
-* `req_type.declined_requests` - declined requests (closed)
-* `req_type.expired_requests` - expired requests (closed)
-
-
-
-### Creating a request for a record
-
-To create a request for a record, you need to get the record first:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_requests=True)
-```
-
-Then, you can create a request:
-
-```python
-req = rec.requests.create("publish", {"version": "v1"}, submit=True)
-```
-
-If you pass submit=True, the request will be submitted immediately.
-Otherwise, you need to call the `submit` method on the request object.
-
-### Updating request payload
-
-To update the metadata of a request, you need to get the request first:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_requests=True)
-req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
-req.payload["version"] = "v2"
-req.save()
-```
-
-
-### Checking the status of a request
-
-To check the status of a request, you need to get the request first and then get its status:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_requests=True)
-req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
-print(req.status)
-
-# after a pause
-req.refresh()
-print(req.status)
-```
-
-### Cancelling the request
-
-To cancel a request, you need to get the request first and then call the `cancel` method on it:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_requests=True)
-req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
-req.cancel()
-```
-
-You might provide a reason for the cancellation (json object) as an argument to the `cancel` method.
-
-### Accepting the request
-
-To accept a request, you need to get the request first and then call the `accept` method on it:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_requests=True)
-req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
-req.accept()
-```
-
-You might provide a reason for the acceptance (json object) as an argument to the `accept` method.
-
-### Declining the request
-
-To decline a request, you need to get the request first and then call the `decline` method on it:
-
-```python
-client = NRPInvenioClient.from_config()
-rec = client.records.get("datasets/1234", include_requests=True)
-req = rec.requests.get("publish", "1234") # or use listing of open requests and select yours
-req.decline()
-```
-
-You might provide a reason for the decline (json object) as an argument to the `decline` method.
