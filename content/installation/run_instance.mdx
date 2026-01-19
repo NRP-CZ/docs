@@ -107,12 +107,25 @@ Task invenio_records_resources.tasks.manage_indexer_queues succeeded
 
 This is a sign that all background tasks have been processed and the repository is running. Go to [https://127.0.0.1:5000/](https://127.0.0.1:5000/) and you should see the repository homepage.
 
-## Create an initial user
+## Create administration group
+
+To add support for administration users, the most scalable way is to create an "administration" group and give it the appropriate permissions. Open another terminal, change to the repository directory and run the following commands:
+
+```bash
+❯ ./run.sh invenio roles create administration
+❯ ./run.sh invenio access allow administration-access role administration
+❯ ./run.sh invenio access allow administration-moderation role administration
+```
+
+## Create an initial/administration user
 
 To create an initial administrator user, open another terminal, change to the repository directory and run the following command:
 
 ```bash
-❯ ./run.sh invenio users create -a -c <email>
+❯ ./run.sh invenio users create -a -c admin@test.com
+
+# add the user to the administration group
+❯ ./run.sh invenio roles add admin@test.com administration
 ```
 
 and login with the created user.
