@@ -190,7 +190,7 @@ file = client.files.upload(
 file = client.files.read(record, "data.csv")
 client.files.download(
     file,
-    sink="/path/to/save/data.csv"
+    "/path/to/save/data.csv"
 )
 ```
 
@@ -200,7 +200,7 @@ client.files.download(
 # Download with progress tracking
 client.files.download(
     file,
-    sink="/path/to/save/large-file.zip",
+    "/path/to/save/large-file.zip",
     progress="Downloading large file"
 )
 ```
@@ -214,7 +214,7 @@ file = files[0]  # Get first file
 
 client.files.download(
     file,
-    sink=f"/downloads/{file.key}",
+    f"/downloads/{file.key}",
     progress=f"Downloading {file.key}"
 )
 ```
@@ -228,7 +228,7 @@ from yarl import URL
 file_url = URL("https://repository.org/api/records/abc-123/files/data.csv")
 client.files.download(
     file_url,
-    sink="/path/to/save/data.csv"
+    "/path/to/save/data.csv"
 )
 ```
 
@@ -252,7 +252,7 @@ sink = MemorySink()
 client.files.download(file, sink)
 
 # Access the data
-data = sink.data()
+data = sink.data
 print(f"Downloaded {len(data)} bytes")
 ```
 
@@ -267,7 +267,7 @@ for file in files:
     output_path = f"/downloads/{record.id}/{file.key}"
     client.files.download(
         file,
-        sink=output_path,
+        output_path,
         progress=f"Downloading {file.key}"
     )
     print(f"✓ Downloaded {file.key}")
@@ -279,7 +279,7 @@ for file in files:
 # Download multiple files from a record
 def download_file(file, output_dir):
     output_path = f"{output_dir}/{file.key}"
-    client.files.download(file, sink=output_path)
+    client.files.download(file, output_path)
     return file.key
 
 def download_all_files(record, output_dir):
@@ -296,18 +296,6 @@ def download_all_files(record, output_dir):
 # Use it
 downloaded = download_all_files(record, "/downloads")
 print(f"Downloaded {len(downloaded)} files")
-```
-
-### Download with Multipart (Multiple Parts)
-
-```python
-# Download large file in multiple parts
-client.files.download(
-    file,
-    sink="/path/to/large-file.zip",
-    parts=4,  # Download in 4 parts
-    progress="Downloading file"
-)
 ```
 
 ## Reading File Metadata
@@ -367,7 +355,7 @@ print(f"Updated metadata for: {updated_file.key}")
 ### Add Metadata Fields
 
 ```python
-# Add new metadata fields
+# Add new metadata fields (must be supported by schema on server)
 file = client.files.read(record, "image.jpg")
 
 file.metadata["photographer"] = "John Doe"

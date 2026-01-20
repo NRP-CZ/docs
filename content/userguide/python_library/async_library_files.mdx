@@ -190,7 +190,7 @@ file = await client.files.upload(
 file = await client.files.read(record, "data.csv")
 await client.files.download(
     file,
-    sink="/path/to/save/data.csv"
+    "/path/to/save/data.csv"
 )
 ```
 
@@ -200,7 +200,7 @@ await client.files.download(
 # Download with progress tracking
 await client.files.download(
     file,
-    sink="/path/to/save/large-file.zip",
+    "/path/to/save/large-file.zip",
     progress="Downloading large file"
 )
 ```
@@ -214,7 +214,7 @@ file = files[0]  # Get first file
 
 await client.files.download(
     file,
-    sink=f"/downloads/{file.key}",
+    f"/downloads/{file.key}",
     progress=f"Downloading {file.key}"
 )
 ```
@@ -228,7 +228,7 @@ from yarl import URL
 file_url = URL("https://repository.org/api/records/abc-123/files/data.csv")
 await client.files.download(
     file_url,
-    sink="/path/to/save/data.csv"
+    "/path/to/save/data.csv"
 )
 ```
 
@@ -252,7 +252,7 @@ sink = MemorySink()
 await client.files.download(file, sink)
 
 # Access the data
-data = await sink.data()
+data = sink.data
 print(f"Downloaded {len(data)} bytes")
 ```
 
@@ -267,7 +267,7 @@ for file in files:
     output_path = f"/downloads/{record.id}/{file.key}"
     await client.files.download(
         file,
-        sink=output_path,
+        output_path,
         progress=f"Downloading {file.key}"
     )
     print(f"✓ Downloaded {file.key}")
@@ -276,40 +276,21 @@ for file in files:
 ### Parallel Download with Connection Limiting
 
 ```python
-from nrp_cmd.async_client import limit_connections
-import asyncio
+async def download_files_from_draft_in_parallel(
+    client: AsyncRepositoryClient, files: list[File],
+    output_dir: str
+) -> None:
 
-# Download multiple files in parallel with connection limit
-async def download_file(file, output_dir):
-    output_path = f"{output_dir}/{file.key}"
-    await client.files.download(file, sink=output_path)
-    return file.key
-
-async def download_all_parallel(record, output_dir):
-    files = await client.files.list(record)
-    
     # Limit to 5 concurrent downloads
-    async with limit_connections(5):
-        tasks = [download_file(file, output_dir) for file in files]
+    with limit_connections(5):
+        tasks = [
+            client.files.download(file_, FileSink(f"{output_dir}/{file_.key}"))
+            for file_ in files
+        ]
         results = await asyncio.gather(*tasks)
-    
-    return results
 
-# Use it
-downloaded = await download_all_parallel(record, "/downloads")
-print(f"Downloaded {len(downloaded)} files")
-```
-
-### Download with Multipart (Parallel Parts)
-
-```python
-# Download large file in parallel parts
-await client.files.download(
-    file,
-    sink="/path/to/large-file.zip",
-    parts=4,  # Download in 4 parallel parts
-    progress="Downloading in parallel"
-)
+    for result in results:
+        print(f"✓ Downloaded file to: {result}")
 ```
 
 ## Reading File Metadata
@@ -369,7 +350,7 @@ print(f"Updated metadata for: {updated_file.key}")
 ### Add Metadata Fields
 
 ```python
-# Add new metadata fields
+# Add new metadata fields (must be supported by schema on server)
 file = await client.files.read(record, "image.jpg")
 
 file.metadata["photographer"] = "John Doe"
