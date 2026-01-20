@@ -659,7 +659,7 @@ def copy_record_to_repository(source_url, dest_repository):
             with tempfile.NamedTemporaryFile() as tmp:
                 source_client.files.download(
                     source_file,
-                    sink=tmp.name
+                    tmp.name
                 )
                 
                 # Upload to destination

@@ -178,7 +178,7 @@ file = await client.files.upload(
 # Download with progress tracking
 await client.files.download(
     file,
-    sink="path/to/save.zip",
+    "path/to/save.zip",
     progress="Downloading file"
 )
 ```
@@ -212,7 +212,7 @@ await client.files.upload(record, "file.zip", {}, source=source)
 
 # Stream download to file
 sink = FileSink("downloaded.zip")
-await client.files.download(file, sink=sink)
+await client.files.download(file, sink)
 ```
 
 ## Advanced Topics

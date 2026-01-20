@@ -162,7 +162,7 @@ file = client.files.upload(
 # Download with progress tracking
 client.files.download(
     file,
-    sink="path/to/save.zip",
+    "path/to/save.zip",
     progress="Downloading file"
 )
 ```
@@ -196,7 +196,7 @@ client.files.upload(record, "file.zip", {}, source=source)
 
 # Stream download to file
 sink = FileSink("downloaded.zip")
-client.files.download(file, sink=sink)
+client.files.download(file, sink)
 ```
 
 ## Advanced Topics

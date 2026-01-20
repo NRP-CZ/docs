@@ -504,7 +504,7 @@ async def download_record_with_files(record_id, output_dir):
         file_path = files_dir / file.key
         await client.files.download(
             file,
-            sink=str(file_path),
+            str(file_path),
             progress=f"Downloading {file.key}"
         )
         
@@ -612,7 +612,7 @@ async def copy_files_between_records(source_record_id, dest_record_id):
         for file in source_files:
             # Download from source
             tmp_path = Path(tmpdir) / file.key
-            await client.files.download(file, sink=str(tmp_path))
+            await client.files.download(file, str(tmp_path))
             
             # Upload to destination
             await client.files.upload(
@@ -646,7 +646,7 @@ async def validate_file_checksums(record):
         for file in files:
             # Download file
             tmp_path = Path(tmpdir) / file.key
-            await client.files.download(file, sink=str(tmp_path))
+            await client.files.download(file, str(tmp_path))
             
             # Calculate checksum
             hasher = hashlib.md5()
