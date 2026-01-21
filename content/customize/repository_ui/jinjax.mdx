@@ -1,12 +1,37 @@
 import { Callout } from 'nextra/components'
 
-**TODO: RDM 12 version, update to RDM14**
-
 # JinjaX components
 
-JinjaX is a tool that allows you to write cleaner, more readable Jinja templates by transforming traditional Jinja
-macros into easy-to-use components. This results in more maintainable and reusable code. This guide will show you how
-to define and use JinjaX components in your Invenio-based application.
+JinjaX lets you create reusable UI components for your repository's web pages. Think of components as building blocks
+that you can use to construct your pages. Instead of writing repetitive HTML code, you can create a component once and
+use it anywhere in your templates.
+
+This guide will show you how to create and use JinjaX components in your repository.
+
+<Callout type="info">
+**Official Documentation**: For comprehensive information about JinjaX, visit the [JinjaX official documentation](https://jinjax.scaletti.dev/).
+</Callout>
+
+## Relationship to Jinja Templates
+
+JinjaX components are an enhancement to the traditional [Jinja templating system](jinja) used throughout InvenioRDM. While Jinja provides powerful features like template inheritance, macros, and filters, JinjaX adds a more intuitive, component-based approach that resembles modern frontend frameworks like React.
+
+JinjaX components can be used within regular Jinja templates, allowing you to combine the strengths of both approaches:
+- Use Jinja for overall page structure, template inheritance, and complex logic
+- Use JinjaX for reusable UI components with cleaner, more declarative syntax
+
+This hybrid approach is part of the [hybrid frontend architecture](index#frontend-architecture-overview) used in NRP repositories, where server-side rendering with Jinja/JinjaX templates provides fast initial page loads and SEO benefits, while React is used for interactive components.
+
+## Integration with UI Resources
+
+JinjaX components are rendered through the [UI Resource architecture](resources) that connects backend data with frontend templates. When a UI Resource view method is called, it uses the oarepo-ui catalog to render JinjaX components with the appropriate context data.
+
+The rendering process works as follows:
+1. A UI Resource view method prepares the context data by calling service layers and resource components
+2. The view method calls `current_oarepo_ui.catalog.render()` with the appropriate JinjaX component
+3. The catalog locates and renders the component with the provided context
+
+This is demonstrated in the UI Resource documentation where `self.get_jinjax_macro()` is used to reference components by their template paths.
 
 ## What is a JinjaX component?
 
@@ -23,7 +48,7 @@ Component's name corresponds directly to its filename.
 
 Let's start with a traditional Jinja template that uses [macros](jinja#macros):
 
-```python
+```jinja
 {% extends "layout.html" %}
 {% block title %}My title{% endblock %}
 
@@ -57,22 +82,24 @@ Here's how you would write the equivalent code using JinjaX components:
   <div>
     <h2>Hello, {{ msg }}</h2>
     <div>
-      <Cards.Card title="So clean">
+      <Card title="So clean">
         {% for product in products %}
-          <Product :product="product" />
+          <Product product="product" />
         {% endfor %}
       </Card>
     </div>
   </div>
-  <Paginator :items="products" />
+  <Paginator items="products" />
 </Layout>
 ```
+
+This JinjaX code is much cleaner and easier to read than the traditional Jinja macro approach. You can see at a glance what the page structure will look like, and components are used just like HTML tags.
 
 ### Key differences
 - **Syntax**: Instead of importing and calling macros, you define and use components directly in the template using a
 syntax that resembles React. This approach is more declarative and easier to read.
 - **Props (attributes)**: JinjaX allows you to pass variables to components as attributes (props), similar to how you
-would pass props in React. For example, `<Cards.Card div="So clean">` passes the string "So clean" to the div prop of the Card component.
+would pass props in React. For example, `<Card div="So clean">` passes the string "So clean" to the div prop of the Card component.
 - **Self-closing tags**: Components that do not require content between their opening and closing tags can be self-closed
 using `/>`, like `<Product :product="product" />`.
 - **Declarative Layout**: By using components like `<Layout>` and `<Paginator>`, your template structure is more
@@ -81,52 +108,71 @@ aligned with the resulting HTML, making it easier to understand at a glance.
 
 ## Creating JinjaX components
 
-To create a JinjaX component, you define it using Jinja’s standard syntax but with the conventions used in JinjaX.
-JinjaX components are easily distinguished from regular Jinja templates by using `.jinja` file extension.
+To create a JinjaX component, you create a file with a `.jinja` extension that contains your component's HTML structure
+and logic. Components are like mini templates that can be reused throughout your site.
 
-Here’s an example of how you might define a Card component:
+Here's an example of a simple Card component:
 
 ```jsx filename="templates/components/Card.jinja" copy
-{#def title="So clean" #}
-<div {{ attrs.render() }}>
-  <h1>{{ title }}</h1>
-  {{ content }}
+{#def title="Default Title" #}
+<div class="card">
+  <h3>{{ title }}</h3>
+  <div class="card-content">
+    {{ content }}
+  </div>
 </div>
 ```
 
-When used in another template as:
+Let's break this down:
+- `{#def title="Default Title" #}` defines a parameter called `title` with a default value
+- `<div class="card">` is regular HTML
+- `{{ title }}` displays the title parameter
+- `{{ content }}` is a special variable that contains any content placed between the opening and closing component tags
+- The component file is saved as `Card.jinja` (note the capital C), which matches the component name
+
+When you use this component in another template like this:
 ```jsx
-<Cards.Card title="Products" class="mb-10" open>bla</Card>
+<Card title="My Product">This is the product description</Card>
 ```
 
-It will render into a HTML page as:
+It will render as:
 ```html
-<div class="mb-10" open>
-  <h1>Products</h1>
-  bla
+<div class="card">
+  <h3>My Product</h3>
+  <div class="card-content">
+    This is the product description
+  </div>
 </div>
 ```
+
+The component name (`Card`) tells the system where to find your component file:
+- `Card` corresponds to a file named `Card.jinja` inside that folder
 
 <Callout type="info">
 For more details on JinjaX components syntax, please refer to the official
     [JinjaX documentation](https://jinjax.scaletti.dev/guides/components/).
 </Callout>
 
-## JinjaX components loading
-JinjaX components typically don't need an explicit registration. For most of the pages (except a few Invenio core
-internal pages where it can't be used - e.g. administration dashboard), it shares the
-same [template discovery and loading mechanism](jinja#template-loading) as regular Jinja templates.
+<Callout type="info">
+The oarepo-ui library implements a JinjaX catalog for managing components. You can find the implementation in the
+[oarepo-ui JinjaX catalog](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templating/catalog.py).
+</Callout>
 
-Once you place your component in one of templates folders, provided by a correct `.jinja` file extension,
-you can right away start using the component in your templates and other components. There's no need to
-import the component beforehand.
+## How JinjaX components are loaded
 
-## Referencing JinjaX components
+You don't need to do anything special to register your JinjaX components. Once you create a component file with the
+`.jinja` extension and place it in your templates folder, it's automatically available to use in any of your templates.
 
-As you saw in the examples before, even the whole layouts or pages can be a JinjaX component.
-To start using these for your UI route views, you need to refer to them from inside your UI ResourceConfig classes
-`templates` attribute, similar to how you configure Jinja templates for each view. The key difference from Jinja here
-is that path separator is `.` instead of `/` when referring to a JinjaX component:
+For example, if you create a file at `templates/components/Card.jinja`, you can immediately use it as `<Card>`
+in any of your templates. The system automatically finds and loads your components based on their file names and locations.
+
+## Using JinjaX components in page templates
+
+You can use JinjaX components to build entire pages. When you create a page template, you can reference it in your
+UI Resource configuration to tell the system which component to use for each page.
+
+For example, if you have a homepage component at `templates/myview/Homepage.jinja`, you can reference it in your
+configuration like this:
 
 ```python copy
 class MyViewResourceConfig(UIResourceConfig):
@@ -140,26 +186,37 @@ class MyViewResourceConfig(UIResourceConfig):
     }
 ```
 
-This configuration will try to look up your component files under the following paths:
+This tells the system to use:
+- `myview.Homepage` component for the homepage (found at `templates/myview/Homepage.jinja`)
+- `myview.About` component for the about page (found at `templates/myview/About.jinja`)
 
-```
-<project-root>/ui/<module-name>/templates/myview/{About,Homepage}.jinja
-```
+The key difference from regular Jinja templates is that you use `.` instead of `/` to separate folder names from
+component names.
 
 ## Best practices
 
 1. **Keep Components Simple and Focused**
-Components should encapsulate a single piece of functionality. This makes them easier to reuse and maintain.
+Each component should do one thing well. If your component is getting complex, consider breaking it into smaller components.
 
 2. **Use Descriptive Names**
-Choose names for your components that clearly indicate their purpose, making it easier for others to understand what they do.
+Name your components based on what they do or what they display. For example, `UserCard.jinja` is better than `Card.jinja`
+if it specifically displays user information.
 
-3. **Document Your Components**
-Even though JinjaX components are simpler than traditional Jinja macros, adding comments or documentation within your components is still beneficial for future maintenance.
+3. **Set Default Values for Parameters**
+Always provide default values for your component parameters. This makes your components more robust and easier to use.
 
 4. **Organize Your Components**
-Store components in a well-organized directory structure. For example, you might have directories like components/forms/, components/layouts/, and components/widgets/.
+Keep your components organized in folders based on their purpose:
+   - `components/layout/` for page structure components (Header, Footer, Sidebar)
+   - `components/cards/` for content display components (UserCard, ProductCard)
+   - `components/forms/` for form elements (InputField, SubmitButton)
 
-5. **Declare all acceptable props**:
-Declare all props that are acceptable by a component right at the component's `{# def #}` declaration.
-When you try to pass anything else not declared here, it would cause an error.
+5. **Use Consistent Styling**
+Stick to your repository's design system and CSS classes to maintain a consistent look and feel across all components.
+
+6. **Test Your Components**
+Before using a component in production, test it with different parameter values to make sure it behaves as expected.
+
+7. **Always declare all acceptable props**:
+Declare all props used by a component right at the component's `{# def #}` header.
+When you try to pass anything else not declared there, it would cause an error.
