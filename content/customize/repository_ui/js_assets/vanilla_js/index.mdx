@@ -1,0 +1,282 @@
+import { Callout, FileTree, Steps, Tabs, Tab } from "nextra/components";
+
+# Simple JavaScript
+
+For lightweight client-side interactions — toggles, form enhancements, mobile menus, simple event listeners — vanilla JavaScript is often sufficient and easier to maintain than a full React setup.
+
+## When to Use Vanilla JavaScript
+
+| Use Case | Best Approach |
+|----------|---------------|
+| Simple toggle buttons, accordions | Vanilla JS |
+| Mobile navigation menus | Vanilla JS |
+| Form pre-validation hints | Vanilla JS |
+| One-time event listeners | Vanilla JS |
+| State that needs to flow between components | React |
+| Complex multi-step forms | React |
+| Search/filter/sort lists | React |
+
+<Callout type="info">
+Vanilla JavaScript files are configured as webpack entry points and built into bundles the same way as React assets, but they don't require the React runtime library. Use React when you truly need component reusability, complex state, or data-driven interfaces.
+</Callout>
+
+## File Organization
+
+Create a dedicated folder for each feature under `ui/components/semantic-ui/js/`:
+
+<FileTree>
+  <FileTree.Folder name="ui" defaultOpen>
+    <FileTree.Folder name="components" defaultOpen>
+      <FileTree.Folder name="semantic-ui" defaultOpen>
+        <FileTree.Folder name="js" defaultOpen>
+          <FileTree.Folder name="home-page-search" defaultOpen>
+            <FileTree.File name="index.js" />
+          </FileTree.Folder>
+          <FileTree.Folder name="mobile-menu" defaultOpen>
+            <FileTree.File name="index.js" />
+          </FileTree.Folder>
+          <FileTree.Folder name="form-enhancements" defaultOpen>
+            <FileTree.File name="index.js" />
+          </FileTree.Folder>
+          <FileTree.File name="app.js" />
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Quick Start
+
+<Steps>
+
+1. Create a new folder for your feature in `ui/components/semantic-ui/js/`
+
+2. Create an `index.js` file with your JavaScript:
+
+```js
+// ui/components/semantic-ui/js/example-feature/index.js
+(function() {
+  const toggleButton = document.querySelector('.my-toggle-button');
+  const content = document.querySelector('.my-content');
+
+  if (toggleButton && content) {
+    toggleButton.addEventListener('click', () => {
+      content.classList.toggle('visible');
+    });
+  }
+})();
+```
+
+3. Register the entry point in your module's `webpack.py`:
+
+```python
+ # ui/components/webpack.py
+ theme = WebpackThemeBundle(
+     __name__,
+     ".",
+     themes={
+         "semantic-ui": dict(
+             entry={
+                 "example_feature": "./js/example-feature/index.js",
+             }
+         )
+     },
+ )
+```
+
+See [Webpack Configuration](/customize/repository_ui/webpack) for full details on entry points, rebuilding, and template inclusion.
+
+</Steps>
+
+## Common Patterns
+
+### DOM Ready
+
+Wrap your code to ensure the DOM is fully loaded:
+
+```js
+// Option 1: IIFE pattern (recommended)
+(function() {
+  const element = document.getElementById('my-element');
+  // Your code here
+})();
+
+// Option 2: DOMContentLoaded event
+document.addEventListener('DOMContentLoaded', () => {
+  const element = document.getElementById('my-element');
+  // Your code here
+});
+```
+
+### Event Delegation
+
+For elements that may be dynamically added or removed, use delegation on a parent element:
+
+```js
+document.addEventListener('click', (e) => {
+  // Handle clicks on any element with the accordion-trigger class
+  if (e.target.matches('.accordion-trigger')) {
+    const content = e.target.nextElementSibling;
+    content.classList.toggle('open');
+  }
+});
+```
+
+### Search Input with Enter Key
+
+```js
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('home-search');
+  if (searchInput) {
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const query = encodeURIComponent(searchInput.value.trim());
+        window.location.href = `/search?q=${query}`;
+      }
+    });
+  }
+});
+```
+
+### Mobile Menu Toggle
+
+```js
+(function() {
+  const toggle = document.querySelector('.mobile-menu-toggle');
+  const menu = document.querySelector('.main-navigation');
+
+  if (toggle && menu) {
+    toggle.addEventListener('click', () => {
+      menu.classList.toggle('visible');
+      toggle.classList.toggle('active');
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!menu.contains(e.target) && !toggle.contains(e.target)) {
+        menu.classList.remove('visible');
+        toggle.classList.remove('active');
+      }
+    });
+  }
+})();
+```
+
+### Form Validation Hint
+
+```js
+(function() {
+  const inputs = document.querySelectorAll('input[data-validate]');
+
+  inputs.forEach(input => {
+    const validateType = input.dataset.validate;
+
+    input.addEventListener('blur', () => {
+      const hint = document.querySelector(`#${input.id}-hint`);
+      if (hint) {
+        if (validateType === 'email' && !input.value.includes('@')) {
+          hint.textContent = 'Please enter a valid email address';
+          hint.classList.add('error');
+        } else {
+          hint.textContent = '';
+          hint.classList.remove('error');
+        }
+      }
+    });
+  });
+})();
+```
+
+### Scroll-Triggered Animations
+
+```js
+(function() {
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate-in');
+        observer.unobserve(entry.target); // Only animate once
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('[data-animate]').forEach(el => {
+    observer.observe(el);
+  });
+})();
+```
+
+### Date Input Enhancement
+
+```js
+(function() {
+  const dateInput = document.querySelector('input[type="date"]');
+  const today = new Date().toISOString().split('T')[0];
+
+  if (dateInput) {
+    // Set min date to today
+    dateInput.setAttribute('min', today);
+
+    // Auto-format on manual entry
+    dateInput.addEventListener('change', () => {
+      const value = dateInput.value;
+      if (value && !value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Show hint for invalid format
+        const hint = document.querySelector(`#${dateInput.id}-hint`);
+        if (hint) {
+          hint.textContent = 'Please use YYYY-MM-DD format';
+        }
+      }
+    });
+  }
+})();
+```
+
+## jQuery Interoperability
+
+InvenioRDM includes jQuery by default. You can use it if you prefer:
+
+```js
+import $ from 'jquery';
+
+$(document).ready(() => {
+  $('.my-toggle-button').click(function() {
+    $('.my-content').slideToggle();
+  });
+
+  // Mobile menu
+  $('.mobile-menu-toggle').click(function() {
+    $('.main-navigation').toggleClass('visible');
+  });
+
+  // AJAX form submission
+  $('form[data-ajax="true"]').submit(function(e) {
+    e.preventDefault();
+    const formData = $(this).serialize();
+    $.post($(this).attr('action'), formData)
+      .done(() => {
+        alert('Saved!');
+      })
+      .fail(() => {
+        alert('Error saving');
+      });
+  });
+});
+```
+
+## Debugging
+
+- Use `console.log()` or `console.debug()` to output values
+- Add `debugger;` statement to pause execution when DevTools are open
+- Check the browser console for errors
+- Verify your element selectors exist by logging `document.querySelector('.my-selector')`
+
+## Related Resources
+
+- [React Components](/customize/repository_ui/js_assets/react) - For complex, stateful interfaces
+- [Webpack Configuration](/customize/repository_ui/webpack) - Managing entry points

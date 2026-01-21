@@ -1,0 +1,189 @@
+import { Callout, Cards } from 'nextra/components';
+import { Card } from "@/components/card";
+
+# State Management
+
+NRP repositories use multiple state management approaches depending on the complexity and scope of your component. Understanding when to use each approach is key to building maintainable React components.
+
+## Choosing the Right Approach
+
+| Approach | Use Case | Complexity |
+|----------|----------|------------|
+| **React Built-in State** | Simple component state (toggles, form inputs) | Low |
+| **Formik** | Form handling with validation | Medium |
+| **React Context API** | Cross-component data sharing | Medium |
+| **Redux** | Complex app state across many components | High |
+
+## React Built-in State
+
+For simple local state within a component, use the `useState` hook:
+
+```jsx
+import { useState } from "react";
+
+export const MyComponent = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [count, setCount] = useState(0);
+
+  return (
+    <button onClick={() => setIsOpen(!isOpen)}>
+      {isOpen ? "Close" : "Open"}
+    </button>
+  );
+};
+```
+
+**Use for:**
+- Simple toggles and switches
+- Form input values
+- Local component state that doesn't need to be shared
+
+## Formik
+
+Formik handles complex form state, validation, and submission logic. It's the standard for deposit forms in NRP repositories.
+
+```jsx
+import { Formik, Form, Field } from "formik";
+import { TextField } from "@js/oarepo_ui/forms";
+
+export const MyForm = () => {
+  return (
+    <Formik
+      initialValues={{ title: "", description: "" }}
+      onSubmit={(values) => console.log(values)}
+    >
+      <Form>
+        <TextField fieldPath="title" />
+        <Field name="description" as="textarea" />
+        <button type="submit">Submit</button>
+      </Form>
+    </Formik>
+  );
+};
+```
+
+**Use for:**
+- Deposit forms
+- Multi-step workflows
+- Forms with complex validation rules
+- Any form with multiple fields
+
+<Cards>
+  <Card
+    title="Formik Documentation"
+    href="https://formik.org/"
+  >
+    Official Formik documentation and guides.
+  </Card>
+  <Card
+    title="Form Components"
+    href="/customize/repository_ui/js_assets/react/components"
+  >
+    Available form components in NRP repositories.
+  </Card>
+</Cards>
+
+## React Context API
+
+Context API shares state across component trees without prop drilling. Use it for moderately complex state that needs to be accessed by multiple components.
+
+```jsx
+import { createContext, useContext, useState } from "react";
+
+const MyContext = createContext();
+
+export const MyProvider = ({ children }) => {
+  const [sharedState, setSharedState] = useState(null);
+
+  return (
+    <MyContext.Provider value={{ sharedState, setSharedState }}>
+      {children}
+    </MyContext.Provider>
+  );
+};
+
+export const useMyContext = () => useContext(MyContext);
+```
+
+**Use for:**
+- User preferences (theme, language)
+- Authentication state
+- Data shared between sibling components
+- State that doesn't warrant Redux
+
+## Redux
+
+Redux provides a predictable state container for complex application state. It's used extensively in NRP repositories for:
+
+- **Search applications** - Managing search state, filters, and results
+- **Deposit forms** - Handling complex form state and validation flows
+
+### Basic Redux Setup
+
+```jsx
+import { configureStore, createSlice } from "@reduxjs/toolkit";
+import { Provider, useSelector, useDispatch } from "react-redux";
+
+// Create a slice
+const searchSlice = createSlice({
+  name: "search",
+  initialState: { query: "", results: [] },
+  reducers: {
+    setQuery: (state, action) => {
+      state.query = action.payload;
+    },
+  },
+});
+
+// Configure store
+const store = configureStore({
+  reducer: {
+    search: searchSlice.reducer,
+  },
+});
+
+// Use in components
+export const SearchComponent = () => {
+  const query = useSelector((state) => state.search.query);
+  const dispatch = useDispatch();
+
+  return (
+    <input
+      value={query}
+      onChange={(e) => dispatch(searchSlice.actions.setQuery(e.target.value))}
+    />
+  );
+};
+```
+
+### When to Use Redux
+
+- State is used by many components across the application
+- State needs to be updated from many different places
+- App state is complex and has nested or related data
+- You need to track state changes over time (time-travel debugging)
+
+<Callout type="info">
+Start with simpler approaches. Only introduce Redux when you've identified that your state management needs exceed what hooks or Context API can handle reasonably.
+</Callout>
+
+<Cards>
+  <Card
+    title="Redux Toolkit Documentation"
+    href="https://redux-toolkit.js.org/"
+  >
+    The recommended way to write Redux logic.
+  </Card>
+  <Card
+    title="React Redux Documentation"
+    href="https://react-redux.js.org/"
+  >
+    Official React bindings for Redux.
+  </Card>
+</Cards>
+
+## Related Resources
+
+- [Webpack Configuration](/customize/repository_ui/webpack) - Managing entry points, aliases, and NPM dependencies for your React apps
+- [Component Development](/customize/repository_ui/js_assets/react/components) - Building components with state
+- [Installation & Integration](/customize/repository_ui/js_assets/react/integration) - Setting up React in your repository

@@ -1,0 +1,243 @@
+# Deposit Form Components
+
+This page documents the form components available for customizing record deposit forms. For search result components, see [Search result components](/customize/model_ui/search_components).
+
+## Form Fields Containers
+
+Deposit forms are organized into two main containers:
+
+- **FormActionsContainer** - Contains action buttons (save, preview, publish), requests app for publication actions, and embargo settings
+- **FormFieldsContainer** - Contains the form fields, typically organized into logical sections using accordions
+
+## Field Metadata
+
+Field metadata (labels, hints, required status) is defined directly in your model YAML files, not passed as props manually. During model compilation, metadata is extracted and made available through React hooks.
+
+Access metadata using the `useFieldData` hook from oarepo-ui:
+
+```jsx filename="ui/records/semantic-ui/js/DepositForm/TextField.jsx"
+import { useFieldData } from "@js/oarepo_ui/forms";
+
+export const TextField = ({ fieldPath, icon, ...rest }) => {
+  const { getFieldData } = useFieldData();
+
+  return (
+    <InvenioTextField
+      optimized
+      fieldPath={fieldPath}
+      {...getFieldData({ fieldPath, icon })}
+      {...rest}
+    />
+  );
+};
+```
+
+### Important: Rules of Hooks
+
+The content returned by `getFieldData` is memoized. Call this function only at the top level of your component to avoid breaking React's rules of hooks:
+
+**✅ Good - At component top level:**
+```jsx
+const MyForm = () => {
+  const { getFieldData } = useFieldData();
+  const field1Metadata = getFieldData({ fieldPath: "metadata.name" });
+  const field2Metadata = getFieldData({ fieldPath: "metadata.value" });
+
+  return /* ... */;
+};
+```
+
+**❌ Bad - Inside loops or conditionals:**
+```jsx
+{items.map((item) => (
+  <Field key={item.id} metadata={getFieldData({ fieldPath: item.fieldPath })} />
+))}
+```
+
+## Available Input Components
+
+### Basic Text Input
+
+```jsx
+import { TextField } from "@js/oarepo_ui/forms";
+
+<TextField fieldPath="metadata.title" />
+```
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field in dot notation |
+| `fieldRepresentation` | string | "full" | "full", "compact", or "text" |
+| `icon` | string | "pencil" | Icon to display |
+| `...rest` | any | - | Passed to InvenioTextField |
+
+Automatically applies field metadata, XSS protection, and Formik integration.
+
+### Rich Text Editor
+
+Uses TinyMCE for formatted text input:
+
+```jsx
+import { RichInputField } from "react-invenio-forms";
+import { OarepoRichEditor } from "@js/oarepo_ui/forms";
+
+<RichInputField
+  fieldPath="metadata.description"
+  label="Description"
+  editor={<OarepoRichEditor />}
+/>
+```
+
+**Note:** Unlike most components, `RichInputField` requires explicit field metadata props.
+
+### Date Pickers (EDTF)
+
+Support for Extended Date/Time Format with precision options:
+
+```jsx
+import { EDTFSingleDatePickerField, EDTFDateRangePickerField } from "@js/oarepo_ui/forms";
+
+// Single date
+<EDTFSingleDatePickerField fieldPath="metadata.publicationDate" />
+
+// Date range
+<EDTFDateRangePickerField fieldPath="metadata.eventDateRange" />
+```
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field |
+| `label` | string\|node | (from model) | Custom label |
+| `icon` | string | "calendar" | Icon to display |
+| `required` | boolean | (from model) | Required status |
+| `datePickerPropsOverrides` | object | {} | Override picker behavior |
+
+### Multilingual Inputs
+
+For content in multiple languages:
+
+```jsx
+import { I18nTextInputField, I18nRichInputField } from "@js/oarepo_ui/forms";
+
+// Plain text
+<I18nTextInputField fieldPath="metadata.multilingualTitle" />
+
+// Rich text
+<I18nRichInputField fieldPath="metadata.multilingualDescription" />
+```
+
+Data format:
+```json filename="multilingual_field_data.json"
+{
+  "lang": "en",
+  "value": "Title in English"
+}
+```
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field |
+| `lngFieldWidth` | number | 3 | Language selector width (1-16) |
+| `editorConfig` | object | undefined | Rich editor config |
+
+### Vocabulary Selection
+
+For controlled terminology dropdowns:
+
+```jsx
+import {
+  LocalVocabularySelectField,
+  VocabularySelectField,
+} from "@js/oarepo_vocabularies/form";
+
+// Pre-loaded local vocabulary
+<LocalVocabularySelectField
+  fieldPath="metadata.resourceType"
+  optionsListName="resource-types"
+/>
+
+// API-loaded vocabulary
+<VocabularySelectField
+  fieldPath="metadata.subjects"
+  type="subjects"
+  multiple={true}
+/>
+```
+
+**LocalVocabularySelectField** - Best for small vocabularies loaded all at once:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field |
+| `optionsListName` | string | (required) | Vocabulary name in formConfig |
+| `multiple` | boolean | false | Allow multiple selections |
+| `showLeafsOnly` | boolean | false | Show only leaf nodes in hierarchies |
+| `clearable` | boolean | true | Allow clearing selection |
+
+**VocabularySelectField** - For large vocabularies loaded via API:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `fieldPath` | string | (required) | Path to the field |
+| `type` | string | (required) | Vocabulary type (API endpoint) |
+| `multiple` | boolean | false | Allow multiple selections |
+
+### Complex Nested Fields
+
+For arrays of nested fields:
+
+```jsx filename="ui/records/semantic-ui/js/DepositForm/EventsField.jsx"
+import React from "react";
+import { ArrayField, GroupField } from "react-invenio-forms";
+import { LocalVocabularySelectField } from "@js/oarepo_vocabularies";
+import { TextField, StringArrayField, EDTFDateRangePickerField } from "@js/oarepo_ui/forms";
+
+export const EventsField = ({ fieldPath }) => {
+  const { getFieldData } = useFieldData();
+
+  return (
+    <ArrayField
+      addButtonLabel="Add event"
+      fieldPath={fieldPath}
+      {...getFieldData({ fieldPath, fieldRepresentation: "text" })}
+    >
+      {({ indexPath }) => {
+        const prefix = `${fieldPath}.${indexPath}`;
+        return (
+          <>
+            <TextField fieldPath={`${prefix}.eventName`} />
+            <EDTFDateRangePickerField fieldPath={`${prefix}.eventDate`} />
+            <GroupField>
+              <TextField fieldPath={`${prefix}.location.place`} />
+              <LocalVocabularySelectField
+                fieldPath={`${prefix}.location.country`}
+                optionsListName="countries"
+              />
+            </GroupField>
+          </>
+        );
+      }}
+    </ArrayField>
+  );
+};
+```
+
+### Fields in Modal
+
+For very complex fields, consider using a modal for better UX. This requires an internal Formik instance to manage the modal form.
+
+Example: [Creatibutors field](https://github.com/inveniosoftware/invenio-rdm-records) from RDM.
+
+**Trade-offs:**
+- Use modals only when truly necessary
+- Requires data conversion between main form and modal
+- Can be challenging with deeply nested data
+
+## Overriding Deposit Form Components
+
+Learn about overriding deposit form components at [Deposit form](/customize/model_ui/deposit).
+
+## Related Resources
+
+- [Search result components](/customize/model_ui/search_components) - Search UI components
+- [Form fields](/customize/repository_ui/js_assets/react/components) - Repository-wide form components
+- [react-invenio-forms](https://github.com/inveniosoftware/react-invenio-forms) - Base form components
+- [oarepo-ui (form components)](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms) - Form components source

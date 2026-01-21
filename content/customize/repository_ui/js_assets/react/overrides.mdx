@@ -1,0 +1,350 @@
+import { Callout, Tabs, FileTree } from 'nextra/components';
+
+# Component Overrides
+
+NRP repositories provide a powerful mechanism for customizing the user interface by replacing built-in React components with your own implementations. This allows you to adapt the repository's appearance and behavior to your specific needs without modifying the core codebase.
+
+## Why Override Components?
+
+Component overriding is useful when you need to:
+
+- **Customize how search results are displayed** — Show different metadata fields, change the layout, or add custom actions
+- **Modify form fields and controls** — Override how a specific field is rendered or behaves
+- **Add or remove UI elements** — Hide buttons that aren't relevant to your users, add custom actions
+- **Change component behavior** — Pass different configuration options to existing components
+
+<Callout type="info">
+Override at the right level: if you need to change the appearance of all records of a specific model, use model-scoped overrides. If you need to change a specific page component (like search facets globally), use a generic override.
+</Callout>
+
+## The Big Picture
+
+The override system works through three layers:
+
+1. **Python Configuration** — You declare which component replaces which built-in component using Python classes (`UIComponent`, `UIComponentOverride`)
+2. **Bundle Generation** — During development/production build, the system generates JavaScript bundles that register your overrides
+3. **Runtime Injection** — When a page loads, the react-overridable library injects your custom components at the designated locations
+
+This approach gives you:
+- **Type safety** — Configuration is typed and validated at build time
+- **Decoupling** — Your customizations are separate from core code
+- **Upgradability** — Updates to the base repository won't overwrite your customizations
+
+## How react-overridable Works
+
+The [react-overridable](https://github.com/indico/react-overridable) library provides the runtime mechanism for component substitution. It works through React's context system and a provider/overrideStore pattern.
+
+### The Mechanism
+
+1. **Wrapping Components** — Base components are wrapped in an `<Overridable id="...">` element:
+
+```jsx
+import { Overridable } from 'react-overridable';
+
+// In the base application code
+<Overridable id="Documents.Search.ResultsList.item">
+  <DefaultResultsListItem record={record} />
+</Overridable>
+```
+
+2. **Override Store** — A global store holds registered overrides, accessible via React context:
+
+```js
+import { OverrideProvider, overrideStore } from 'react-overridable';
+
+// At the app root
+<OverrideProvider>
+  <App />
+</OverrideProvider>
+```
+
+3. **Component Resolution** — When an `<Overridable>` component renders, it:
+   - Looks up its ID in the override store
+   - If found, renders the replacement component
+   - Otherwise, renders its children (the original component)
+
+### Fallback Behavior
+
+When an `<Overridable>` component's ID is not found in the override store, it simply renders its children (the original/default component):
+
+```jsx
+<Overridable id="InvenioAppRdm.Search.ResultsList.item">
+  <DefaultResultsListItem record={record} />
+</Overridable>
+```
+
+If `InvenioAppRdm.Search.ResultsList.item` is registered in the override store, the replacement component renders. Otherwise, `<DefaultResultsListItem>` renders.
+
+
+## Declaring Overrides in Python
+
+In NRP repositories, overrides are declared through Flask app configuration in your `invenio.cfg` file rather than direct JavaScript registration. This provides type safety and integrates with the build process.
+
+Component overrides are declared using the `UIComponentOverride` class from `oarepo_ui.overrides` and stored in the `OAREPO_UI_OVERRIDES` Flask config key.
+
+### Using UIComponent
+
+The `UIComponent` class describes a React component that will be used in an override:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `import_name` | `str` | Name of the component to import |
+| `import_path` | `str` | JS module path (e.g., `"@js/datasets/search/ResultsListItem"`) |
+| `import_mode` | `UIComponentImportMode` | Either `NAMED` (default) or `DEFAULT` import |
+| `props` | `dict` \| `None` | Optional props for parametrizing the component |
+
+### Manual Registration
+
+To directly register a component override, set `OAREPO_UI_OVERRIDES` in your `invenio.cfg` file:
+
+```python
+# invenio.cfg
+from oarepo_ui.overrides import UIComponent, UIComponentOverride, UIComponentImportMode
+
+# Initialize from existing config if present
+OAREPO_UI_OVERRIDES = OAREPO_UI_OVERRIDES | {
+    UIComponentOverride(
+        endpoint="invenio_search_ui.search",  # Flask blueprint endpoint
+        overridable_id="Documents.Search.ResultsList.item",
+        component=UIComponent(
+            import_name="MyResultsListItem",
+            import_path="@js/myapp/search/ResultsListItem",
+            import_mode=UIComponentImportMode.NAMED,
+        ),
+    ),
+}
+```
+
+<Callout type="info">
+Use the `|` (union) operator to merge your overrides with any existing ones from upstream packages. This ensures your overrides are combined rather than replacing the entire set.
+</Callout>
+
+<Tabs items={['Parametrize', 'Replace Component']}>
+  <Tabs.Tab>
+
+    **Parametrize** allows you to pass additional props to existing components without changing their rendering logic:
+
+    ```python
+    # invenio.cfg
+    from oarepo_ui.overrides import UIComponent, UIComponentOverride
+
+    OAREPO_UI_OVERRIDES = OAREPO_UI_OVERRIDES | {
+        UIComponentOverride(
+            endpoint="invenio_search_ui.search",
+            overridable_id="Documents.Search.SearchApp.facets",
+            component=UIComponent(
+                import_name="SearchAppFacets",
+                import_path="@js/myapp/search/SearchAppFacets",
+                props={"allVersionsToggle": True},
+            ),
+        ),
+    }
+    ```
+
+    The generated JavaScript will look like:
+
+    ```js
+    import { parametrize } from 'react-overridable';
+    import SearchAppFacets from '@js/myapp/search/SearchAppFacets';
+
+    const SearchAppFacetsWithProps = parametrize(SearchAppFacets, {
+      allVersionsToggle: true,
+    });
+
+    overrideStore.add('Documents.Search.SearchApp.facets', SearchAppFacetsWithProps);
+    ```
+
+  </Tabs.Tab>
+
+  <Tabs.Tab>
+
+    **Replace Component** completely substitutes an existing component with your own implementation:
+
+    ```python
+    # invenio.cfg
+    from oarepo_ui.overrides import UIComponent, UIComponentOverride
+
+    OAREPO_UI_OVERRIDES = OAREPO_UI_OVERRIDES | {
+        UIComponentOverride(
+            endpoint="invenio_search_ui.search",
+            overridable_id="Documents.Search.ResultsList.item",
+            component=UIComponent(
+                import_name="ResultsListItem",
+                import_path="@js/myapp/search/ResultsListItem",
+            ),
+        ),
+    }
+    ```
+
+    The generated JavaScript will look like:
+
+    ```js
+    import ResultsListItem from '@js/myapp/search/ResultsListItem';
+
+    overrideStore.add('Documents.Search.ResultsList.item', ResultsListItem);
+    ```
+
+  </Tabs.Tab>
+</Tabs>
+
+
+### Endpoint-Specific Bundles
+
+To minimize bundle size, overrides are packaged by Flask Blueprint endpoint into a single `_overrides` folder. Inside this folder, each endpoint gets its own JavaScript bundle file named after the endpoint.
+
+For example:
+
+<FileTree>
+  <FileTree.Folder name="_overrides" defaultOpen>
+    <FileTree.File name="invenio_search_ui.search.js" />
+    <FileTree.File name="oarepo_ui.index.js" />
+    <FileTree.File name="datasets_ui.search.js" />
+  </FileTree.Folder>
+</FileTree>
+
+These bundles are only loaded on pages matching their respective endpoint.
+
+Common endpoints include:
+- `"invenio_search_ui.search"` - Main search page
+- `"oarepo_ui.index"` - Home page
+- Custom blueprint names from your UI resources (e.g., `"datasets_ui.search"`)
+
+## Registering Search Result Components
+
+For record model-based UI resources that extend `RecordsUIResourceConfig`, define a `search_component` attribute and register it using `register_result_list_item()`:
+
+```python
+from oarepo_ui.overrides import UIComponent, UIComponentImportMode
+from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+from oarepo_ui.proxies import current_oarepo_ui
+
+class DatasetsUIResourceConfig(RecordsUIResourceConfig):
+    model_name = "datasets"
+
+    search_component = UIComponent(
+        import_name="DatasetsResultsListItem",
+        import_path="@js/datasets/search/ResultsListItem",
+        import_mode=UIComponentImportMode.DEFAULT,
+    )
+
+def ui_overrides(app):
+    """Register search result items during app initialization."""
+    ui_resource_config = DatasetsUIResourceConfig()
+
+    if (
+        current_oarepo_ui is not None
+        and ui_resource_config.model
+        and ui_resource_config.model.record_json_schema
+        and ui_resource_config.search_component
+    ):
+        current_oarepo_ui.register_result_list_item(
+            ui_resource_config.model.record_json_schema,
+            ui_resource_config.search_component,
+        )
+
+def finalize_app(app):
+    """Finalize app initialization."""
+    ui_overrides(app)
+```
+
+### Registering via Entry Points
+
+The `finalize_app` function is registered as a Python entry point in your package's `pyproject.toml` file. This ensures it's called during Flask application initialization:
+
+```toml
+# pyproject.toml
+
+[project.entry-points."invenio_base.finalize_app"]
+ui_datasets = "ui.datasets:finalize_app"
+```
+
+<Callout type="info">
+The `invenio_base.finalize_app` entry point is a Flask application lifecycle hook. All functions registered under this entry point are called during app initialization, after all extensions and blueprints have been loaded.
+</Callout>
+
+Your complete module structure looks like this:
+
+<FileTree>
+  <FileTree.Folder name="ui" defaultOpen>
+    <FileTree.Folder name="datasets" defaultOpen>
+      <FileTree.Folder name="templates" />
+      <FileTree.File name="__init__.py" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+  <FileTree.File name="pyproject.toml" />
+</FileTree>
+
+This automatically registers your component to multiple overridable IDs using registration callbacks configured in `OAREPO_UI_RESULT_LIST_ITEM_REGISTRATION_CALLBACKS`. For example, a schema `local://datasets-v1.0.0.json` would register:
+
+```python
+# Main search results
+'InvenioAppRdm.Search.ResultsList.item.local://datasets-v1.0.0.json'
+# Home page records list
+'InvenioAppRdm.RecordsList.ResultsList.item.local://datasets-v1.0.0.json'
+# Dashboard uploads
+'InvenioAppRdm.DashboardUploads.ResultsList.item.local://datasets-v1.0.0.json'
+```
+
+When processing a record, react-overridable looks for the most specific override ID (with schema pointer) before falling back to default generic `ResultsListItem` component.
+
+## Finding Component IDs
+
+Use React Dev Tools to discover the overridable IDs in your application:
+
+1. Install the [React Dev Tools browser extension](https://react.dev/learn/react-developer-tools)
+2. Enable discovery mode by calling `reactOverridableEnableDevMode()` in the browser console
+3. Hover over components in your application to see their overridable IDs displayed
+
+<Callout type="info">
+Discovery mode is helpful during development but should not be enabled in production.
+</Callout>
+
+## Override Registration Order
+
+Since `OAREPO_UI_OVERRIDES` is a set, duplicate overrides (by `endpoint` and `overridable_id`) are not allowed. When adding overrides dynamically, check for existence before adding to avoid duplicates:
+
+```python
+if override not in current_ui_overrides:
+    current_ui_overrides.add(override)
+```
+
+## Typical Override IDs
+
+### Search App Components
+
+Override identifiers for search applications use the format `{model-name}.Search.{component}`:
+
+```
+Documents.Search.ActiveFilters.element
+Documents.Search.SearchApp.facets
+Documents.Search.SearchApp.results
+Documents.Search.ResultsList.item
+Documents.Search.BucketAggregation.element
+Documents.Search.SearchApp.sort
+```
+
+### Form Components
+
+Override identifiers for forms use the format `{model-name}.Form.{component}`:
+
+```
+Documents.Form.FormActions.container
+Documents.Form.FormFields.container
+Documents.DepositForm.layout
+```
+
+### Dashboard Components
+
+Override identifiers for dashboard/uploads pages:
+
+```
+InvenioAppRdm.DashboardUploads.ResultsList.item
+InvenioAppRdm.DashboardUploads.ResultsList.item.local://datasets-v1.0.0.json
+```
+
+## Related Resources
+
+- [react-overridable GitHub Repository](https://github.com/indico/react-overridable) - Library documentation
+- [oarepo-ui overrides API](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/overrides/components.py) - Python component types
+- [oarepo-ui webpack overrides](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/webpack.py) - JavaScript bundle generation
+- [Integrating React](/customize/repository_ui/js_assets/react/integration) - Setting up entry points with component overrides
