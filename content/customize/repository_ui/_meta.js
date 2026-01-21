@@ -17,7 +17,7 @@ export default {
     "jinjax": {
         "title": "JinjaX components"
     },
-    "react": {
-        "title": "React"
+    "js_assets": {
+        "title": "JavaScript Assets"
     }
 }

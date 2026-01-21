@@ -14,15 +14,15 @@ This guide is designed for:
 
 ## Frontend Architecture Overview
 
-NRP repositories follow a **hybrid architecture** combining server-side rendering with **Jinja/JinjaX templates** and client-side interactivity via **React**.
+NRP repositories follow a **hybrid architecture** combining server-side rendering with **Jinja/JinjaX templates** and client-side interactivity via **JavaScript** (vanilla JS or React).
 
 | Layer       | Technology         | Purpose                                              |
 | ----------- | ------------------ | ---------------------------------------------------- |
 | Server-side  | **Python (Flask)** | Flask UI resource view classes responsible for connecting backend data/services with frontend templates & rendering templates  |
 | Server-side | **Jinja / JinjaX** | Templating for static content and SEO-friendly pages |
-| Client-side | **React**          | Interactive components, forms, and dynamic UI        |
+| Client-side | **JavaScript**     | Interactive components, forms, and dynamic UI (vanilla JS or React) |
 
-This design provides both **fast initial page loads** (thanks to server-side rendering) and **rich interactivity** (via React).
+This design provides both **fast initial page loads** (thanks to server-side rendering) and **rich interactivity** (via JavaScript).
 
 ### Jinja/JinjaX for Record Detail Pages
 
@@ -32,17 +32,15 @@ Record detail pages are rendered using Jinja templates or JinjaX React-like comp
 * Receive data directly from backend UI resource view classes.
 * Produce pre-rendered HTML for fast loading and SEO benefits.
 
-### React for Interactive UI Components
+### JavaScript for Interactive UI Components
 
-React is used wherever the user interacts dynamically with data or state, such as:
+Client-side JavaScript handles interactive elements. Choose based on complexity:
 
-* Search and filtering interfaces
-* Deposition forms and submission workflows
-* Dashboards and widgets
-* Interactive data visualizations
+* **Vanilla JavaScript** - For simple interactions like toggles, form hints, event listeners
+* **React** - For stateful interfaces like search, forms, dashboards
 
 <Callout type="info">
-React in NRP repositories is not used for full page rendering (as with SPA apps), but rather for **embedding interactive components & React apps** within context of Jinja-rendered pages.
+JavaScript in NRP repositories is not used for full page rendering (as with SPA apps), but rather for **adding interactivity** to Jinja-rendered pages.
 </Callout>
 
 ### When to Use Which Technology
@@ -50,7 +48,8 @@ React in NRP repositories is not used for full page rendering (as with SPA apps)
 | Use Case                         | Technology       | Reasoning                  |
 | -------------------------------- | ---------------- | -------------------------- |
 | Detail pages with static content | **Jinja/JinjaX** | Fast, SEO-friendly         |
-| Interactive elements             | **React**        | State, reactivity          |
+| Simple toggles, menus, form hints | **Vanilla JS**   | Lightweight, no build step |
+| Complex search and filtering interfaces | **React** | State, reactivity          |
 | Forms                            | **React**        | Validation, dynamic fields |
 | Charts / Dashboards              | **React**        | Interactive data-driven UI |
 
@@ -216,19 +215,25 @@ How to create reusable JinjaX React-like components for use within Jinja templat
   </Card>
 </Cards>
 
-### React Integration
+### JavaScript Assets
 
 <Cards>
-  <Card title="Introduction to React in Invenio" arrow href="/customize/repository_ui/react" />
-  <Card title="Developing React components and apps" arrow href="/customize/repository_ui/react/components" />
-  <Card title="Integrating React into templates" arrow href="/customize/repository_ui/react/integration" />
+  <Card title="JavaScript Assets Overview" arrow href="/customize/repository_ui/js_assets">
+    Choosing between vanilla JS and React for interactivity
+  </Card>
+  <Card title="Simple JavaScript" arrow href="/customize/repository_ui/js_assets/vanilla_js">
+    Vanilla JS for lightweight interactions
+  </Card>
+  <Card title="React Components" arrow href="/customize/repository_ui/js_assets/react">
+    React for complex, stateful UI components
+  </Card>
 </Cards>
 
 ### Asset Management
 
 <Cards>
   <Card title="Webpack Configuration" arrow href="/customize/repository_ui/webpack">
-    Managing assets and dependencies.
+    Managing entry points, aliases, and NPM dependencies.
   </Card>
 </Cards>
 

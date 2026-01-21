@@ -1,0 +1,141 @@
+import { Callout, FileTree, Steps } from "nextra/components";
+import { Card } from "@/components/card";
+
+# JavaScript Assets
+
+NRP repositories support two approaches for client-side interactivity: **simple/vanilla JavaScript** for lightweight DOM manipulation, and **React** for complex stateful UI components.
+
+## Choosing the Right Approach
+
+| Scenario | Use |
+|----------|-----|
+| Simple form validation, toggles, mobile menus | Vanilla JS |
+| One-off event listeners (click, scroll) | Vanilla JS |
+| jQuery plugins or small interactions | Vanilla JS |
+| Complex forms with validation | React |
+| State-driven interfaces (filters, tabs) | React |
+| Datasets with search/filter/sort | React |
+
+<Callout type="info">
+Start with vanilla JavaScript. It has no build step and is easier to maintain for simple use cases. Introduce React when you truly need state management or component reusability.
+</Callout>
+
+## File Organization
+
+JavaScript assets are organized under `ui/components/`:
+
+<FileTree>
+  <FileTree.Folder name="ui" defaultOpen>
+    <FileTree.Folder name="components" defaultOpen>
+      <FileTree.Folder name="semantic-ui" defaultOpen>
+        <FileTree.Folder name="js" defaultOpen>
+          <FileTree.Folder name="MyFeature" defaultOpen>
+            <FileTree.File name="index.js" />
+            <FileTree.File name="feature.js" />
+          </FileTree.Folder>
+          <FileTree.Folder name="react-apps" defaultOpen>
+            <FileTree.File name="MyComponent.jsx" />
+            <FileTree.File name="index.js" />
+          </FileTree.Folder>
+          <FileTree.File name="app.js" />
+        </FileTree.Folder>
+      </FileTree.Folder>
+      <FileTree.File name="webpack.py" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+- **`app.js`** - Main entry point that imports and initializes all JS files
+- **Feature folders** - Group related vanilla JS files
+- **`react-apps/`** - React components and application entry points
+
+## Quick Start
+
+### Adding Vanilla JavaScript
+
+<Steps>
+
+1. Create a JS file for your feature in `ui/components/semantic-ui/js/`:
+
+```js
+// ui/components/semantic-ui/js/home-page-search.js
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('home-search');
+  if (searchInput) {
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        window.location.href = `/search?q=${encodeURIComponent(searchInput.value)}`;
+      }
+    });
+  }
+});
+```
+
+2. Import it in the main `app.js`:
+
+```js
+import './home-page-search.js';
+```
+
+</Steps>
+
+### Adding a React Component
+
+<Steps>
+
+1. Create your component in `ui/components/semantic-ui/js/react-apps/`:
+
+```jsx
+// ui/components/semantic-ui/js/react-apps/MyFeature.jsx
+import React, { useState } from 'react';
+
+export const MyFeature = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  return <button onClick={() => setIsOpen(!isOpen)}>{isOpen ? 'Close' : 'Open'}</button>;
+};
+```
+
+2. Create an entry point:
+
+```js
+// ui/components/semantic-ui/js/react-apps/index.js
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { MyComponent } from './MyComponent.jsx';
+
+const domElement = document.getElementById('my-component-root');
+if (domElement) {
+  ReactDOM.createRoot(domElement).render(<MyComponent />);
+}
+```
+
+3. Register the entry point in your module's `webpack.py`:
+
+```python
+["my_feature_js"] = {"entry": "js/react-apps/index.js", "config": "semantic-ui"}
+```
+
+4. Mount in a template:
+
+```html
+<div id="my-component-root"></div>
+{%- assets "my_feature_js" %}
+  {{ javascript_tag(asset_path) }}
+{%- endassets %}
+```
+
+</Steps>
+
+## Topics
+
+<Card title="Simple JavaScript" href="/customize/repository_ui/js_assets/vanilla_js">
+  Adding vanilla JS files for lightweight interactivity
+</Card>
+
+<Card title="React Components" href="/customize/repository_ui/js_assets/react">
+  Building complex, stateful UI components with React
+</Card>
+
+<Card title="Webpack Configuration" href="/customize/repository_ui/webpack">
+  Managing entry points, aliases, and NPM dependencies
+</Card>

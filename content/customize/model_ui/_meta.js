@@ -1,6 +1,7 @@
 export default {
     "detail": "Record landing page",
-    "deposit": "Deposition form",
+    "deposit": "Deposit form",
+    "deposit_components": "Deposit form components",
     "search": "Search result",
-    "react-components": "React components"
+    "search_components": "Search result components"
 }

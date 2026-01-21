@@ -1,0 +1,99 @@
+import { FileTree } from 'nextra/components';
+
+# Components
+
+This page covers repository-wide React components that are shared across the application. For model-specific search and form components, see [Model UI](/customize/model_ui).
+
+## Repository Components
+
+Repository-wide components are placed in `ui/components/` and provide functionality that isn't tied to a specific record model.
+
+### Component Structure
+
+<FileTree>
+  <FileTree.Folder name="ui" defaultOpen>
+    <FileTree.Folder name="components" defaultOpen>
+      <FileTree.Folder name="semantic-ui" defaultOpen>
+        <FileTree.Folder name="js" defaultOpen>
+          <FileTree.Folder name="MyFeature" defaultOpen>
+            <FileTree.File name="index.js" />
+            <FileTree.File name="MyComponent.jsx" />
+          </FileTree.Folder>
+          <FileTree.File name="app.js" />
+        </FileTree.Folder>
+      </FileTree.Folder>
+      <FileTree.File name="webpack.py" />
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Available Repository-Wide Components from oarepo-ui
+
+The [oarepo-ui](https://github.com/oarepo/oarepo-ui) package provides several general-purpose components that can be used repository-wide:
+
+### ClipboardCopyButton
+
+Places a copy button that copies specified text to the clipboard:
+
+```jsx
+import { ClipboardCopyButton } from "@js/oarepo_ui/components";
+
+<ClipboardCopyButton copyText="https://example.com/record/123" />
+```
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `copyText` | string | Yes | Text copied when button is clicked |
+| `...rest` | any | No | Additional props passed to the button element |
+
+### IdentifierBadge
+
+Displays identifier badges (ORCID, DOI, etc.) with clickable links:
+
+```jsx
+import { IdentifierBadge } from "@js/oarepo_ui/components";
+
+<IdentifierBadge
+  identifier={{
+    scheme: "orcid",
+    identifier: "0000-0000-0000-0000",
+    url: "https://orcid.org/0000-0000-0000-0000"
+  }}
+  creatibutorName="Jane Doe"
+/>
+```
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `identifier` | object | Yes | Object with `scheme`, `identifier`, and optional `url` |
+| `creatibutorName` | string | No | Name added to the tooltip |
+| `className` | string | No | Additional CSS classes |
+
+### Disabled
+
+Returns `null` - useful for disabling built-in UI components through the override mechanism. This allows you to remove default functionality that InvenioRDM provides without modifying core templates:
+
+```jsx
+import { Disabled } from "@js/oarepo_ui/components";
+
+// In your override configuration, replace an unwanted component:
+export const componentOverrides = {
+  // Completely removes the "share" button from the record detail page
+  "Record.RecordManagement.ShareButton": Disabled,
+};
+```
+
+Common use cases:
+- Removing unused action buttons (e.g., "Share", "Edit" for anonymous users)
+- Disabling features that require specific permissions
+- Suppressing UI elements that conflict with custom workflows
+
+See the [oarepo-ui components source](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/components) for more details.
+
+## Related Resources
+
+- [Webpack Configuration](/customize/repository_ui/webpack) - Managing entry points, aliases, and NPM dependencies for your components
+- [Integrating React](/customize/repository_ui/js_assets/react/integration) - Setting up entry points and bundling
+- [Deposit form components](/customize/model_ui/deposit_components) - Model-specific form fields
+- [Search result components](/customize/model_ui/search_components) - Model-specific search results
+- [Component Override](/customize/repository_ui/js_assets/react/overrides) - Component customization
