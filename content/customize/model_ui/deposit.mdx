@@ -1,17 +1,240 @@
-import { GitHubCode } from "@/components/githubcode";
+import { Callout, FileTree } from "nextra/components";
 
-**TODO: RDM 12 version, update to RDM14**
+# Deposit form
 
-# Deposition
+The deposit form enables users to create and edit records. It's a React-based form application that provides field validation, dynamic sections, and integration with your record model.
 
-## Overridable IDs
+## Architecture
 
-The following is the list of known overridable IDs:
-```js filename="blah"
-export const overridableComponentIds = [  "Errors.container",  "FormActions.container",  "FormApp.layout",  "FormFields.container",];
+The deposit form follows this flow:
+
+1. **User accesses** deposit URL (e.g., `/uploads/new` for create, `/uploads/<pid_value>` for edit)
+2. **UI Resource view** prepares initial form data and configuration
+3. **React app mounts** and renders the form interface
+4. **Form submission** sends data to the API endpoint for validation and storage
+
+```mermaid
+graph TD
+    U[User] -->|GET /uploads/new| VR[View Resource]
+    VR -->|fetch initial data & form config| SVC[Service Layer]
+    SVC -->|form config, initial data| VR
+    VR -->|form config, initial data, context variables| JX[JinjaX Template]
+    JX -->|react entry point| RA[React App]
+    RA -->|formConfig| FF[Form Fields]
+    RA -->|submit| API[REST API]
+    API -->|validation errors| RA
+    API -->|validated data| DB[Database]
 ```
 
-<GitHubCode
-  repo="oarepo/oarepo-ui"
-  path="oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/constants.js"
-/>
+## UI Resource Configuration
+
+The deposit routes are defined in your model's UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    blueprint_name = "mymodel"
+    url_prefix = "/mymodel"
+
+    routes = {
+        "deposit_create": "/uploads/new",
+        "deposit_edit": "/uploads/<pid_value>",
+        # ... other routes
+    }
+```
+
+## Form Configuration
+
+Form field definitions, labels, hints, and validation rules are derived from your record model's YAML schema definition. See [Model schema customization](/customize/model_backend/model) for details on defining field types, labels, hints, and help text.
+
+## Template Structure
+
+The deposit page template is typically located at:
+
+<FileTree>
+  <FileTree.Folder name="ui/mymodel/templates" defaultOpen>
+    <FileTree.Folder name="semantic-ui" defaultOpen>
+      <FileTree.Folder name="mymodel" defaultOpen>
+        <FileTree.File name="Deposit.jinja" />
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Deposit Template
+
+The deposit template extends the base deposit template and adds the model-specific JavaScript bundle:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/Deposit.jinja"
+{#def
+    theme,
+    forms_config,
+    searchbar_config,
+    record,
+    community,
+    community_ui,
+    community_use_jinja_header,
+    files,
+    preselectedCommunity=None,
+    files_locked,
+    extra_context,
+    ui_links,
+    permissions
+#}
+{% extends "oarepo_ui/deposit.html" %}
+
+{%- block javascript %}
+    {% include "oarepo_ui/javascript.html" %}
+    {{ webpack['mymodel_deposit_form.js'] }}
+{%- endblock %}
+```
+
+<Callout type="info">
+The deposit template is typically minimal. The base `oarepo_ui/deposit.html` template provides all the standard deposit form functionality including the form container, data attributes, and React app initialization.
+</Callout>
+
+### Available Context Variables
+
+| Variable | Description |
+|----------|-------------|
+| `theme` | Theme configuration |
+| `forms_config` | Form configuration |
+| `searchbar_config` | Search bar configuration |
+| `record` | Current record data (for edit mode) |
+| `community` | Community data if applicable |
+| `community_ui` | Community UI data |
+| `files` | Record files entries |
+| `extra_context` | Additional context from resource components |
+| `ui_links` | UI links |
+| `permissions` | User permissions |
+
+## Form Fields Container
+
+The `FormFieldsContainer.jsx` component located at `ui/mymodel/semantic-ui/js/mymodel/forms/FormFieldsContainer.jsx` is where you define your form fields using AccordionField for sections.
+
+This component is designed to be modified directly when implementing your deposit form. It receives the `record` prop and `formConfig` from the Redux store:
+
+```jsx filename="ui/mymodel/semantic-ui/js/mymodel/forms/FormFieldsContainer.jsx"
+import { TextField } from "@js/oarepo_ui/forms";
+import { AccordionField } from "react-invenio-forms";
+import { connect } from "react-redux";
+
+const FormFieldsContainerComponent = ({ record }) => {
+  return (
+    <>
+      <AccordionField
+        includesPaths={["metadata.title"]}
+        active
+        label="Basic information"
+      >
+        <TextField fieldPath="metadata.title" />
+      </AccordionField>
+
+      <AccordionField
+        includesPaths={["files.enabled"]}
+        active
+        label="Files upload"
+      >
+        {/* File upload component */}
+      </AccordionField>
+    </>
+  );
+};
+
+const mapStateToProps = (state) => ({
+  record: state.deposit.record,
+});
+
+export default connect(mapStateToProps)(FormFieldsContainerComponent);
+```
+
+See [Deposit form components](/customize/model_ui/deposit_components) for available form field components.
+
+## Entry Point
+
+The entry point at `ui/mymodel/semantic-ui/js/mymodel/forms/index.js` renders the deposit app and registers the FormFieldsContainer as a component override:
+
+```jsx filename="ui/mymodel/semantic-ui/js/mymodel/forms/index.js"
+import { DepositFormApp, parseFormAppConfig } from "@js/oarepo_ui/forms";
+import ReactDOM from "react-dom";
+import { OARepoDepositSerializer } from "@js/oarepo_ui/api";
+import FormFieldsContainer from "./FormFieldsContainer";
+
+const recordSerializer = new OARepoDepositSerializer(
+  ["errors", "expanded"],
+  ["__key"]
+);
+
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridableIdPrefix = config.overridableIdPrefix;
+
+export const componentOverrides = {
+  [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
+};
+
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    {...rest}
+    recordSerializer={recordSerializer}
+    componentOverrides={componentOverrides}
+  />,
+  rootEl
+);
+```
+
+<Callout type="info">
+The copier template configures the webpack entry point automatically. Developers only need to modify the FormFieldsContainer component to add their form fields.
+</Callout>
+
+See [Component Override](/customize/repository_ui/js_assets/react/overrides) for more details on component overrides.
+
+## Template Registration
+
+Ensure your template is registered in the UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    templates = {
+        "deposit_create": "mymodel.Deposit",
+        "deposit_edit": "mymodel.Deposit",
+    }
+```
+
+## Adding Form Context Data
+
+Add or modify form configuration and context variables through resource components:
+
+```python filename="ui/mymodel/components.py"
+from oarepo_ui.resources.components import UIResourceComponent
+
+class MymodelFormComponent(UIResourceComponent):
+    def before_ui_create(self, resource, request, extra_context, **kwargs):
+        # Add data available in create mode
+        extra_context["extra_form_options"] = {
+            "customFeature": True,
+        }
+
+    def before_ui_edit(self, resource, request, extra_context, **kwargs):
+        # Add data available in edit mode
+        record = extra_context.get("record")
+        if record:
+            extra_context["record_history"] = self._get_history(record)
+```
+
+Register in your UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    components = [
+        MymodelFormComponent,
+    ]
+```
+
+## Related Resources
+
+- [Deposit form components](/customize/model_ui/deposit_components) - Available form field components
+- [UI Resource Views](/customize/repository_ui/resources) - UI resource architecture
+- [Webpack Configuration](/customize/repository_ui/webpack) - Entry point configuration
+- [Record landing page](/customize/model_ui/detail) - Record detail customization

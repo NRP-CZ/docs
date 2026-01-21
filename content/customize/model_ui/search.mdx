@@ -1,23 +1,305 @@
-import { GitHubCode } from "@/components/githubcode";
+import { Callout, FileTree } from "nextra/components";
 
-**TODO: RDM 12 version, update to RDM14**
+# Search result
 
-# Search
+The search page displays a list of records matching user queries. It uses react-searchkit to provide faceted search, sorting, and pagination with customizable result item components.
 
-Search UI plays a crucial role in helping users discover relevant records quickly and efficiently. By customizing the search UI, you can optimize the presentation, behavior, and functionality of search components to align with your brand identity, user preferences, and business goals.
+## Architecture
 
-## Getting started
+The search page follows this flow:
 
-To get started with search UI customizations, Search UI is provided 
+1. **User accesses** search URL and enters queries
+2. **React search app** mounts and initializes with search configuration
+3. **User searches** via query bar and filters apply
+4. **react-searchkit** queries the Elasticsearch API
+5. **Results display** using custom result item components
 
-## Overridable IDs
+```mermaid
+graph TD
+    U[User] -->|search query| RA[React Search App]
+    RA -->|query/filters| RSK[react-searchkit]
+    RSK -->|search request| ES[Elasticsearch]
+    ES -->|hits| RSK
+    RSK -->|results| RA
+    RA -->|render items| RLI[ResultsListItem]
+```
 
-The following is the list of known overridable IDs:
+## UI Resource Configuration
 
-<GitHubCode
-  repo="oarepo/oarepo-ui"
-  path="oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/constants.js"
-/>
+The search route is defined in your model's UI resource config:
 
-## Component load order
+```python filename="ui/mymodel/__init__.py"
+from oarepo_ui.resources.records.config import RecordsUIResourceConfig
 
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    blueprint_name = "mymodel"
+    url_prefix = "/mymodel"
+
+    routes = {
+        "search": "",
+        # ... other routes
+    }
+```
+
+## Template Structure
+
+The search page template is typically located at:
+
+<FileTree>
+  <FileTree.Folder name="ui/mymodel" defaultOpen>
+    <FileTree.Folder name="templates" defaultOpen>
+      <FileTree.Folder name="mymodel" defaultOpen>
+        <FileTree.File name="Search.jinja" />
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+## Creating a Search Template
+
+### Basic Template
+
+The search template initializes the React search application:
+
+```jinja filename="ui/mymodel/templates/mymodel/Search.jinja"
+{#def api_links #}
+{% extends "oarepo_ui/base_page.html" %}
+
+{% block page_content %}
+<div id="search-app"
+     data-api-links='{{ api_links | tojson }}'>
+</div>
+
+{%- block javascript %}
+{{ super() }}
+{{ webpack['oarepo_ui_search.js'] }}
+{%- endblock %}
+{% endblock %}
+```
+
+### Data Attributes Explanation
+
+| Attribute | Description |
+|-----------|-------------|
+| `data-api-links` | API endpoints for search operations |
+
+## Search Configuration
+
+Search behavior is configured through Flask app configuration:
+
+```python filename="invenio.cfg"
+# Search endpoint configuration for your model
+RECORDS_REST_ENDPOINTS = {
+    "mymodel": {
+        "default_index": "mymodel-records-v1.0.0",
+    }
+}
+```
+
+## Custom Result Items
+
+The most common customization is the result item component that displays each record in the search results.
+
+### Creating a ResultsListItem
+
+```jsx filename="ui/mymodel/semantic-ui/js/Search/ResultsListItem.jsx"
+import React from "react";
+import { RecordFacetsLabels } from "@js/oarepo_ui/search";
+import { RecordAuthors } from "@js/invenio_app_rdm";
+import _ from "lodash";
+
+export const ResultsListItem = ({ result }) => {
+  return (
+    <div className="result-item">
+      <a href={result.links.self_html}>
+        <h3>{result.metadata.title}</h3>
+      </a>
+
+      <div className="record-authors">
+        <RecordAuthors creators={result.metadata.creators} />
+      </div>
+
+      <div className="record-keywords">
+        {_.get(result, "metadata.subjects", []).map((subject, idx) => (
+          <span key={idx} className="badge">
+            {subject.title || subject}
+          </span>
+        ))}
+      </div>
+
+      <div className="record-date">
+        Published: {result.metadata.publicationDate}
+      </div>
+    </div>
+  );
+};
+```
+
+The `result` object contains:
+- `result.id` - Record ID
+- `result.links.self_html` - Link to render (detail) page
+- `result.metadata` - Record metadata
+- `result.created` - Creation date
+- `result.updated` - Last update date
+
+### Grid Layout Item
+
+For grid view layouts, create a grid-optimized component:
+
+```jsx filename="ui/mymodel/semantic-ui/js/Search/ResultsGridItem.jsx"
+export const ResultsGridItem = ({ result }) => {
+  return (
+    <div className="result-grid-item">
+      <h4>{result.metadata.title}</h4>
+      <p>{_.get(result, "metadata.description", "").substring(0, 150)}...</p>
+    </div>
+  );
+};
+```
+
+## Registering Custom Components
+
+### Option 1: Via UI Resource Config (Recommended)
+
+For model-specific search result components, register using the `search_component` attribute:
+
+```python filename="ui/mymodel/__init__.py"
+from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+from oarepo_ui.overrides import UIComponent, UIComponentImportMode
+
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    search_component = UIComponent(
+        import_name="ResultsListItem",
+        import_path="@js/mymodel/search/ResultsListItem",
+        import_mode=UIComponentImportMode.DEFAULT,
+    )
+```
+
+Then register during app initialization:
+
+```python filename="ui/mymodel/__init__.py"
+from oarepo_ui.proxies import current_oarepo_ui
+
+def finalize_app(app):
+    """Register search result items during app initialization."""
+    ui_resource_config = MymodelUIResourceConfig()
+
+    if (
+        current_oarepo_ui is not None
+        and ui_resource_config.model
+        and ui_resource_config.model.record_json_schema
+        and ui_resource_config.search_component
+    ):
+        current_oarepo_ui.register_result_list_item(
+            ui_resource_config.model.record_json_schema,
+            ui_resource_config.search_component,
+        )
+
+# Register as entry point
+```
+
+```toml filename="pyproject.toml"
+[project.entry-points."invenio_base.finalize_app"]
+ui_mymodel = "ui.mymodel:finalize_app"
+```
+
+### Option 2: Via Search App Initialization
+
+Create a search app entry point:
+
+```jsx filename="ui/mymodel/semantic-ui/js/Search/index.js"
+import {
+  parseSearchAppConfigs,
+  createSearchAppsInit,
+} from "@js/oarepo_ui/search";
+import { parametrize } from "react-overridable";
+import ResultsListItem from "./ResultsListItem";
+
+const [{ overridableIdPrefix }] = parseSearchAppConfigs();
+
+export const componentOverrides = {
+  [`${overridableIdPrefix}.ResultsList.item`]: ResultsListItem,
+};
+
+createSearchAppsInit({ componentOverrides });
+```
+
+Register in webpack.py:
+
+```python filename="ui/mymodel/semantic-ui/webpack.py"
+entry = {
+    "mymodel_search": "./js/Search/index.js",
+}
+```
+
+## Customizing Search Areas
+
+Override specific parts of the search interface:
+
+```python filename="invenio.cfg"
+from oarepo_ui.overrides import UIComponent, UIComponentOverride
+
+OAREPO_UI_OVERRIDES = OAREPO_UI_OVERRIDES | {
+    # Customize facets
+    UIComponentOverride(
+        endpoint="mymodel.search",
+        overridable_id="Mymodel.Search.SearchApp.facets",
+        component=UIComponent(
+            import_name="CustomFacets",
+            import_path="@js/mymodel/search/CustomFacets",
+            props={"allVersionsToggle": True}
+        ),
+    ),
+    # Customize sort options
+    UIComponentOverride(
+        endpoint="mymodel.search",
+        overridable_id="Mymodel.Search.SearchApp.sort",
+        component=UIComponent(
+            import_name="CustomSort",
+            import_path="@js/mymodel/search/CustomSort",
+        ),
+    ),
+}
+```
+
+### Override IDs for Search
+
+| ID | Purpose |
+|----|---------|
+| `{Model}.Search.SearchApp.facets` | Facet (filter) panel |
+| `{Model}.Search.SearchApp.results` | Main results container |
+| `{Model}.Search.ResultsList.item` | Individual result item |
+| `{Model}.Search.SearchApp.sort` | Sort dropdown |
+| `{Model}.Search.SearchApp.searchbar` | Search input bar |
+| `{Model}.Search.ActiveFilters.element` | Active filter badges |
+
+See [Component Override](/customize/repository_ui/js_assets/react/overrides) for full details on overriding components.
+
+## Entry Point Configuration
+
+Ensure your search app entry point is registered in webpack.py:
+
+```python filename="ui/mymodel/semantic-ui/webpack.py"
+entry = {
+    "mymodel_search": "./js/Search/index.js",
+}
+```
+
+## Template Registration
+
+Ensure your template is registered in the UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    templates = {
+        "search": "mymodel.Search",
+    }
+```
+
+## Related Resources
+
+- [Search result components](/customize/model_ui/search_components) - Available search components
+- [Component Override](/customize/repository_ui/js_assets/react/overrides) - Component customization
+- [UI Resource Views](/customize/repository_ui/resources) - UI resource architecture
+- [Webpack Configuration](/customize/repository_ui/webpack) - Entry point configuration
+- [react-searchkit](https://inveniosoftware.github.io/react-searchkit/) - Search library documentation
