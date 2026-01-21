@@ -39,13 +39,13 @@ VOCABULARIES_CF = [
 
 This will add a new custom field to all vocabularies. The `BooleanCF` class is used to define a custom field for
 a boolean value. There are also other classes available, such as `IntegerCF`, `KeywordCF`, `DateCF`, etc., see the
-[Records's custom fields](/customize/record/custom_fields) section for more information.
+[Custom fields](/customize/model_backend/custom_fields) section for more information.
 
 ## UI configuration
 
-The deposit form for vocabularies is a bit different that the one of plain records. You need to specify the
-ui sections per vocabulary type. This way each vocabulary can have different fields inside its deposit form.
-For details on the structure of the UI configuration, see the [Records's custom fields](/customize/record/custom_fields#deposit-form)
+The deposit form for vocabularies is a bit different from the one for plain records. You need to specify the
+UI sections per vocabulary type. This way each vocabulary can have different fields inside its deposit form.
+For details on the structure of the UI configuration, see the [Custom fields](/customize/model_backend/custom_fields#deposit-form)
 
 To define the UI configuration for the custom fields, add the following section to the `invenio.cfg` file:
 
@@ -92,4 +92,4 @@ VOCABULARIES_CF_UI = {
 ## Complex and multi-valued fields
 
 Complex and multi-valued fields in your vocabularies behave the same way as in records.
-See [Records's complex custom fields](/customize/record/custom_fields#complex-custom-field-types) for details.
+See [Complex custom field types](/customize/model_backend/custom_fields#complex-custom-field-types) for details.

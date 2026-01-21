@@ -22,7 +22,7 @@ The following documentation assumes a decent knowledge of Python, REST APIs and 
 ## Implementation
 
 To implement a custom authority provider, you will need to create your provider class,
-implementing alteast the methods from the `AuthorityProvider` base class, for example:
+implementing at least the methods from the `AuthorityProvider` base class, for example:
 
 ```python
 from oarepo_vocabularies.authorities.providers import AuthorityProvider
@@ -60,7 +60,7 @@ class MyProvider(AuthorityProvider):
         return to_vocabulary_item(result)
 ```
 
-Note that the `AuhtorityProvider` class is responsible for querying the external authority APIs, and
+Note that the `AuthorityProvider` class is responsible for querying the external authority APIs, and
 converting returned records to acceptable vocabulary item format of:
 
 ```json

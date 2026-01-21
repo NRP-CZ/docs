@@ -51,21 +51,21 @@ INVENIO_VOCABULARY_TYPE_METADATA = {
 }
 ```
 
-The `name` and `description` fields are used for the human readable vocabulary type name and description.
+The `name` and `description` fields are used for the human-readable vocabulary type name and description.
 The `props` field is a dictionary of editable string fields, that can be set on the vocabulary item.
 
 *Note:* Custom fields (that is, non-string fields, such as booleans, structures or arrays) can be specified elsewhere
 inside the `invenio.cfg`. See [Vocabulary custom fields](/customize/vocabularies/custom_fields.mdx) for more information.
 
-If you specify `dump_options` to `True`, the vocabulary content will be stored within the editation form,
-so that no API requests will need to be called to get the vocabulary content. This might yield to a better user experience
+If you specify `dump_options` to `True`, the vocabulary content will be stored within the editing form,
+so that no API requests will need to be called to get the vocabulary content. This might yield a better user experience
 but should be used only for small vocabularies.
 
 ## Permission policy
 
 To allow users to edit vocabularies, specify a permission policy with `VOCABULARIES_PERMISSIONS_PRESETS` setting.
-The value of the setting is a list of permission policies, that will be used to check the permissions.
-A user is granted an access if any of the policies allows it. The value in the list can be either a string
+The value of the setting is a list of permission policies that will be used to check the permissions.
+A user is granted access if any of the policies allows it. The value in the list can be either a string
 or a subclass of `RecordPermissionPolicy`.
 
 ```python
@@ -83,7 +83,7 @@ to allow only a group of users to edit vocabularies), you can create
 your own permission policy class, register it with a custom name and
 use it in the `VOCABULARIES_PERMISSIONS_PRESETS` setting.
 
-This process is described in [Permissions](/customize/record/permissions.mdx).
+This process is described in [Permissions](/customize/model_backend/permissions).
 
 
 ## Fine-grained permissions

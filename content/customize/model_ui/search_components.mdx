@@ -1,8 +1,8 @@
-# Search Result Components
+# Search result components
 
 This page documents the search result components for customizing record search displays. For deposit form components, see [Deposit form components](/customize/model_ui/deposit_components).
 
-## Result Item Components
+## Result item components
 
 Search apps display results using list or grid layouts. The most commonly customized component is the result item.
 
@@ -10,68 +10,115 @@ Search apps display results using list or grid layouts. The most commonly custom
 
 Displays individual records in search results. This component receives a `result` object containing the record metadata:
 
-```jsx filename="ui/records/semantic-ui/js/Search/ResultsListItem.jsx"
+```jsx filename="ui/mymodel/semantic-ui/js/Search/ResultsListItem.jsx"
+import React from "react";
+import { RecordFacetsLabels } from "@js/oarepo_ui/search";
+import { RecordAuthors } from "@js/invenio_app_rdm";
+import _ from "lodash";
+
 export const ResultsListItem = ({ result }) => {
   return (
     <div className="result-item">
-      <h3>{result.metadata.title}</h3>
-      <p>{result.metadata.description}</p>
+      <a href={result.links.self_html}>
+        <h3>{result.metadata.title}</h3>
+      </a>
+
+      <div className="record-authors">
+        <RecordAuthors creators={result.metadata.creators} />
+      </div>
+
+      <div className="record-keywords">
+        {_.get(result, "metadata.subjects", []).map((subject, idx) => (
+          <span key={idx} className="badge">
+            {subject.title || subject}
+          </span>
+        ))}
+      </div>
+
+      <div className="record-date">
+        Published: {result.metadata.publicationDate}
+      </div>
     </div>
   );
 };
 ```
 
+### Result object structure
+
+The `result` object contains:
+
+| Property | Description |
+|----------|-------------|
+| `result.id` | Record ID |
+| `result.links.self_html` | Link to render (detail) page |
+| `result.metadata` | Record metadata fields |
+| `result.created` | Creation date |
+| `result.updated` | Last update date |
+
 ### ResultsGridItem
 
-Similar to `ResultsListItem` but optimized for grid layout views.
+Similar to `ResultsListItem` but optimized for grid layout views:
 
-The result object includes the full record metadata, allowing you to display any fields from your data model.
+```jsx filename="ui/mymodel/semantic-ui/js/Search/ResultsGridItem.jsx"
+export const ResultsGridItem = ({ result }) => {
+  return (
+    <div className="result-grid-item">
+      <h4>{result.metadata.title}</h4>
+      <p>{_.get(result, "metadata.description", "").substring(0, 150)}...</p>
+    </div>
+  );
+};
+```
 
-## Initializing Search App with Custom Components
+## Utility components
+
+These components are available for building search result items:
+
+### RecordAuthors
+
+Displays creators/contributors with links:
+
+```jsx
+import { RecordAuthors } from "@js/invenio_app_rdm";
+
+<RecordAuthors creators={result.metadata.creators} />
+```
+
+### RecordFacetsLabels
+
+Displays facet labels for vocabulary fields:
+
+```jsx
+import { RecordFacetsLabels } from "@js/oarepo_ui/search";
+
+<RecordFacetsLabels
+  aggs={result.aggs}
+  metadata={result.metadata}
+  vocabularies={{ subjects: "subjects" }}
+/>
+```
+
+## Initializing search app with custom components
 
 Create a search app entry point that registers your custom components:
 
-```jsx filename="ui/records/semantic-ui/js/Search/index.js"
+```jsx filename="ui/mymodel/semantic-ui/js/Search/index.js"
 import {
   parseSearchAppConfigs,
   createSearchAppsInit,
-  SearchAppFacets,
 } from "@js/oarepo_ui/search";
-import { parametrize } from "react-overridable";
 import ResultsListItem from "./ResultsListItem";
-
-// Customize facets with additional props
-const SearchAppFacetsWithProps = parametrize(SearchAppFacets, {
-  allVersionsToggle: true,
-});
 
 const [{ overridableIdPrefix }] = parseSearchAppConfigs();
 
 export const componentOverrides = {
-  [`${overridableIdPrefix}.SearchApp.facets`]: SearchAppFacetsWithProps,
   [`${overridableIdPrefix}.ResultsList.item`]: ResultsListItem,
 };
 
 createSearchAppsInit({ componentOverrides });
 ```
 
-## Overridable IDs
-
-Find available component IDs in:
-
-<GitHubCode repo="oarepo/oarepo-ui" path="oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/constants.js" />
-
-The overridable ID format follows:
-```
-{applicationId}.Search.{componentId}
-```
-
-For example, for a record model named "documents":
-- `Documents.Search.ResultsList.item`
-- `Documents.Search.SearchApp.facets`
-- `Documents.Search.SearchApp.sort`
-
-See [Search result](/customize/model_ui/search) for more information on search applications.
+See [Search result](/customize/model_ui/search) for registration via UI Resource Config or OAREPO_UI_OVERRIDES.
 
 ## Related Resources
 

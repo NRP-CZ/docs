@@ -6,7 +6,7 @@ import { Difficulty } from "@/components/difficulty";
 Jinja is the server-side templating engine used throughout InvenioRDM for rendering HTML pages.  
 NRP-based repositories build on top of this system and use Jinja extensively for page layout, custom UI views, and template overrides.
 
-If you are more interested in how to change built-in templates with your custom ones, the topic is covered in great detail undder the [Branding -> Templating](/customize/repository_ui/branding/templating) docs
+If you are more interested in how to change built-in templates with your custom ones, the topic is covered in great detail under the [Branding -> Templating](/customize/repository_ui/branding/templating) docs
 
 In this page we will focus on creation and usage of custom Jinja templates including how to use them, how templates interact with [UI Resources](/customize/repository_ui/resources) (the NRP Invenio mechanism for generating HTML responses for front-end pages).
 
@@ -58,7 +58,7 @@ class DatasetUIResource(UIResource):
 This keeps view logic clean: UI Resources provide the context driven by business logic, and templates handle the rendering.
 
 ## Creating new templates
-To create and use a new template, follow this elementary steps:
+To create and use a new template, follow these elementary steps:
 
 <Steps>
 ### Create a file under your `/templates` folder, such as:
@@ -89,7 +89,7 @@ return current_oarepo_ui.catalog.render(
 ## Basic Jinja syntax refresher
 
 Here we cover just the most common syntax examples you might come across
-in a Jinja templates. Please refer to the official [Jinja Template Designer](https://jinja.palletsprojects.com/en/stable/templates/)
+in a Jinja template. Please refer to the official [Jinja Template Designer](https://jinja.palletsprojects.com/en/stable/templates/)
 docs for a full reference on Jinja syntax.
 
 ### Variables
@@ -133,7 +133,7 @@ to test for a result of a boolean expression.
 
 ### Macros
 
-Include other snippet of Jinja code into a template.
+Include another snippet of Jinja code into a template.
 
 ```jinja
 {% macro input(name, value='', type='text', size=20) -%}
@@ -147,7 +147,7 @@ Include other snippet of Jinja code into a template.
 
 ## Template inclusion & composition 
 
-Reusable shared templates (navbars, footers, panels) could be placed in shared dirs & then included where needed:
+Reusable shared templates (navbars, footers, panels) can be placed in shared directories and then included where needed:
 
 ```jinja
 {% include "branding/header.html" %}
@@ -198,7 +198,7 @@ is the `super()` keyword.
 {% block page_footer %}
     <p>I'm before the standard footer content.</p>
     {{ super() }}
-    <p>I folow after the standard footer content.</p>
+    <p>I follow after the standard footer content.</p>
 {% endblock %}
 ```
 This will bring up original block content from the extended template.

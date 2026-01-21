@@ -1,1 +1,243 @@
-**TODO: RDM 12 version, update to RDM14**
+import { Callout, FileTree } from "nextra/components";
+
+# Record landing page
+
+The record landing page displays detailed information about a single record. This page is rendered through the model's UI resource, which prepares the record data and renders Jinja templates.
+
+## Architecture
+
+The record detail page follows this flow:
+
+1. **User accesses** a record URL (e.g., `/records/<pid_value>`)
+2. **UI Resource view** (`record_detail`) fetches the record from the service layer
+3. **Resource components** prepare additional context data
+4. **Jinja templates** render the final HTML
+
+```mermaid
+graph TD
+    U[User] -->|GET /records/:id| VR[UI Resource View]
+    VR -->|fetch record| SVC[Service Layer]
+    SVC -->|record data| VR
+    VR -->|lifecycle hooks| RC[Resource Components]
+    RC -->|extra_context| VR
+    VR -->|record + context variables| JT[Jinja Templates]
+```
+
+## UI Resource Configuration
+
+The record detail route is defined in your model's UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    blueprint_name = "mymodel"
+    url_prefix = "/mymodel"
+
+    routes = {
+        "record_detail": "/records/<pid_value>",
+        # ... other routes
+    }
+```
+
+See [UI Resource Views](/customize/repository_ui/resources) for full details on UI resources.
+
+## Template Structure
+
+RecordDetail.jinja extends the base template and includes section templates:
+
+<FileTree>
+  <FileTree.Folder name="ui/mymodel/templates" defaultOpen>
+    <FileTree.Folder name="semantic-ui" defaultOpen>
+      <FileTree.Folder name="mymodel" defaultOpen>
+        <FileTree.File name="RecordDetail.jinja" />
+        <FileTree.Folder name="record_detail" defaultOpen>
+          <FileTree.File name="banners.html" />
+          <FileTree.File name="main.html" />
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+<Callout type="info">
+RecordDetail.jinja is typically minimal. Most customizations happen in `main.html` or by overriding exposed Jinja blocks.
+</Callout>
+
+## Available Context Variables
+
+The detail page template receives these variables:
+
+| Variable | Description |
+|----------|-------------|
+| `record` | Record object with id, pid, links, metadata, access, files |
+| `record_ui` | UI-specific metadata: versions, links, publication status |
+| `files` | Record files entries |
+| `media_files` | System/media files entries |
+| `permissions` | User permissions (can_edit, can_update, can_manage) |
+| `is_preview` | Whether viewing in preview mode |
+| `is_draft` | Whether record is a draft |
+| `d` | Shorthand for record.metadata |
+| `model` | Record model configuration |
+| `community` | Community metadata if record belongs to one |
+| `community_ui` | Community UI data |
+
+## record_detail/banners.html
+
+This template extends `oarepo_ui/record_detail/banners.html` and provides overrideable blocks for banners:
+
+| Block | Purpose |
+|-------|---------|
+| `banner_community_header` | Community header banner |
+| `banner_preview_header` | Preview mode banner |
+| `banner_version_header` | Version status banner |
+
+## record_detail/main.html
+
+This template extends `oarepo_ui/record_detail/main.html` and provides numerous overrideable blocks:
+
+| Block | Purpose |
+|-------|---------|
+| `record_body` | Main content wrapper |
+| `record_header` | Header section |
+| `record_header_button` | Navigation header buttons |
+| `record_header_info` | Publication date, version, type, access |
+| `record_title` | Record title and creators |
+| `record_content` | Main description |
+| `record_files` | Files section |
+| `record_files_access_request` | Access request form for restricted files |
+| `record_media_files` | Media files section |
+| `additional_record_details` | Additional metadata |
+| `record_footer` | Footer section |
+| `record_sidebar` | Right sidebar |
+| `jump` | "Jump to top" button |
+
+<Callout type="info">
+Use `{{ super() }}` within override blocks to preserve the parent template content. Omit `{{ super() }}` to completely replace the section.
+</Callout>
+
+## Customization Approaches
+
+### Approach 1: Override in main.html
+
+Modify `record_detail/main.html` to override specific blocks:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/main.html"
+{% extends "oarepo_ui/record_detail/main.html" %}
+
+{%- set m = d.metadata -%}
+
+{# Hide default header info -%}
+{%- block record_header_info -%}
+{%- endblock record_header_info -%}
+
+{# Wrap title with custom container -%}
+{%- block record_title -%}
+  <div class="ui secondary basic segment">
+    {{ super() }}
+  </div>
+{%- endblock record_title -%}
+
+{# Add custom footer content -%}
+{%- block record_footer -%}
+  {{ super() }}
+  {%- if m.custom_field %}
+  <div class="ui message info">
+    {{ m.custom_field }}
+  </div>
+  {%- endif %}
+{%- endblock record_footer -%}
+```
+
+### Approach 2: Hide Default Elements
+
+To completely hide a section, override it with empty content:
+
+```jinja
+{%- block record_header_info -%}
+{%- endblock record_header_info -%}
+```
+
+### Approach 3: Enhance Banners
+
+Modify `record_detail/banners.html` to add custom banner elements:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/banners.html"
+{% extends "oarepo_ui/record_detail/banners.html" %}
+
+{%- block banner_preview_header -%}
+  {{ super() }}
+  {%- if custom_context_warning %}
+  <div class="ui message warning">
+    {{ custom_context_warning }}
+  </div>
+  {%- endif %}
+{%- endblock banner_preview_header -%}
+```
+
+## Using Resource Components
+
+Add custom context data through resource components:
+
+```python filename="ui/mymodel/components.py"
+from oarepo_ui.resources.components import UIResourceComponent
+
+class MymodelDetailComponent(UIResourceComponent):
+    def before_detail(self, resource, request, extra_context, **kwargs):
+        # Add custom data to template context
+        record = extra_context.get("record")
+        if record:
+            extra_context["related_records"] = self._get_related(record)
+
+    def _get_related(self, record):
+        # Fetch related records from service layer
+        return []
+```
+
+Register in your UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+from .components import MymodelDetailComponent
+
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    components = [
+        MymodelDetailComponent,
+    ]
+```
+
+Access custom context in any override block:
+
+```jinja
+{%- block additional_record_details -%}
+  {{ super() }}
+  {% if related_records %}
+  <div class="related-records">
+    <h3>Related Records</h3>
+    {% for rec in related_records %}
+    <div class="related-item">
+      <a href="{{ rec.links.self_html }}">{{ rec.metadata.title }}</a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{%- endblock additional_record_details -%}
+```
+
+## Template Registration
+
+Ensure your template is registered in the UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    templates = {
+        "record_detail": "mymodel.RecordDetail",
+    }
+```
+
+## Related Resources
+
+- [UI Resource Views](/customize/repository_ui/resources) - UI resource architecture
+- [JinjaX Components](/customize/repository_ui/jinjax) - JinjaX component system
+- [Templating](/customize/repository_ui/branding/templating) - Jinja template customization
+- [Deposit form](/customize/model_ui/deposit) - Record deposit form customization
+- [Search result](/customize/model_ui/search) - Search page customization
