@@ -1,4 +1,6 @@
-# Component Development
+import { FileTree } from 'nextra/components';
+
+# Components
 
 This page covers developing and using React components across NRP repositories, including form components, search result components, and custom UI elements. For search app configuration and component overriding mechanisms, see [Component Override](/customize/repository_ui/react/overrides).
 
@@ -6,20 +8,28 @@ This page covers developing and using React components across NRP repositories, 
 
 Javascript source files are typically located under the `js` folder in your model's UI directory:
 
-```
-ui/model-name
-├── semantic-ui
-│   ├── js
-│       └── model-name
-│           ├── forms
-│           │   ├── index.js
-│           │   ├── FormActionsContainer.jsx
-│           │   └── FormFieldsContainer.jsx
-│           └── search
-│               ├── index.js
-│               ├── ResultsGridItem.jsx
-│               └── ResultsListItem.jsx
-```
+<FileTree>
+  <FileTree.Folder name="ui" defaultOpen>
+    <FileTree.Folder name="model-name" defaultOpen>
+      <FileTree.Folder name="semantic-ui" defaultOpen>
+        <FileTree.Folder name="js" defaultOpen>
+          <FileTree.Folder name="model-name" defaultOpen>
+            <FileTree.Folder name="forms" defaultOpen>
+              <FileTree.File name="index.js" />
+              <FileTree.File name="FormActionsContainer.jsx" />
+              <FileTree.File name="FormFieldsContainer.jsx" />
+            </FileTree.Folder>
+            <FileTree.Folder name="search" defaultOpen>
+              <FileTree.File name="index.js" />
+              <FileTree.File name="ResultsGridItem.jsx" />
+              <FileTree.File name="ResultsListItem.jsx" />
+            </FileTree.Folder>
+          </FileTree.Folder>
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
 
 We recommend placing your JavaScript files in the `js/model-name` folder for easier development.
 
@@ -31,7 +41,7 @@ Search apps display results using list or grid layouts. The most commonly custom
 
 Displays individual records in search results. This component receives a `result` object containing the record data:
 
-```jsx
+```jsx filename="ui/model-name/semantic-ui/js/model-name/search/ResultsListItem.jsx"
 export const ResultsListItem = ({ result }) => {
   return (
     <div className="result-item">
@@ -63,7 +73,7 @@ Field metadata (labels, hints, required status) should be defined in your model 
 
 Use the `useFieldData` hook from oarepo-ui to access this metadata:
 
-```jsx
+```jsx filename="ui/model-name/semantic-ui/js/model-name/forms/TextField.jsx"
 import { useFieldData } from "@js/oarepo_ui/forms";
 import PropTypes from "prop-types";
 
@@ -145,13 +155,13 @@ import { OarepoRichEditor } from "@js/oarepo_ui/forms";
 Support for Extended Date/Time Format with precision options:
 
 ```jsx
-import { EDTFSingleDatePicker, EDTFDaterangePicker } from "@js/oarepo_ui/forms";
+import { EDTFSingleDatePickerField, EDTFDateRangePickerField } from "@js/oarepo_ui/forms";
 
 // Single date
-<EDTFSingleDatePicker fieldPath="metadata.publicationDate" />
+<EDTFSingleDatePickerField fieldPath="metadata.publicationDate" />
 
 // Date range
-<EDTFDaterangePicker fieldPath="metadata.eventDateRange" />
+<EDTFDateRangePickerField fieldPath="metadata.eventDateRange" />
 ```
 
 | Prop | Type | Default | Description |
@@ -177,7 +187,7 @@ import { I18nTextInputField, I18nRichInputField } from "@js/oarepo_ui/forms";
 ```
 
 Data format:
-```json
+```json filename="multilingual_field_data.json"
 {
   "lang": "en",
   "value": "Title in English"
@@ -234,11 +244,11 @@ import {
 
 For arrays of nested fields:
 
-```jsx
+```jsx filename="ui/model-name/semantic-ui/js/model-name/forms/EventsField.jsx"
 import React from "react";
 import { ArrayField, GroupField } from "react-invenio-forms";
 import { LocalVocabularySelectField } from "@js/oarepo_vocabularies";
-import { TextField, StringArrayField, EDTFDaterangePicker } from "@js/oarepo_ui/forms";
+import { TextField, StringArrayField, EDTFDateRangePickerField } from "@js/oarepo_ui/forms";
 import useFormikContext from "formik";
 
 export const EventsField = ({ fieldPath }) => {
@@ -255,7 +265,7 @@ export const EventsField = ({ fieldPath }) => {
         return (
           <>
             <TextField fieldPath={`${prefix}.eventName`} />
-            <EDTFDaterangePicker fieldPath={`${prefix}.eventDate`} />
+            <EDTFDateRangePickerField fieldPath={`${prefix}.eventDate`} />
             <GroupField>
               <TextField fieldPath={`${prefix}.location.place`} />
               <LocalVocabularySelectField
