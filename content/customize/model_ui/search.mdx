@@ -43,45 +43,24 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
 
 ## Template Structure
 
-The search page template is typically located at:
+The search page uses a generic template provided by oarepo-ui (`oarepo_ui.pages.Search`). This template initializes the React search application with the search configuration.
 
-<FileTree>
-  <FileTree.Folder name="ui/mymodel" defaultOpen>
-    <FileTree.Folder name="templates" defaultOpen>
-      <FileTree.Folder name="mymodel" defaultOpen>
-        <FileTree.File name="Search.jinja" />
-      </FileTree.Folder>
-    </FileTree.Folder>
-  </FileTree.Folder>
-</FileTree>
+<Callout type="info">
+The generic `oarepo_ui.pages.Search` template provides the standard search interface. Customization is primarily done through the ResultsListItem component for result display and [component overrides](/customize/repository_ui/js_assets/react/overrides) for other UI elements.
+</Callout>
 
-## Creating a Search Template
+### Available Context Variables
 
-### Basic Template
+The search page template receives these variables from the resource:
 
-The search template initializes the React search application:
-
-```jinja filename="ui/mymodel/templates/mymodel/Search.jinja"
-{#def api_links #}
-{% extends "oarepo_ui/base_page.html" %}
-
-{% block page_content %}
-<div id="search-app"
-     data-api-links='{{ api_links | tojson }}'>
-</div>
-
-{%- block javascript %}
-{{ super() }}
-{{ webpack['oarepo_ui_search.js'] }}
-{%- endblock %}
-{% endblock %}
-```
-
-### Data Attributes Explanation
-
-| Attribute | Description |
-|-----------|-------------|
-| `data-api-links` | API endpoints for search operations |
+| Variable | Description |
+|----------|-------------|
+| `search_app_config` | Search application configuration (facets, sort, API endpoint) |
+| `ui_config` | UI resource configuration including model name and application ID |
+| `ui_resource` | Reference to the UI resource instance |
+| `ui_links` | UI navigation links (pagination, etc.) |
+| `webpack_entry` | Webpack entry point for the search JavaScript |
+| `extra_context` | Additional context from resource components |
 
 ## Search Configuration
 
@@ -285,16 +264,48 @@ entry = {
 }
 ```
 
-## Template Registration
+## Replacing the Default Search Template
 
-Ensure your template is registered in the UI resource config:
+By default, the search page uses the generic `oarepo_ui.pages.Search` template.
+
+If you need to replace the entire search template with your own model-specific implementation:
+
+### Create a Custom Page Component
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/pages/Search.jinja"
+{#def search_app_config, ui_config, ui_resource, ui_links, webpack_entry, extra_context #}
+{%- extends config.BASE_TEMPLATE %}
+{%- set title = _("Search results") ~ " | " ~ _(ui_config.model_name) %}
+
+{%- block javascript %}
+    {{ super() }}
+    {{ webpack[webpack_entry] }}
+{%- endblock %}
+
+{%- block page_body %}
+<div class="ui main container rel-mt-3">
+  {# Add custom banner above search results #}
+  {%- if extra_context.get('show_search_banner') %}
+  <div class="ui message info">
+    {{ extra_context.get('search_banner_text', _('Search tips: Use quotes for exact phrases')) }}
+  </div>
+  {%- endif %}
+
+  <div data-invenio-search-config='{{ search_app_config | tojson }}'></div>
+</div>
+{%- endblock page_body %}
+```
+
+Register it in your UI resource config:
 
 ```python filename="ui/mymodel/__init__.py"
 class MymodelUIResourceConfig(RecordsUIResourceConfig):
     templates = {
-        "search": "mymodel.Search",
+        "search": "mymodel.pages.Search",
     }
 ```
+
+See [JinjaX Components](/customize/repository_ui/jinjax) for more on creating page components.
 
 ## Related Resources
 

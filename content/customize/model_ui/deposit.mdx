@@ -50,48 +50,10 @@ Form field definitions, labels, hints, and validation rules are derived from you
 
 ## Template Structure
 
-The deposit page template is typically located at:
-
-<FileTree>
-  <FileTree.Folder name="ui/mymodel/templates" defaultOpen>
-    <FileTree.Folder name="semantic-ui" defaultOpen>
-      <FileTree.Folder name="mymodel" defaultOpen>
-        <FileTree.File name="Deposit.jinja" />
-      </FileTree.Folder>
-    </FileTree.Folder>
-  </FileTree.Folder>
-</FileTree>
-
-## Deposit Template
-
-The deposit template extends the base deposit template and adds the model-specific JavaScript bundle:
-
-```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/Deposit.jinja"
-{#def
-    theme,
-    forms_config,
-    searchbar_config,
-    record,
-    community,
-    community_ui,
-    community_use_jinja_header,
-    files,
-    preselectedCommunity=None,
-    files_locked,
-    extra_context,
-    ui_links,
-    permissions
-#}
-{% extends "oarepo_ui/deposit.html" %}
-
-{%- block javascript %}
-    {% include "oarepo_ui/javascript.html" %}
-    {{ webpack['mymodel_deposit_form.js'] }}
-{%- endblock %}
-```
+The deposit page uses a generic template provided by oarepo-ui (`oarepo_ui.pages.DepositForm`). This template handles the page structure and includes the deposit form container.
 
 <Callout type="info">
-The deposit template is typically minimal. The base `oarepo_ui/deposit.html` template provides all the standard deposit form functionality including the form container, data attributes, and React app initialization.
+The generic `oarepo_ui.pages.DepositForm` template provides all standard deposit form functionality including the form container, data attributes, and React app initialization. Form field customization is done through the FormFieldsContainer component.
 </Callout>
 
 ### Available Context Variables
@@ -108,6 +70,7 @@ The deposit template is typically minimal. The base `oarepo_ui/deposit.html` tem
 | `extra_context` | Additional context from resource components |
 | `ui_links` | UI links |
 | `permissions` | User permissions |
+| `webpack_entry` | Webpack entry point for the deposit form JavaScript |
 
 ## Form Fields Container
 
@@ -190,17 +153,46 @@ The copier template configures the webpack entry point automatically. Developers
 
 See [Component Override](/customize/repository_ui/js_assets/react/overrides) for more details on component overrides.
 
-## Template Registration
+## Replacing the Default Deposit Template
 
-Ensure your template is registered in the UI resource config:
+By default, the deposit form page uses the generic `oarepo_ui.pages.DepositForm` template.
+
+If you need to replace the entire deposit form template with your own model-specific implementation:
+
+### Create a Custom Page Component
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/pages/DepositForm.jinja"
+{#def theme, forms_config, record, community, files, extra_context, ui_links, permissions, webpack_entry #}
+{%- extends "invenio_app_rdm/records/deposit.html" -%}
+
+{# Add custom content above the form #}
+{%- block page_body %}
+  {% if extra_context.get('show_custom_banner') %}
+  <div class="ui message info">
+    <i class="info circle icon"></i>
+    {{ extra_context.get('custom_banner_text', _('Important: Review the guidelines before submitting')) }}
+  </div>
+  {% endif %}
+  {{ super() }}
+{%- endblock %}
+
+{%- block javascript %}
+    {% include "oarepo_ui/javascript.html" %}
+    {{ webpack[webpack_entry] }}
+{%- endblock %}
+```
+
+Register it in your UI resource config:
 
 ```python filename="ui/mymodel/__init__.py"
 class MymodelUIResourceConfig(RecordsUIResourceConfig):
     templates = {
-        "deposit_create": "mymodel.Deposit",
-        "deposit_edit": "mymodel.Deposit",
+        "deposit_create": "mymodel.pages.DepositForm",
+        "deposit_edit": "mymodel.pages.DepositForm",
     }
 ```
+
+See [JinjaX Components](/customize/repository_ui/jinjax) for more on creating page components.
 
 ## Adding Form Context Data
 
