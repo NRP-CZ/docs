@@ -44,13 +44,12 @@ See [UI Resource Views](/customize/repository_ui/resources) for full details on 
 
 ## Template Structure
 
-RecordDetail.jinja extends the base template and includes section templates:
+The record detail page uses a generic template provided by oarepo-ui (`oarepo_ui.pages.RecordDetail`). This template includes model-specific partial templates for customization:
 
 <FileTree>
   <FileTree.Folder name="ui/mymodel/templates" defaultOpen>
     <FileTree.Folder name="semantic-ui" defaultOpen>
       <FileTree.Folder name="mymodel" defaultOpen>
-        <FileTree.File name="RecordDetail.jinja" />
         <FileTree.Folder name="record_detail" defaultOpen>
           <FileTree.File name="banners.html" />
           <FileTree.File name="main.html" />
@@ -61,12 +60,12 @@ RecordDetail.jinja extends the base template and includes section templates:
 </FileTree>
 
 <Callout type="info">
-RecordDetail.jinja is typically minimal. Most customizations happen in `main.html` or by overriding exposed Jinja blocks.
+The generic `oarepo_ui.pages.RecordDetail` template handles the page structure. Customizations happen in `banners.html` and `main.html` by overriding exposed Jinja blocks.
 </Callout>
 
 ## Available Context Variables
 
-The detail page template receives these variables:
+The detail page template receives these variables from the resource:
 
 | Variable | Description |
 |----------|-------------|
@@ -76,11 +75,17 @@ The detail page template receives these variables:
 | `media_files` | System/media files entries |
 | `permissions` | User permissions (can_edit, can_update, can_manage) |
 | `is_preview` | Whether viewing in preview mode |
+| `include_deleted` | Whether to include deleted records |
 | `is_draft` | Whether record is a draft |
 | `d` | Shorthand for record.metadata |
 | `model` | Record model configuration |
+| `model_name` | Name of the model (e.g., "mymodel") |
 | `community` | Community metadata if record belongs to one |
 | `community_ui` | Community UI data |
+| `user_avatar` | URL of the current user's avatar image |
+| `record_owner_id` | ID of the record owner user |
+| `ui_links` | UI navigation links |
+| `extra_context` | Additional context from resource components |
 
 ## record_detail/banners.html
 
@@ -223,16 +228,36 @@ Access custom context in any override block:
 {%- endblock additional_record_details -%}
 ```
 
-## Template Registration
+## Replacing the Default Landing Page Template
 
-Ensure your template is registered in the UI resource config:
+By default, the record detail page uses the generic `oarepo_ui.pages.RecordDetail` template that includes your model-specific `record_detail/banners.html` and `record_detail/main.html` partials.
+
+If you need to replace the entire landing page template with your own model-specific implementation:
+
+### Create a Custom Page Component
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/pages/RecordDetail.jinja"
+{#def record, record_ui, files, media_files, permissions, is_preview, include_deleted, is_draft, model_name, community, community_ui, user_avatar, record_owner_id, d, oai_record #}
+{% extends "invenio_app_rdm/records/detail.html" %}
+
+{# Your custom page structure here #}
+{%- block page_body -%}
+  <div class="my-custom-landing-page">
+    {# Your custom content #}
+  </div>
+{%- endblock page_body -%}
+```
+
+Register it in your UI resource config:
 
 ```python filename="ui/mymodel/__init__.py"
 class MymodelUIResourceConfig(RecordsUIResourceConfig):
     templates = {
-        "record_detail": "mymodel.RecordDetail",
+        "record_detail": "mymodel.pages.RecordDetail",
     }
 ```
+
+See [JinjaX Components](/customize/repository_ui/jinjax) for more on creating page components.
 
 ## Related Resources
 
