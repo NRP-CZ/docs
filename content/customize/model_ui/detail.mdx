@@ -237,7 +237,7 @@ If you need to replace the entire landing page template with your own model-spec
 ### Create a Custom Page Component
 
 ```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/pages/RecordDetail.jinja"
-{#def record, record_ui, files, media_files, permissions, is_preview, include_deleted, is_draft, model_name, community, community_ui, user_avatar, record_owner_id, d, oai_record #}
+{#def record, record_ui, files, media_files, permissions, is_preview, include_deleted, is_draft, model, model_name, community, community_ui, user_avatar, record_owner_id, ui_links, extra_context, d #}
 {% extends "invenio_app_rdm/records/detail.html" %}
 
 {# Your custom page structure here #}
