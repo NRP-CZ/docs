@@ -9,20 +9,23 @@ The deposit form enables users to create and edit records. It's a React-based fo
 
 The deposit form follows this flow:
 
-1. **User accesses** deposit URL (e.g., `/uploads/new` for create, `/uploads/<pid_value>` for edit)
+1. **User accesses** record deposition URL (e.g., `/mymodel/uploads/new` for create, `/mymodel/uploads/<pid_value>` for edit) of a specific model
 2. **UI Resource view** prepares initial form data and configuration
-3. **React app mounts** and renders the form interface
-4. **Form submission** sends data to the API endpoint for validation and storage
+3. **DepositForm.jinja** component renders the page, embedding model-specific form app JS bundle, providing initial data through hidden inputs
+4. **React app mounts** parses initial data from rendered template hidden inputs and renders the form interface
+5. **Form submission** sends data to the API endpoint for validation and storage
 
 ```mermaid
 graph TD
-    U[User] -->|GET /uploads/new| VR[View Resource]
-    VR -->|fetch initial data & form config| SVC[Service Layer]
+    U[User] -->|GET /mymodel/uploads/new| VR[UI Resource View]
+    VR -->|fetch initial data and form config| SVC[Service Layer]
     SVC -->|form config, initial data| VR
-    VR -->|form config, initial data, context variables| JX[JinjaX Template]
-    JX -->|react entry point| RA[React App]
-    RA -->|formConfig| FF[Form Fields]
-    RA -->|submit| API[REST API]
+    VR -->|context variables| DF[DepositForm.jinja]
+    DF -->|embeds JS bundle and hidden inputs| PG[Rendered HTML Page]
+    PG -->|mount| RA[React App]
+    PG -->|hidden inputs with initial data| RA
+    RA -->|renders form interface| U
+    RA -->|submit| API[REST APIs]
     API -->|validation errors| RA
     API -->|validated data| DB[Database]
 ```
