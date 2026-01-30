@@ -3,10 +3,10 @@ import { Card } from "@/components/card";
 
 # React in NRP Repositories
 
-React is used in NRP repositories for building **interactive user interface components** within a server-side rendered application architecture based on InvenioRDM. Unlike traditional Single Page Applications, React here is used for embedding dynamic components within Jinja-rendered pages, combining SEO benefits with rich client-side interactivity.
+React is used in NRP repositories for building **interactive user interface components** within a server-side rendered application architecture based on InvenioRDM. Unlike traditional Single Page Applications, React here is used for embedding dynamic (mini)apps within Jinja-rendered pages, combining SEO benefits with rich client-side interactivity.
 
 <Callout type="info">
-This section covers React-specific topics. For server-side templating with JinjaX components, see the [JinjaX components guide](/customize/repository_ui/jinjax).
+This section covers React-specific topics. For server-side templating with Jinja and JinjaX, see the [Templating overview](/customize/repository_ui/templating).
 </Callout>
 
 ## Overview
@@ -14,67 +14,49 @@ This section covers React-specific topics. For server-side templating with Jinja
 React in NRP repositories powers the most dynamic and interactive parts of the user interface:
 
 - **Search interfaces** - Faceted filtering, result lists, sorting
-- **Deposit forms** - Multi-step workflows, validation, dynamic fields
+- **Deposit forms** - Formik-powered inputs, validation, file uploads, and submission
 - **Dashboard components** - Real-time data visualization, interactive controls
 
 ## Architecture
 
-React applications are integrated through a defined structure:
+React is integrated through the following integration flow:
 
 ```mermaid
-graph TD
-    subgraph Server["Server-Side"]
-        INVENIO["InvenioRDM Backend"]
-        JINJA["Jinja/JinjaX Templates"]
-        WP_CONF["webpack.py Config"]
-        OAREPO_OV["oarepo-ui overrides (generates override config per Flask endpoint)"]
+graph LR
+    subgraph ServerSide["Server-Side"]
+        A[Backend REST APIs]
+        B[webpack.py Config]
+        C[Webpack/RSPack]
+        D[JS Bundles]
+        E[Jinja/JinjaX Templates]
+        F[DOM mount-point elements with optional data-* attrs]
+    end
+    subgraph Frontend["Browser"]
+        G[React Apps]
+        H[react-overridable]
+        I[Axios / Fetch]
+        J[React Components]
     end
 
-    subgraph Build["Build Process"]
-        WEBPACK["Webpack Builder"]
-        BUNDLES["JS Bundles"]
-    end
-
-    subgraph Browser["Browser"]
-        DOM["DOM Elements"]
-        REACT["React Apps"]
-        REACT_OV["react-overridable"]
-    end
-
-    subgraph State["State Management"]
-        FORMIK["Formik"]
-        REDUX["Redux"]
-    end
-
-    %% Data Flow
-    WP_CONF --> WEBPACK
-    WEBPACK --> BUNDLES
-    JINJA -->|includes| BUNDLES
-    JINJA -->|renders| DOM
-    DOM -->|mounts| REACT
-    REACT --> FORMIK
-    REACT --> REDUX
-    REACT_OV -->|overrides| REACT
-
-    %% Override Configuration Flow (server generates config for client)
-    OAREPO_OV -.->|generates override config| REACT_OV
-
-    %% External APIs
-    REACT -->|REST API| INVENIO
-
-    %% Styling
-    style Server fill:#e1f5ff,stroke:#333
-    style Build fill:#fff4e1,stroke:#333
-    style Browser fill:#e8f5e9,stroke:#333
-    style State fill:#f3e5f5,stroke:#333
-    style OAREPO_OV fill:#fce4ec,stroke:#333
-    style REACT_OV fill:#fce4ec,stroke:#333
+    I -->|queries| A
+    B -->|defines entries, NPM deps, aliases| C
+    C -->|builds| D
+    E -->|includes| D
+    E -->|renders| F
+    G -->|mounts into| F
+    H -->|overrides| J
+    G -->|uses| I
+    G -->|uses| H
+    G -->|renders| J
 ```
 
 The integration process involves:
+
 1. **Webpack entry points** defined in `webpack.py` files - Python configuration files specifying JavaScript entry points
-2. **Component mounting** to specific DOM elements within Jinja templates - creating a bridge between server-side HTML and client-side JavaScript
-3. **Component overriding** mechanism for customization without modifying core code
+2. **Template mount points** - Jinja/JinjaX templates render DOM elements with unique IDs that serve as React mount points
+3. **JS bundle inclusion** - Templates include pre-built JavaScript bundles via `{{ webpack['bundle.js'] }}` that mount and run React apps
+4. **Data passing** - Templates use `data-*` attributes or hidden inputs to pass initial state and configuration to React apps
+5. **Component overriding** mechanism for customization without modifying core code
 
 ## Explore React Topics
 
@@ -131,8 +113,35 @@ See [State Management](/customize/repository_ui/js_assets/react/state_management
 
 ## Related Resources
 
-- [InvenioRDM Documentation](https://inveniordm.docs.cern.ch/) - Official documentation for InvenioRDM
-- [react-searchkit Documentation](https://inveniosoftware.github.io/react-searchkit/) - Search interface library
-- [react-overridable GitHub](https://github.com/indico/react-overridable) - Component customization library
-- [Formik Documentation](https://formik.org/) - Form state management
-- [Webpack Configuration](/customize/repository_ui/webpack) - Entry point and bundle configuration
+<Cards>
+  <Card
+    title="InvenioRDM Documentation"
+    href="https://inveniordm.docs.cern.ch/"
+  >
+    Official documentation for InvenioRDM
+  </Card>
+  <Card
+    title="react-searchkit"
+    href="https://inveniosoftware.github.io/react-searchkit/"
+  >
+    Search interface library
+  </Card>
+  <Card
+    title="react-overridable"
+    href="https://github.com/indico/react-overridable"
+  >
+    Component customization library
+  </Card>
+  <Card
+    title="Formik"
+    href="https://formik.org/"
+  >
+    Form state management
+  </Card>
+  <Card
+    title="Webpack Configuration"
+    href="/customize/repository_ui/webpack"
+  >
+    Entry point and bundle configuration
+  </Card>
+</Cards>

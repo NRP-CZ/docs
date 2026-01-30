@@ -1,27 +1,112 @@
-import { Callout, FileTree } from "nextra/components";
+import { Callout, FileTree, Cards } from "nextra/components";
+import { Card } from "@/components/card";
 
 # Record landing page
 
-The record landing page displays detailed information about a single record. This page is rendered through the model's UI resource, which prepares the record data and renders Jinja templates.
+The record landing page displays detailed information about a single record. This page is rendered through a generic JinjaX component provided by `oarepo-ui` that can be customized via model-specific partial templates.
 
 ## Architecture
 
 The record detail page follows this flow:
 
-1. **User accesses** a record URL (e.g., `/records/<pid_value>`)
+1. **User accesses** a record URL (e.g., `/mymodels/<pid_value>`)
 2. **UI Resource view** (`record_detail`) fetches the record from the service layer
 3. **Resource components** prepare additional context data
-4. **Jinja templates** render the final HTML
+4. **RecordDetail.jinja** component renders the page using base template and model partials
 
 ```mermaid
 graph TD
-    U[User] -->|GET /records/:id| VR[UI Resource View]
+    U[User] -->|GET /mymodels/:id| VR[UI Resource View]
     VR -->|fetch record| SVC[Service Layer]
     SVC -->|record data| VR
     VR -->|lifecycle hooks| RC[Resource Components]
     RC -->|extra_context| VR
-    VR -->|record + context variables| JT[Jinja Templates]
+    VR -->|record + context| RJD[RecordDetail.jinja]
+    RJD -->|extends base| RDH[invenio_app_rdm/records/detail.html]
+    RJD -->|includes| BANNERS[model_name/record_detail/banners.html]
+    RJD -->|includes| MAIN[model_name/record_detail/main.html]
 ```
+
+## RecordDetail.jinja Component
+
+The default record detail component is provided by `oarepo-ui` ([source](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/pages/RecordDetail.jinja)):
+
+```jinja filename="oarepo_ui/templates/oarepo_ui/pages/RecordDetail.jinja"
+{#def
+    record,
+    record_ui,
+    files,
+    media_files,
+    permissions,
+    is_preview,
+    include_deleted,
+    is_draft,
+    model,
+    model_name,
+    community,
+    community_ui,
+    user_avatar,
+    record_owner_id,
+    ui_links,
+    extra_context,
+    d,
+#}
+{% extends "invenio_app_rdm/records/detail.html" %}
+
+{%- block page_body %}
+    {%- block page_banners -%}
+        {% include model_name ~ "/record_detail/banners.html" %}
+    {%- endblock page_banners -%}
+
+    {%- block page_main -%}
+        {% include model_name ~ "/record_detail/main.html" %}
+    {%- endblock page_main -%}
+{%- endblock page_body %}
+
+{%- block javascript %}
+    {{ super() }}
+    {% if not embedded %}
+        {{ webpack["record_sharing.js"] }}
+    {% endif %}
+{%- endblock javascript %}
+```
+
+<Callout type="info">
+The `embedded` flag toggles certain UI features when the detail page is rendered within another context (e.g., inside a modal or iframe).
+</Callout>
+
+### Component Props
+
+The component receives these props from the UI resource:
+
+| Prop | Description |
+|------|-------------|
+| `record` | API record object with id, pid, links, metadata, access, files |
+| `record_ui` | Record metadata serialized for UI representation |
+| `files` | Record files entries |
+| `media_files` | System/media files entries |
+| `permissions` | User permissions to record (`can_edit`, `can_update`, `can_manage`) |
+| `is_preview` | Whether viewing in preview mode |
+| `include_deleted` | Whether to include deleted records |
+| `is_draft` | Whether record is a draft |
+| `model` | Record model configuration |
+| `model_name` | Name of the record model (e.g.: `mymodel`) |
+| `community` | Community metadata if record belongs to one |
+| `community_ui` | Community data serialized for UI representation |
+| `user_avatar` | URL of the current user's avatar image |
+| `record_owner_id` | ID of the record owner user |
+| `ui_links` | UI navigation links |
+| `extra_context` | Additional context from resource components |
+| `d` | Shorthand for record.metadata |
+
+### Available Blocks
+
+| Block | Purpose |
+|-------|---------|
+| `page_body` | Main page wrapper - controls overall page structure |
+| `page_banners` | Banner region for notices, warnings, status messages |
+| `page_main` | Main content area - includes the model's main.html partial |
+| `javascript` | JavaScript bundles |
 
 ## UI Resource Configuration
 
@@ -44,7 +129,7 @@ See [UI Resource Views](/customize/repository_ui/resources) for full details on 
 
 ## Template Structure
 
-The record detail page uses a generic template provided by oarepo-ui (`oarepo_ui.pages.RecordDetail`). This template includes model-specific partial templates for customization:
+The `RecordDetail.jinja` base page component includes model-specific partial templates. For a model named `mymodel`, it would include these template partials:
 
 <FileTree>
   <FileTree.Folder name="ui/mymodel/templates" defaultOpen>
@@ -59,125 +144,156 @@ The record detail page uses a generic template provided by oarepo-ui (`oarepo_ui
   </FileTree.Folder>
 </FileTree>
 
-<Callout type="info">
-The generic `oarepo_ui.pages.RecordDetail` template handles the page structure. Customizations happen in `banners.html` and `main.html` by overriding exposed Jinja blocks.
-</Callout>
-
-## Available Context Variables
-
-The detail page template receives these variables from the resource:
-
-| Variable | Description |
-|----------|-------------|
-| `record` | Record object with id, pid, links, metadata, access, files |
-| `record_ui` | UI-specific metadata: versions, links, publication status |
-| `files` | Record files entries |
-| `media_files` | System/media files entries |
-| `permissions` | User permissions (can_edit, can_update, can_manage) |
-| `is_preview` | Whether viewing in preview mode |
-| `include_deleted` | Whether to include deleted records |
-| `is_draft` | Whether record is a draft |
-| `d` | Shorthand for record.metadata |
-| `model` | Record model configuration |
-| `model_name` | Name of the model (e.g., "mymodel") |
-| `community` | Community metadata if record belongs to one |
-| `community_ui` | Community UI data |
-| `user_avatar` | URL of the current user's avatar image |
-| `record_owner_id` | ID of the record owner user |
-| `ui_links` | UI navigation links |
-| `extra_context` | Additional context from resource components |
-
 ## record_detail/banners.html
 
-This template extends `oarepo_ui/record_detail/banners.html` and provides overrideable blocks for banners:
-
-| Block | Purpose |
-|-------|---------|
-| `banner_community_header` | Community header banner |
-| `banner_preview_header` | Preview mode banner |
-| `banner_version_header` | Version status banner |
-
-## record_detail/main.html
-
-This template extends `oarepo_ui/record_detail/main.html` and provides numerous overrideable blocks:
-
-| Block | Purpose |
-|-------|---------|
-| `record_body` | Main content wrapper |
-| `record_header` | Header section |
-| `record_header_button` | Navigation header buttons |
-| `record_header_info` | Publication date, version, type, access |
-| `record_title` | Record title and creators |
-| `record_content` | Main description |
-| `record_files` | Files section |
-| `record_files_access_request` | Access request form for restricted files |
-| `record_media_files` | Media files section |
-| `additional_record_details` | Additional metadata |
-| `record_footer` | Footer section |
-| `record_sidebar` | Right sidebar |
-| `jump` | "Jump to top" button |
+The `banners.html` template ([source](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/record_detail/banners.html)) is included via the `page_banners` block and displays contextual banners at the top of the detail page.
 
 <Callout type="info">
-Use `{{ super() }}` within override blocks to preserve the parent template content. Omit `{{ super() }}` to completely replace the section.
+If you choose to extend from `oarepo_ui/record_detail/banners.html`, you get access to three overridable blocks: `banner_community_header`, `banner_preview_header`, and `banner_version_header`. Otherwise, you can put any content directly in your model-specific template.
 </Callout>
 
-## Customization Approaches
+### Option 1: Extend Default Banners
 
-### Approach 1: Override in main.html
-
-Modify `record_detail/main.html` to override specific blocks:
-
-```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/main.html"
-{% extends "oarepo_ui/record_detail/main.html" %}
-
-{%- set m = d.metadata -%}
-
-{# Hide default header info -%}
-{%- block record_header_info -%}
-{%- endblock record_header_info -%}
-
-{# Wrap title with custom container -%}
-{%- block record_title -%}
-  <div class="ui secondary basic segment">
-    {{ super() }}
-  </div>
-{%- endblock record_title -%}
-
-{# Add custom footer content -%}
-{%- block record_footer -%}
-  {{ super() }}
-  {%- if m.custom_field %}
-  <div class="ui message info">
-    {{ m.custom_field }}
-  </div>
-  {%- endif %}
-{%- endblock record_footer -%}
-```
-
-### Approach 2: Hide Default Elements
-
-To completely hide a section, override it with empty content:
-
-```jinja
-{%- block record_header_info -%}
-{%- endblock record_header_info -%}
-```
-
-### Approach 3: Enhance Banners
-
-Modify `record_detail/banners.html` to add custom banner elements:
+Extend from the default banners template to override specific blocks:
 
 ```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/banners.html"
 {% extends "oarepo_ui/record_detail/banners.html" %}
 
 {%- block banner_preview_header -%}
   {{ super() }}
-  {%- if custom_context_warning %}
+  {%- if extra_context.custom_warning %}
   <div class="ui message warning">
-    {{ custom_context_warning }}
+    <i class="exclamation triangle icon"></i>
+    {{ extra_context.custom_warning }}
   </div>
   {%- endif %}
 {%- endblock banner_preview_header -%}
+
+{%- block banner_version_header -%}
+  {# Hide version warning #}
+{%- endblock banner_version_header -%}
+
+{%- block banner_community_header -%}
+  {# Hide community header #}
+{%- endblock banner_community_header -%}
+```
+
+### Option 2: Custom Content
+
+If you don't extend the default banners, put any content directly in your template:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/banners.html"
+{# Custom banners without extending the default template #}
+
+{%- if is_preview -%}
+<div class="ui message info">
+  <i class="eye icon"></i>
+  You are viewing a preview. This record is not published yet.
+</div>
+{%- endif -%}
+
+{%- if d.custom_field -%}
+<div class="ui message warning">
+  <i class="warning icon"></i>
+  {{ d.custom_field }}
+</div>
+{%- endif -%}
+```
+
+## record_detail/main.html
+
+The `main.html` template ([source](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/record_detail/main.html)) is included via the `page_main` block and renders the main content of the record detail page. It provides the following overridable blocks:
+
+| Block | Purpose |
+|-------|---------|
+| `record_body` | Main content wrapper (contains all other blocks) |
+| `record_header` | Header section |
+| `record_header_button` | Navigation header buttons (back to edit) |
+| `record_header_info` | Publication date, version, type, access status |
+| `record_title` | Record title and creators/contributors |
+| `record_content` | Main description section |
+| `record_files` | Files section with preview and list |
+| `record_files_access_request` | Access request form for restricted files |
+| `record_media_files` | System/media files section |
+| `additional_record_details` | Additional metadata from `details.html` |
+| `record_footer` | Footer section |
+| `record_sidebar` | Right sidebar from `side_bar.html` |
+| `jump` | "Jump to top" button |
+
+<Callout type="info">
+Use `{{ super() }}` within override blocks to preserve the parent template content. Omit `{{ super() }}` to completely replace the section. See [Templating: Jinja](/customize/repository_ui/templating/jinja) for more on template inheritance.
+</Callout>
+
+### Override Title and Add Content
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/main.html"
+{%- block record_title -%}
+  {{ super() }}
+  {# Add custom badge after title #}
+  <span class="ui label">MyModel</span>
+{%- endblock record_title -%}
+
+{%- block additional_record_details -%}
+  {{ super() }}
+  <div class="ui segment">
+    <h3>MyModel Metadata</h3>
+    <p>{{ d.custom_field }}</p>
+  </div>
+{%- endblock additional_record_details -%}
+```
+
+### Hide Default Elements
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/main.html"
+{%- block record_header_info -%}
+  {# Hide publication date and version info #}
+{%- endblock record_header_info -%}
+```
+
+## record_detail/side_bar.html
+
+The sidebar template ([source](https://github.com/inveniosoftware/invenio-app-rdm/blob/master/invenio_app_rdm/records_ui/templates/semantic-ui/invenio_app_rdm/records/details/side_bar.html)) is included from `invenio_app_rdm/records/details/side_bar.html`. It composes the sidebar from multiple templates listed in the `APP_RDM_DETAIL_SIDE_BAR_TEMPLATES` configuration:
+
+```jinja filename="side_bar.html"
+{%- for template_name in config.get("APP_RDM_DETAIL_SIDE_BAR_TEMPLATES", []) -%}
+  {% include template_name %}
+{%- endfor -%}
+```
+
+### Adding Sidebar Widgets
+
+To add custom sidebar widgets, add your template path to the configuration in your `invenio.cfg`:
+
+```python filename="invenio.cfg"
+APP_RDM_DETAIL_SIDE_BAR_TEMPLATES = [
+    "invenio_app_rdm/records/details/side_bar/versioning.html",
+    "invenio_app_rdm/records/details/side_bar/export_formats.html",
+    "invenio_app_rdm/records/details/side_bar/keywords.html",
+    "mymodel/records/detail/side_bar/custom_widget.html",
+]
+```
+
+Create your sidebar widget template:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/records/detail/side_bar/custom_widget.html"
+<div class="ui segment">
+  <h3>Custom Widget</h3>
+  <p>Your custom sidebar content here.</p>
+</div>
+```
+
+### Overriding the Entire Sidebar
+
+If you need to completely replace the sidebar, override the `record_sidebar` block:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/main.html"
+{%- block record_sidebar %}
+  {# Custom sidebar content - replaces default sidebar #}
+  <div class="ui segment">
+    <h3>Custom Sidebar</h3>
+    <p>Your custom content here.</p>
+  </div>
+{%- endblock record_sidebar %}
 ```
 
 ## Using Resource Components
@@ -212,7 +328,7 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
 
 Access custom context in any override block:
 
-```jinja
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/main.html"
 {%- block additional_record_details -%}
   {{ super() }}
   {% if related_records %}
@@ -238,12 +354,15 @@ If you need to replace the entire landing page template with your own model-spec
 
 ```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/pages/RecordDetail.jinja"
 {#def record, record_ui, files, media_files, permissions, is_preview, include_deleted, is_draft, model_name, community, community_ui, user_avatar, record_owner_id, d, oai_record #}
+
 {% extends "invenio_app_rdm/records/detail.html" %}
 
 {# Your custom page structure here #}
+
 {%- block page_body -%}
   <div class="my-custom-landing-page">
     {# Your custom content #}
+    <h1>{{ d.title }}</h1>
   </div>
 {%- endblock page_body -%}
 ```
@@ -257,12 +376,37 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     }
 ```
 
-See [JinjaX Components](/customize/repository_ui/jinjax) for more on creating page components.
-
 ## Related Resources
 
-- [UI Resource Views](/customize/repository_ui/resources) - UI resource architecture
-- [JinjaX Components](/customize/repository_ui/jinjax) - JinjaX component system
-- [Templating](/customize/repository_ui/branding/templating) - Jinja template customization
-- [Deposit form](/customize/model_ui/deposit) - Record deposit form customization
-- [Search result](/customize/model_ui/search) - Search page customization
+<Cards>
+  <Card
+    title="UI Resource Views"
+    href="/customize/repository_ui/resources"
+  >
+    UI resource architecture
+  </Card>
+  <Card
+    title="JinjaX Components"
+    href="/customize/repository_ui/templating/jinjax"
+  >
+    JinjaX component system
+  </Card>
+  <Card
+    title="Templating"
+    href="/customize/repository_ui/branding/templating"
+  >
+    Jinja template customization
+  </Card>
+  <Card
+    title="Deposit form"
+    href="/customize/model_ui/deposit"
+  >
+    Record deposit form customization
+  </Card>
+  <Card
+    title="Search result"
+    href="/customize/model_ui/search"
+  >
+    Search page customization
+  </Card>
+</Cards>

@@ -1,3 +1,6 @@
+import { Cards } from 'nextra/components';
+import { Card } from "@/components/card";
+
 # Search result components
 
 This page documents the search result components for customizing record search displays. For deposit form components, see [Deposit form components](/customize/model_ui/deposit_components).
@@ -98,6 +101,66 @@ import { RecordFacetsLabels } from "@js/oarepo_ui/search";
 />
 ```
 
+## Global search with multiple record models
+
+The global search component provided by oarepo-ui can render search results containing records of different types (e.g., datasets, publications, documents). It uses each record's `$schema` field to determine which component to render for that specific record type.
+
+### How it works
+
+1. The global search app renders a `ResultsList` component
+2. For each record in the results, it reads the `$schema` field (e.g., `"schemas/datasets-v1.0.0.json"`)
+3. Based on the schema, it dynamically selects the appropriate `ResultsListItem` component for that record type
+
+This allows a single search page to display heterogeneous results where records of different models are rendered with their respective custom components.
+
+### Registering custom result list items
+
+To use a custom result list component for a specific record model, register it with the `register_result_list_item()` method:
+
+```python
+from oarepo_ui.overrides import UIComponent, UIComponentImportMode
+from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+from oarepo_ui.proxies import current_oarepo_ui
+
+class DatasetsUIResourceConfig(RecordsUIResourceConfig):
+    model_name = "datasets"
+
+    search_component = UIComponent(
+        import_name="DatasetsResultsListItem",
+        import_path="@js/datasets/search/ResultsListItem",
+        import_mode=UIComponentImportMode.DEFAULT,
+    )
+
+def ui_overrides(app):
+    """Register search result items during app initialization."""
+    ui_resource_config = DatasetsUIResourceConfig()
+
+    if (
+        current_oarepo_ui is not None
+        and ui_resource_config.model
+        and ui_resource_config.model.record_json_schema
+        and ui_resource_config.search_component
+    ):
+        current_oarepo_ui.register_result_list_item(
+            ui_resource_config.model.record_json_schema,
+            ui_resource_config.search_component,
+        )
+
+def finalize_app(app):
+    """Finalize app initialization."""
+    ui_overrides(app)
+```
+
+Register `finalize_app` as an entry point in `pyproject.toml` to call it during Flask app initialization:
+
+```toml
+# pyproject.toml
+[project.entry-points."invenio_base.finalize_app"]
+ui_datasets = "ui.datasets:finalize_app"
+```
+
+This registration allows the global search component to automatically use `DatasetsResultsListItem` when rendering records whose `$schema` matches `datasets-v1.0.0.json`.
+
 ## Initializing search app with custom components
 
 Create a search app entry point that registers your custom components:
@@ -122,6 +185,23 @@ See [Search result](/customize/model_ui/search) for registration via UI Resource
 
 ## Related Resources
 
-- [Deposit form components](/customize/model_ui/deposit_components) - Form input components
-- [Component Override](/customize/repository_ui/js_assets/react/overrides) - General override concepts
-- [react-searchkit](https://inveniosoftware.github.io/react-searchkit/) - Search library documentation
+<Cards>
+  <Card
+    title="Deposit form components"
+    href="/customize/model_ui/deposit_components"
+  >
+    Form input components
+  </Card>
+  <Card
+    title="Component Override"
+    href="/customize/repository_ui/js_assets/react/overrides"
+  >
+    General override concepts
+  </Card>
+  <Card
+    title="react-searchkit"
+    href="https://inveniosoftware.github.io/react-searchkit/"
+  >
+    Search library documentation
+  </Card>
+</Cards>

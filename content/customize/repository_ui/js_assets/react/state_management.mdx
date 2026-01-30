@@ -12,11 +12,11 @@ NRP repositories use multiple state management approaches depending on the compl
 | **React Built-in State** | Simple component state (toggles, form inputs) | Low |
 | **Formik** | Form handling with validation | Medium |
 | **React Context API** | Cross-component data sharing | Medium |
-| **Redux** | Complex app state across many components | High |
+| **Redux** | Complex app state managed across many components | High |
 
 ## React Built-in State
 
-For simple local state within a component, use the `useState` hook:
+For simple local state within a component, use the [`useState`](https://react.dev/reference/react/useState) hook:
 
 ```jsx
 import { useState } from "react";
@@ -40,21 +40,40 @@ export const MyComponent = () => {
 
 ## Formik
 
-Formik handles complex form state, validation, and submission logic. It's the standard for deposit forms in NRP repositories.
+[Formik](https://formik.org/) handles complex form state, validation, and submission logic. It's used with [react-invenio-forms](https://github.com/inveniosoftware/react-invenio-forms) for deposit forms in NRP repositories.
+
+**Use for:**
+- Deposit forms
+- Multi-step workflows
+- Forms with complex validation rules
+- Any form with multiple fields
+
+### Validation with Yup
+
+[Yup](https://github.com/jquense/yup) is a JavaScript schema builder for value parsing and validation. It's commonly used with Formik to define validation schemas for deposit forms.
 
 ```jsx
 import { Formik, Form, Field } from "formik";
 import { TextField } from "@js/oarepo_ui/forms";
+import * as yup from "yup";
+
+const validationSchema = yup.object().shape({
+  title: yup.string().required("Title is required").min(3, "Title must be at least 3 characters"),
+  description: yup.string().required("Description is required"),
+  year: yup.number().required().min(1900).max(new Date().getFullYear()),
+});
 
 export const MyForm = () => {
   return (
     <Formik
-      initialValues={{ title: "", description: "" }}
+      initialValues={{ title: "", description: "", year: "" }}
+      validationSchema={validationSchema}
       onSubmit={(values) => console.log(values)}
     >
       <Form>
         <TextField fieldPath="title" />
-        <Field name="description" as="textarea" />
+        <TextField fieldPath="description" required />
+        <TextField fieldPath="year" dataType="integer" />
         <button type="submit">Submit</button>
       </Form>
     </Formik>
@@ -62,11 +81,71 @@ export const MyForm = () => {
 };
 ```
 
-**Use for:**
-- Deposit forms
-- Multi-step workflows
-- Forms with complex validation rules
-- Any form with multiple fields
+### Formik Hooks
+
+#### Accessing Form Context
+
+Use `useFormikContext()` to access the current form's state and helpers:
+
+```jsx
+import { useFormikContext, getIn } from "formik";
+
+const MyComponent = () => {
+  const { values, errors, touched, isValid, isSubmitting } = useFormikContext();
+
+  // Get a field value
+  const titleValue = values.title;
+
+  // Check if there's an error on a field
+  const hasTitleError = errors.title && touched.title;
+
+  // Set a field value programmatically
+  const handleChange = () => {
+    // You'd typically call this in response to some event
+    // setFieldValue('fieldName', newValue)
+  };
+
+  return <div>{/* ... */}</div>;
+};
+```
+
+**Available properties:**
+
+| Property | Description |
+|----------|-------------|
+| `values` | Object containing all field values |
+| `errors` | Object containing validation errors |
+| `touched` | Object tracking which fields have been touched |
+| `isValid` | Boolean indicating if the form is valid |
+| `isSubmitting` | Boolean indicating if form is currently submitting |
+| `resetForm()` | Function to reset the form to initial values |
+| `setFieldValue(name, value)` | Function to update a specific field value |
+| `setFieldTouched(name, isTouched)` | Function to mark a field as touched |
+| `setErrors(errors)` | Function to set validation errors |
+
+#### Common Patterns
+
+**Get and set form field value:**
+```jsx
+const MyComponent = () => {
+  const { values, setFieldValue } = useFormikContext();
+
+  const currentValue = values.myField;
+  const updateValue = () => setFieldValue("myField", "new value");
+};
+```
+
+**Check for errors and display:**
+```jsx
+const { errors, touched } = useFormikContext();
+const myError = touched.myField ? errors.myField : undefined;
+```
+
+**Reset form to initial values:**
+```jsx
+const { resetForm } = useFormikContext();
+const handleReset = () => resetForm();
+```
 
 <Cards>
   <Card
@@ -116,7 +195,7 @@ export const useMyContext = () => useContext(MyContext);
 Redux provides a predictable state container for complex application state. It's used extensively in NRP repositories for:
 
 - **Search applications** - Managing search state, filters, and results
-- **Deposit forms** - Handling complex form state and validation flows
+- **Deposit forms** - Handling form submission and validation flows
 
 ### Basic Redux Setup
 
@@ -184,6 +263,17 @@ Start with simpler approaches. Only introduce Redux when you've identified that 
 
 ## Related Resources
 
-- [Webpack Configuration](/customize/repository_ui/webpack) - Managing entry points, aliases, and NPM dependencies for your React apps
-- [Component Development](/customize/repository_ui/js_assets/react/components) - Building components with state
-- [Installation & Integration](/customize/repository_ui/js_assets/react/integration) - Setting up React in your repository
+<Cards>
+  <Card
+    title="Webpack Configuration"
+    href="/customize/repository_ui/webpack"
+  >
+    Managing entry points, aliases, and NPM dependencies for your React apps
+  </Card>
+  <Card
+    title="Component Development"
+    href="/customize/repository_ui/js_assets/react/components"
+  >
+    Building components with state
+  </Card>
+</Cards>

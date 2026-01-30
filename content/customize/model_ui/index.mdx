@@ -1,0 +1,85 @@
+import { Callout, Cards } from 'nextra/components';
+import { Card } from "@/components/card";
+
+# Model UI
+
+Model UI customization lets you tailor the user interface for specific record types in your repository. Each record model (datasets, publications, documents, etc.) can have its own customized search results, deposit forms, and detail views.
+
+## What is Model UI?
+
+In NRP repositories, **Model UI** refers to the front-end components and views that are specific to a record model. While the [Repository UI](/customize/repository_ui) provides shared components used across all pages, Model UI components are scoped to individual record types.
+
+For example, a publication repository might need:
+- **Search result items** that display journal names, DOI, and citation counts
+- **Deposit forms** with fields for authors, affiliations, and publication venues
+- **Detail pages** that show full citation data and download links
+
+Each record model defines its own UI resources that handle these page views, and Model UI customization lets you override the defaults to match your specific needs.
+
+## Related Concepts
+
+<Callout type="info">
+**Model UI vs Repository UI:**
+- **Repository UI** — Shared components, theming, templating, and generic UI infrastructure
+- **Model UI** — Record-type-specific pages and components for search, deposit, and detail views
+
+Both work together: Repository UI provides the foundation (components, templates, theming), while Model UI applies it to specific record types.
+</Callout>
+
+## Customization Topics
+
+<Cards>
+  <Card
+    title="Search result"
+    href="/customize/model_ui/search"
+  >
+    Customizing the search UI and result items for your record model.
+  </Card>
+  <Card
+    title="Deposit form"
+    href="/customize/model_ui/deposit"
+  >
+    Customizing the deposit form fields and validation.
+  </Card>
+  <Card
+    title="Record landing page"
+    href="/customize/model_ui/detail"
+  >
+    Customizing the detail/landing page for individual records.
+  </Card>
+  <Card
+    title="Search result components"
+    href="/customize/model_ui/search_components"
+  >
+    Available search result item components.
+  </Card>
+  <Card
+    title="Deposit form components"
+    href="/customize/model_ui/deposit_components"
+  >
+    Available deposit form field components.
+  </Card>
+</Cards>
+
+## Related Resources
+
+<Cards>
+  <Card
+    title="Model Backend"
+    href="/customize/model_backend/model"
+  >
+    Defining your record model schema and service layer.
+  </Card>
+  <Card
+    title="UI Resource Views"
+    href="/customize/repository_ui/resources"
+  >
+    Understanding how UI resources connect data to templates.
+  </Card>
+  <Card
+    title="Repository UI"
+    href="/customize/repository_ui"
+  >
+    Shared components, theming, and infrastructure.
+  </Card>
+</Cards>
