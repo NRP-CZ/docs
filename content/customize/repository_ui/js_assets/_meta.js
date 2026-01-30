@@ -6,6 +6,6 @@ export default {
         "title": "Simple JavaScript"
     },
     "react": {
-        "title": "React Components"
+        "title": "React apps"
     }
 }

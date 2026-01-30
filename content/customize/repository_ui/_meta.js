@@ -11,11 +11,8 @@ export default {
     "resources": {
         "title": "UI Resources"
     },
-    "jinja": {
-        "title": "Jinja templates"
-    },
-    "jinjax": {
-        "title": "JinjaX components"
+    "templating": {
+        "title": "Templating"
     },
     "js_assets": {
         "title": "JavaScript Assets"

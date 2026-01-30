@@ -1,9 +1,9 @@
-import { Callout, Steps } from "nextra/components";
+import { Callout, Steps, FileTree } from "nextra/components";
 import {ToDo} from '@/components/todo'
 
 # Internationalization (i18n)
 
-NRP Invenio repositories support full internationalization (i18n) across **Python backend**, **Jinja templates**, and **React front-end**.  
+NRP Invenio repositories support full internationalization (i18n) across **Python backend**, **Jinja templates**, and **React front-end**.
 This guide explains how translations are created, extracted, organized, and maintained.
 
 Internationalization in NRP-based repositories is built on:
@@ -11,7 +11,6 @@ Internationalization in NRP-based repositories is built on:
 - **Flask-Babel / invenio-i18n** for Python & Jinja.
 - **react-i18next** for React applications.
 - **invenio-cli translation tooling** for extracting and updating `.po` files.
-- **POEdit** or similar tools for editing translation files.
 
 Translations ultimately live in standard `.po` files stored in your repository.
 
@@ -19,26 +18,63 @@ Translations ultimately live in standard `.po` files stored in your repository.
 
 NRP Invenio repositories support multilingual UI by combining:
 
-- **Python/Jinja message extraction** via `invenio-cli i18n`
-- **React translation management** via `react-i18next`
+- **Python/Jinja message extraction** via `./run.sh cli translations`
 - **Manual message collection** for templates or components not automatically detected
 - **Unified `.po` files** where all translation keys end up
 
-The workflow looks like this:
+## Initial Translation Setup
+
+When first working with translations in your repository, follow these steps:
+
+1. **Extract translatable strings** from your codebase:
+   ```shell
+   ./run.sh cli translations extract
+   ```
+
+2. **Initialize the catalog** for your desired language(s):
+   ```shell
+   ./run.sh cli translations init -l cs
+   ./run.sh cli translations init -l de
+   ```
+
+   This will initialize translation catalogs for Czech (`cs`), German (`de`) or other languages.
+
+3. **Configure the supported languages** in your `invenio.cfg`:
+   ```python
+   # Set default language
+   I18N_LANGUAGES = [
+       ("en", "English"),
+       ("cs", "Čeština"),
+       ("de", "Deutsch"),
+   ]
+   ```
+
+4. **Edit the `.po` files** with POEdit or your preferred translation editor to add translations for the extracted strings.
+
+5. **Compile the translations** to generate `.mo` files:
+   ```shell
+   ./run.sh cli translations compile
+   ```
+
+New languages will then be available in the language selector on your repository's UI.
+
+## Day-to-Day Workflow
 
 <Steps>
 ### Write translatable strings
-Use `_()` or `lazy_gettext()` in Python, `{% trans %}` in Jinja, and `i18next.t()` in React.
+Use `_()` or `lazy_gettext()` in Python, `{% trans %}` in Jinja to mark any strings for translation.
 
 ### Extract translations
-Run `invenio-cli translations extract` (or `update`) to update `.po` files.
+Run `./run.sh cli translations extract` to find any newly added strings and include them in the translations catalog.
+
+### Update language `.po` files
+Run `./run.sh cli translations update` to merge newly extracted strings into existing `.po` files without losing existing translations. This is safe to run repeatedly as you add new translatable strings.
 
 ### Edit translations
-Use POEdit or another `.po` editor.
+Use POEdit or another `.po` editor to provide translations for extracted messages.
 
 ### Compile translations
-Build `.mo` files using `invenio-cli translations compile`.
-
+Build `.mo` files using `./run.sh cli translations compile`.
 </Steps>
 
 ## Python: Creating localisable strings
@@ -55,79 +91,44 @@ Use them to wrap user-visible strings:
 
 ```python
 title = _("Datasets")
-description = l_("Create, publish, and manage datasets.")
+description = _("Create, publish, and manage datasets.")
 ```
+
 <Callout type="info">Use `gettext` for immediate translation and `lazy_gettext` for delayed (lazy) translation (especially for use in configuration or class attributes).</Callout>
 
-
 ## Jinja Templates: Localisable strings
+
 Two options exist for Jinja:
 
-1. Inline _() calls
+1. Inline `_()` calls
+
 ```jinja
 <h1>{{ _("Search results") }}</h1>
 ```
+
 2. `{% trans %}` block
 Recommended for longer, more complex text blocks:
+
 ```jinja
 {% trans %}
 This dataset is part of the national metadata directory.
 {% endtrans %}
 ```
 
-## React: Localisable strings with react-i18next
-The front-end uses [react-i18next](https://react.i18next.com) package, matching the tooling used in InvenioRDM frontends.
-
-In NRP Invenio repositories, every react module has it's own translation bundle, defined as an
-alias in its [Webpack configuration]() <ToDo />, for example:
-
-```python filename="ui/datasets/webpack.py" copy {14}
-from invenio_assets.webpack import WebpackThemeBundle
-
-theme = WebpackThemeBundle(
-    __name__,
-    ".",
-    default="semantic-ui",
-    themes={
-        "semantic-ui": dict(
-            entry={
-            },
-            dependencies={},
-            devDependencies={},
-            aliases={
-                "@translations/my_module": "translations/my_module"
-            },
-        )
-    },
-)
-```
-
-Target path of an alias usually points to the root of a NPM package for the React
-front-end translations. This package manages strings extraction & catalog compilation
-by running NPM scripts defined in it.
-
-To mark a string for translation, just import the module using the alias and wrap the string with `i18next.t`:
-```js
-import i18next from "@translations/my_module/i18next";
-
-export function MyComponent() {
-  return <p>{i18next.t("welcome_message")}</p>;
-}
-```
-
-<ToDo />
-
 ## Extracting & Managing Translations
 
 NRP repositories use the Invenio CLI tooling for extraction and compilation.
 
 ### Update or extract new strings
+
 ```shell
-invenio-cli translations extract
+./run.sh cli translations extract
 ```
+
 or
+
 ```shell
-invenio-cli translations update
+./run.sh cli translations update
 ```
 
 This:
@@ -136,14 +137,15 @@ This:
 - extracts JinjaX strings
 - merges everything into .po files under: `translations/<lang>/LC_MESSAGES/messages.po`
 
-### Support new language
+### Add a new language
 
-To add support for a new language, initialize its catalog by:
+To add support for a new language after initial setup:
 
 ```shell
-invenio-cli translations init -l cs
+./run.sh cli translations init -l sk
 ```
-This will initialize translation catalog for Czech (`cs`) locale.
+
+This will initialize translation catalog for additional Slovak (`sk`) locale.
 
 ## Editing translations (`.po` files)
 
@@ -155,19 +157,19 @@ Editing .po files is done using a tool like POEdit, which provides:
 
 After updating translations, run:
 ```shell
-invenio-cli translations compile
+./run.sh cli translations compile
 ```
+
 This generates `.mo` translation files used at runtime.
 
 ## Strings that cannot be automatically extracted
 
 Some contexts—especially JinjaX components or certain dynamic template fragments cannot be detected automatically by Babel extractors.
-For that purpose, NRP Invenio repositories use a special file:
-```
-jinjax_messages.jinja
-```
+
+For that purpose, place a `jinjax_messages.jinja` file in any registered `templates/` folder (e.g., `ui/mymodule/templates/`). All registered templates are scanned during extraction, so the file can be located anywhere in your templates directory structure.
 
 Inside this file, place any strings you want to get extracted for translation:
+
 ```jinja filename="jinjax_messages.jinja"
 {{ _("Dataset") }}
 {{ _("Add new item") }}
@@ -175,15 +177,250 @@ Inside this file, place any strings you want to get extracted for translation:
 ```
 
 These strings will be picked up by the extractor during:
-- invenio-cli translations extract
+```
+./run.sh cli translations extract
+```
 
-Think of this file as a “translation collector” for stray strings that cannot get
-extracted automatically.
+Think of this file as a "translation collector" for stray strings that cannot get extracted automatically.
 
 ## Best Practices
 
-1. Wrap all user-facing texts in `_()`, `{% trans %}`, or `i18next.t()`.
+1. Wrap all user-facing texts in `_()` or `{% trans %}`.
 2. Keep translation keys stable to avoid unnecessary retranslation.
 3. Use sentence-level translation keys rather than fragments.
 4. Avoid concatenating translatable strings.
 5. Add unextractable strings into `jinjax_messages.jinja`.
+
+---
+
+## React: Localization with react-i18next
+
+React components use the [react-i18next](https://react.i18next.com) library for translations, matching the architecture used in InvenioRDM frontends.
+
+<Callout type="warning">
+React translations have a separate workflow from Python/Jinja translations and must be configured independently. There is currently no automated tooling to create this structure. When adding React translations to a new module, you must manually set up the translation package directory, configuration files, and scripts, following the pattern from [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm/tree/master/invenio_app_rdm/theme/assets/semantic-ui/translations/invenio_app_rdm).
+</Callout>
+
+### Translation Package Structure
+
+Each UI module that needs React translations follows this directory pattern:
+
+<FileTree>
+  <FileTree.Folder name="ui/mymodule" defaultOpen>
+    <FileTree.Folder name="translations" defaultOpen>
+      <FileTree.Folder name="my_module" defaultOpen>
+        <FileTree.Folder name="messages" defaultOpen>
+          <FileTree.Folder name="en" defaultOpen>
+            <FileTree.File name="translations.json" />
+          </FileTree.Folder>
+          <FileTree.Folder name="cs" defaultOpen>
+            <FileTree.File name="translations.json" />
+          </FileTree.Folder>
+        </FileTree.Folder>
+        <FileTree.Folder name="scripts" defaultOpen />
+        <FileTree.File name="i18next-scanner.config.js" />
+        <FileTree.File name="i18next.js" />
+        <FileTree.File name="package.json" />
+      </FileTree.Folder>
+    </FileTree.Folder>
+    <FileTree.File name="webpack.py" />
+  </FileTree.Folder>
+</FileTree>
+
+The key files are:
+
+| File | Purpose |
+|------|---------|
+| `messages/{{lng}}/translations.json` | Language-specific translation resources for React |
+| `i18next.js` | Initializes i18next with configuration |
+| `i18next-scanner.config.js` | Configures extraction of translation keys from JSX/JS |
+| `package.json` | Defines scripts for extracting and compiling translations |
+
+### Webpack Alias Configuration
+
+In your `webpack.py`, add an alias pointing to the translation package root:
+
+```python filename="ui/mymodule/webpack.py" copy {12}
+from invenio_assets.webpack import WebpackThemeBundle
+
+theme = WebpackThemeBundle(
+    __name__,
+    ".",
+    default="semantic-ui",
+    themes={
+        "semantic-ui": dict(
+            dependencies={},
+            devDependencies={},
+            aliases={
+                "@translations/my_module": "translations/my_module"
+            },
+        )
+    },
+)
+```
+
+This alias allows React components to import and use the i18next instance:
+
+```jsx
+import i18next from "@translations/my_module/i18next";
+```
+
+### i18next Configuration
+
+The `i18next.js` file configures the i18next instance:
+
+```js filename="translations/my_module/i18next.js"
+import i18n from "i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import { translations } from "./messages";
+import { initReactI18next } from "react-i18next";
+
+const options = {
+  fallbackLng: "en",
+  returnEmptyString: false,
+  debug: process.env.NODE_ENV === "development",
+  resources: translations,
+  keySeparator: false,
+  nsSeparator: false,
+  detection: {
+    order: ["htmlTag"],
+    caches: [],
+  },
+  react: {
+    transKeepBasicHtmlNodesFor: [],
+  },
+};
+
+const i18next = i18n.createInstance();
+i18next.use(LanguageDetector).use(initReactI18next).init(options);
+
+export { i18next };
+```
+
+### i18next Scanner Configuration
+
+The `i18next-scanner.config.js` file configures how translation keys are extracted from your React code. This is based on the [invenio-app-rdm configuration](https://github.com/inveniosoftware/invenio-app-rdm/blob/master/invenio_app_rdm/theme/assets/semantic-ui/translations/invenio_app_rdm/i18next-scanner.config.js):
+
+```js filename="translations/my_module/i18next-scanner.config.js"
+// Read languages from package.json config
+const { languages } = require("./package.json").config;
+
+const funcList = ["i18next.t"];
+const extensions = [".js", ".jsx"];
+
+module.exports = {
+  options: {
+    debug: true,
+    removeUnusedKeys: true,
+    browserLanguageDetection: true,
+    func: {
+      list: funcList,
+      extensions: extensions,
+    },
+    // Using Trans component
+    trans: {
+      component: "Trans",
+      extensions: extensions,
+      fallbackKey: function (ns, value) {
+        return value;
+      },
+    },
+    lngs: languages,
+    ns: ["translations"],
+    defaultLng: "en",
+    defaultNs: "translations",
+    defaultValue: function (lng, ns, key) {
+      if (lng === "en") {
+        return key;  // Return key as default for English
+      }
+      return "";
+    },
+    resource: {
+      loadPath: "messages/{{lng}}/{{ns}}.json",
+      savePath: "messages/{{lng}}/{{ns}}.json",
+      jsonIndent: 2,
+      lineEnding: "\n",
+    },
+    nsSeparator: false,
+    keySeparator: false,
+  },
+};
+```
+
+### Using Translations in React Components
+
+Mark strings for translation by importing i18next and using the `t()` function:
+
+```jsx
+import i18next from "@translations/my_module/i18next";
+
+export function MyComponent() {
+  return (
+    <div>
+      <h1>{i18next.t("welcome_message")}</h1>
+      <p>{i18next.t("description")}</p>
+    </div>
+  );
+}
+```
+
+Or use the `Trans` component for complex translations with HTML:
+
+```jsx
+import { Trans } from "react-i18next";
+import i18next from "@translations/my_module/i18next";
+
+export function MyComponent() {
+  return (
+    <Trans i18n={i18next}>
+      Learn more about <a href="/docs">our documentation</a>.
+    </Trans>
+  );
+}
+```
+
+### Extracting and Updating React Translations
+
+The translation package's `package.json` defines NPM scripts for managing translations (as seen in [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm/blob/master/invenio_app_rdm/theme/assets/semantic-ui/translations/invenio_app_rdm/package.json)):
+
+```json filename="translations/my_module/package.json"
+{
+  "name": "my-module-ui",
+  "config": {
+    "languages": ["en", "cs"]
+  },
+  "devDependencies": {
+    "i18next-conv": "^10.2.0",
+    "i18next-scanner": "^3.0.0",
+    "react-i18next": "^11.11.3"
+  },
+  "scripts": {
+    "extract_messages": "i18next-scanner --config i18next-scanner.config.js '../../js/**/**/*.{js,jsx}' '!../../js/**/node_modules/**'",
+    "postextract_messages": "node ./scripts/postExtractMessages.js",
+    "compile_catalog": "node ./scripts/compileCatalog.js",
+    "init_catalog": "node ./scripts/initCatalog"
+  }
+}
+```
+
+| Script | Purpose |
+|--------|---------|
+| `extract_messages` | Scans JS/JSX files for translation keys using i18next-scanner |
+| `postextract_messages` | Post-processes extracted messages (merges with existing translations) |
+| `compile_catalog` | Compiles translation catalog for runtime use |
+| `init_catalog` | Initializes a new language catalog |
+
+To extract new translation keys from your React code:
+
+```bash
+cd ui/mymodule/translations/my_module
+npm run extract_messages
+```
+
+This updates the `messages/{{lng}}/translations.json` files with any new keys found in your components. The post-extraction script runs automatically to merge new keys with existing translations.
+
+To initialize a new language catalog:
+
+```bash
+npm run init_catalog
+```

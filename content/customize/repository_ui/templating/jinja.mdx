@@ -4,87 +4,15 @@ import { Difficulty } from "@/components/difficulty";
 # Template Rendering with Jinja <Difficulty level="easy" />
 
 Jinja is the server-side templating engine used throughout InvenioRDM for rendering HTML pages.  
-NRP-based repositories build on top of this system and use Jinja extensively for page layout, custom UI views, and template overrides.
-
-If you are more interested in how to change built-in templates with your custom ones, the topic is covered in great detail under the [Branding -> Templating](/customize/repository_ui/branding/templating) docs
+NRP repositories build on top of this system and use Jinja extensively for page layout, custom UI views, and template overrides.
 
 In this page we will focus on creation and usage of custom Jinja templates including how to use them, how templates interact with [UI Resources](/customize/repository_ui/resources) (the NRP Invenio mechanism for generating HTML responses for front-end pages).
 
-## Referencing templates in UI Resources
+If you are more interested in how to change built-in templates with your custom ones, the topic is covered in great detail under the [Branding --> Templating](/customize/repository_ui/branding/templating) docs.
 
-[UI Resources](/customize/repository_ui/resources#what-are-ui-resources) in NRP repositories define view methods tied to specific templates.  
-Which view renders which template is determined by a [UIResourceConfig](/customize/repository_ui/resources#resource-configuration) configuration.
-
-```python copy
-class DatasetUIResourceConfig(UIResourceConfig):
-    blueprint_name = "datasets"
-    url_prefix = "/datasets"
-
-    template_folder = "templates"
-
-    templates = {
-        "record_detail": "datasets/detail.html",
-        "record_preview": "datasets/preview.html",
-    }
-```
-
-This means:
-- Templates are looked up inside your registered module's `templates/` directory
-- `datasets/detail.html` resolves to `ui/datasets/templates/datasets/detail.html`
-- `record_detail` view method of `DatasetUIResource` uses this exact template to render a detail of a record.
-
-## Using templates inside UI Resource methods
-
-When implementing a custom view, the following method is typically used to render a template while including
-any context variables. This method supports both plain `Jinja` and enhanced `JinjaX` templates, while pulling
-the configured template from the templates map of `UIResourceConfig`.
-
-```python copy {8-13}
-from oarepo_ui.resources import UIResource
-from oarepo_ui.proxies import current_oarepo_ui
-
-class DatasetUIResource(UIResource):
-    def detail(self, identity, pid, record=None, **kwargs):
-        context_kwargs = { "title": "Demo" }
-
-        return current_oarepo_ui.catalog.render(
-            self.get_jinjax_macro(
-                "record_detail",
-            ),
-            **context_kwargs,
-        )
-```
-
-This keeps view logic clean: UI Resources provide the context driven by business logic, and templates handle the rendering.
-
-## Creating new templates
-To create and use a new template, follow these elementary steps:
-
-<Steps>
-### Create a file under your `/templates` folder, such as:
-```jinja filename="ui/example/templates/example/hello.html" copy
-Hello from your Jinja template:
-<h1>Hello, {{ name }}!</h1>
-This will render at any route pointing to the hello view.
-```
-
-### Add it to your templates mapping in the ResourceConfig:
-```python {2}
-templates = {
-  "hello": "example/hello.html"
-}
-```
-### Make sure to render it from your UI Resource's `hello` view:
-
-```python
-return current_oarepo_ui.catalog.render(
-    self.get_jinjax_macro(
-        "hello",
-    ),
-    **{"name": "Mirek"},
-)
-```
-</Steps>
+<Callout type="info">
+For details on how to bind templates to UI Resource views (using `templates` mapping, `routes`, and `get_jinjax_macro()`), see the [UI Resource Views](/customize/repository_ui/resources) documentation.
+</Callout>
 
 ## Basic Jinja syntax refresher
 
@@ -202,6 +130,7 @@ is the `super()` keyword.
 {% endblock %}
 ```
 This will bring up original block content from the extended template.
+
 
 ## Best practices
 

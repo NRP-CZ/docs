@@ -5,7 +5,6 @@ import { Card } from "@/components/card";
 
 The following guide provides a comprehensive overview of front-end development for **NRP (National Repository Platform)** repositories. It explains how to build, customize, and maintain the user interface components of NRP-based repository applications.
 
-## Intended Audience
 
 This guide is designed for:
 
@@ -16,21 +15,37 @@ This guide is designed for:
 
 NRP repositories follow a **hybrid architecture** combining server-side rendering with **Jinja/JinjaX templates** and client-side interactivity via **JavaScript** (vanilla JS or React).
 
-| Layer       | Technology         | Purpose                                              |
-| ----------- | ------------------ | ---------------------------------------------------- |
-| Server-side  | **Python (Flask)** | Flask UI resource view classes responsible for connecting backend data/services with frontend templates & rendering templates  |
-| Server-side | **Jinja / JinjaX** | Templating for static content and SEO-friendly pages |
-| Client-side | **JavaScript**     | Interactive components, forms, and dynamic UI (vanilla JS or React) |
-
 This design provides both **fast initial page loads** (thanks to server-side rendering) and **rich interactivity** (via JavaScript).
 
-### Jinja/JinjaX for Record Detail Pages
+### UI Modules as Python Packages
 
-Record detail pages are rendered using Jinja templates or JinjaX React-like components. These:
+<Callout type="warning">
+Unlike typical front-end development where everything is an NPM package, in NRP/InvenioRDM repositories UI elements are mostly shipped in **Python packages or modules**, providing both Jinja templates and webpack assets.
+</Callout>
+
+UI for NRP InvenioRDM repositories is packaged as Python packages or modules (except for some exceptions like `react-searchkit` and `react-deposit-forms` which are pure NPM packages). Each UI module contains:
+
+* **Server-side assets**: Jinja/JinjaX templates, Flask resource view classes
+* **Client-side assets**: JavaScript/React components, CSS/SCSS styles, static assets (images, fonts, etc.)
+* **Webpack configuration**: Python files (`webpack.py`) that declare webpack entry points, aliases, and NPM dependencies
+
+This hybrid approach allows:
+
+* Integration between server-side rendering (templates) and client-side interactivity (JavaScript)
+* Single distribution for both frontend and backend components of a feature
+* Version coupling between Python backend and JavaScript frontend code
+
+When adding UI features, you typically work within a Python package structure, not a standalone NPM package.
+
+### Jinja/JinjaX for Page Rendering
+
+All pages in the repository are rendered using Jinja templates or JinjaX React-like components. These:
 
 * Are processed on the server side.
 * Receive data directly from backend UI resource view classes.
 * Produce pre-rendered HTML for fast loading and SEO benefits.
+
+More dynamic pages (like search UI and deposit forms) also embed React apps and/or pure JavaScript for enhanced interactivity.
 
 ### JavaScript for Interactive UI Components
 
@@ -90,11 +105,11 @@ Each NRP repository typically has a structure like this:
 
 ### Key folders
 
-* **`ui/`** – All front-end related module-scoped code - typically for record models (React, Jinja, webpack configuration).
-* **`assets/`** – Global site-wide UI assets, like LESS styles and Semantic UI theme customizations.
-* **`templates/`** – Globally shared and Jinja templates, overrides of built-in Invenio templates.
+* **`ui/`** – All front-end related module-scoped code - typically for record models or shared components (React, Jinja, webpack configuration).
+* **`assets/`** – Global site-wide UI assets, like LESS styles, Semantic UI theme customizations, fonts, graphics.
+* **`templates/`** – Site-wide Jinja templates, overrides of built-in Invenio templates.
 * **`ui/components/`** – Shared components used across multiple record models or other UI modules.
-* **`ui/mymodel/`** – Front-end code specific to the `mymodel` record model.
+* **`ui/mymodel/`** – Front-end specific to the `mymodel` record model.
 
 ## Record Model UI Directory Structure
 
@@ -123,10 +138,6 @@ Example structure for one specific record model (e.g., `mymodel`):
       <FileTree.Folder name="templates" defaultOpen>
         <FileTree.Folder name="semantic-ui" defaultOpen>
           <FileTree.Folder name="mymodel" defaultOpen>
-            <FileTree.File name="Deposit.jinja" />
-            <FileTree.File name="RecordDetail.jinja" />
-            <FileTree.File name="Search.jinja" />
-            <FileTree.File name="Sidebar.jinja" />
             <FileTree.Folder name="record_detail" defaultOpen>
               <FileTree.File name="banners.html" />
               <FileTree.File name="main.html" />
@@ -195,12 +206,18 @@ UI Resource classes in Python connect backend service-level data to frontend tem
   </Card>
 </Cards>
 
+### Templating
+
+<Card title="Overview: Jinja & JinjaX" arrow href="/customize/repository_ui/templating">
+  Understanding how templates are collected, Jinja vs JinjaX, and page composition patterns.
+</Card>
+
 ### Jinja Templating
 
 How to create and customize Jinja templates for server-side UI rendering.
 
 <Cards>
-  <Card title="Working with Jinja templates" arrow href="/customize/repository_ui/jinja">
+  <Card title="Working with Jinja templates" arrow href="/customize/repository_ui/templating/jinja">
     Template inheritance, blocks, filters, and macros.
   </Card>
 </Cards>
@@ -210,7 +227,7 @@ How to create and customize Jinja templates for server-side UI rendering.
 How to create reusable JinjaX React-like components for use within Jinja templates.
 
 <Cards>
-  <Card title="Creating and using JinjaX components" arrow href="/customize/repository_ui/jinjax">
+  <Card title="Creating and using JinjaX components" arrow href="/customize/repository_ui/templating/jinjax">
     Reusable component patterns for Jinja templates.
   </Card>
 </Cards>

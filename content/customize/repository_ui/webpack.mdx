@@ -1,4 +1,5 @@
-import { Callout, FileTree, Tabs } from "nextra/components";
+import { Callout, FileTree, Tabs, Cards } from "nextra/components";
+import { Card } from "@/components/card";
 
 # Webpack Configuration
 
@@ -20,32 +21,43 @@ Webpack handles all of this:
 | **Bundling** — Combines many files into one or a few bundles | Reduces HTTP requests, improves load times |
 | **Transpilation** — Converts JSX, modern JS to browser-compatible code | Lets you use modern syntax and React |
 | **npm integration** — Installs and bundles npm packages | Access to thousands of open-source libraries |
-| **Code splitting** — Creates separate bundles per page/feature | Users only download what they need |
+| **Code splitting** — Creates separate bundles per entry point | Users only download code needed for the pages they visit |
 | **Minification** — Removes whitespace, compresses code | Smaller file sizes, faster delivery |
+
+Webpack performs code splitting by analyzing each entry point separately. Only the dependencies explicitly required by an entry point (directly or transitively) are included in its resulting bundle. This keeps bundles small and ensures users load only what's needed for the specific page they're visiting.
 
 ## How It Works in NRP Repositories
 
-NRP repositories use two Python tools to bridge Flask with Webpack:
+NRP repositories relies on two main Python libraries that brings Webpack support for Python/Flask:
 
-| Tool | Purpose |
+| Library | Purpose |
 |------|---------|
-| **invenio-assets** | Provides CLI commands (`invenio webpack install`, `invenio webpack build`) and manages the build process |
+| **invenio-assets** | Provides CLI commands and manages the build process |
 | **flask-webpackext** | Reads Webpack's output files (`manifest.json`) and makes them available in Jinja templates via the `webpack` variable |
 
-Each Python package in your repository contributes its entry points through a `webpack.py` file. All packages' configurations are merged into a single unified build:
+Each Python package or module in your repository could contribute to the resulting UI through a `webpack.py` file. Configurations from these files are merged into a single unified Webpack project:
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph Packages["Python Packages"]
-        C1["ui components webpack py"]
-        C2["ui mymodel webpack py"]
-        C3["oarepo ui webpack py"]
+        C1["webpack.py"]
+        A1["assets"]
+        C2["webpack.py"]
+        A2["assets"]
+        C3["webpack.py"]
+        A3["assets"]
     end
 
     subgraph Build["Build process"]
-        WP["invenio webpack install"]
-        MANIFEST["manifest json"]
-        JS["JS Bundles"]
+        WP["./run.sh invenio webpack install"]
+        MANIFEST["manifest.json"]
+        BUILD["build config"]
+        ALIAS["resolver aliases"]
+        ENTRY["webpack entries"]
+        NM["node_modules"]
+        PKG["package.json"]
+        JS["JS/CSS Bundles"]
+        WB["./run.sh invenio webpack build"]
     end
 
     subgraph Runtime["Runtime"]
@@ -54,18 +66,75 @@ flowchart LR
     end
 
     subgraph Template["Jinja Templates"]
-        BUNDLE["bundled js"]
+        BUNDLE["Bundled JS/CSS"]
     end
 
-    C1 -->|"entry points"| WP
-    C2 -->|"entry points"| WP
-    C3 -->|"entry points"| WP
-    WP -->|npm install| MANIFEST
-    MANIFEST --> JS
-    JS --> RW
+    C1 -->|"entry points\naliases\ndependencies"| WP
+    A1 -->|"symlink/copy to build dir"| WP
+    C2 -->|"entry points\naliases\ndependencies"| WP
+    A2 -->|"symlink/copy to build dir"| WP
+    C3 -->|"entry points\naliases\ndependencies"| WP
+    A3 -->|"symlink/copy to build dir"| WP
+    WB --> JS
+    BUILD --> WB
+    JS --> MANIFEST
+    WP --> ALIAS
+    WP --> ENTRY
+    WP --> PKG
+    PKG -->|"npm install"| NM
+    ALIAS --> BUILD
+    ENTRY --> BUILD
+    MANIFEST --> RW
     RW --> WEBPACK
     WEBPACK --> BUNDLE
 ```
+
+## How the UI Build Process Works
+
+NRP repositories use **Flask-WebpackExt** combined with a build process managed through `./run.sh commands` to build the UI assets.
+
+### Build Process Flow
+
+1. **Discovery**: During `./run.sh invenio webpack install`, Flask-WebpackExt discovers all installed Python packages that have registered `webpack.py` files
+
+2. **Configuration Collection**: Each package's `webpack.py` module declares:
+   - Webpack entry points (JS bundles to be built)
+   - Path aliases for importing modules
+   - NPM dependencies required by the package
+   - Additional webpack configuration extensions
+
+3. **Dependency Aggregation**: All NPM dependencies from discovered packages are aggregated into a single `package.json` at the build directory
+
+4. **Installation**: `npm install` runs to install all dependencies needed by all UI packages into `node_modules/`
+
+5. **Bundling**: `./run.sh invenio webpack build` runs webpack to process all entry points and generate optimized bundles (JS/CSS) along with a `manifest.json` file
+
+6. **Runtime**: Jinja templates read `manifest.json` and use the `webpack` variable to include the bundled assets
+
+### Available Commands
+
+| Command | Purpose |
+|---------|---------|
+| `./run.sh invenio webpack install` | Install npm dependencies and set up build environment |
+| `./run.sh invenio webpack build` | Build JS/CSS bundles and generate manifest |
+| `./run.sh invenio webpack clean` | Clean built assets |
+
+<Callout type="info">
+When developing with `./run.sh run`, the webpack build and install process happens automatically. You only need to run these commands explicitly when:
+- Adding new webpack entry points
+- Adding a new `webpack.py` module
+- Manually forcing a rebuild
+</Callout>
+
+### Key Benefits
+
+This architecture means you don't need to:
+
+- Manually manage NPM dependencies for each UI module
+- Configure bundling separately for each package
+- Worry about dependency conflicts between modules
+
+All webpack configurations from all packages are combined and built together as a single project.
 
 ## Registering webpack.py
 
@@ -87,7 +156,7 @@ The format is `"<entry-point-id>" = "<module.path>:<variable>"`:
 | Variable | `theme` | The name of the `WebpackThemeBundle` variable to import |
 
 <Callout type="warning">
-After adding or modifying entry points in `pyproject.toml`, reinstall your package for the changes to take effect: `pip install -e .`
+After adding or modifying entry points in `pyproject.toml`, reinstall the package for the changes to take effect: `uv pip install -e .`
 </Callout>
 
 ## webpack.py Structure
@@ -187,28 +256,13 @@ The `oarepo-ui` package provides pre-configured entry points:
 
 ## Including Bundles in Templates
 
-Once configured, include the bundle in your Jinja or JinjaX templates:
-
-### Jinja Templates
+Once configured, include the bundle in your Jinja or JinjaX templates. See [Templating](/customize/repository_ui/templating) for more details on template inheritance and including scripts:
 
 ```jinja filename="ui/components/templates/home.jinja"
 {%- block javascript %}
 {{ super() }}  <!-- Include parent JavaScript -->
 {{ webpack['welcome_banner.js'] }}  <!-- Your custom bundle -->
 {%- endblock %}
-```
-
-### JinjaX Components
-
-```jinja filename="ui/components/templates/components/MyComponent.jinjax"
-{#def record #}
-<div class="my-component">
-
-</div>
-
-<script type="module">
-  import('./{{ webpack["my_feature.js"] | safe }}');
-</script>
 ```
 
 ## Aliases
@@ -286,7 +340,7 @@ For development with automatic reloading, see [Run frontend assets builder](/ins
 
 1. Check the entry point path is relative to `webpack.py`
 2. Verify the file exists at the path
-3. Rebuild with `invenio webpack clean create install`
+3. Rebuild with `./run.sh invenio webpack clean create install`
 4. Ensure your package is installed (`pip install -e .`) after modifying entry points
 
 ### Import Errors
@@ -307,8 +361,35 @@ For development with automatic reloading, see [Run frontend assets builder](/ins
 
 ## Related Resources
 
-- [Invenio Webpack Documentation](https://flask-webpackext.readthedocs.io/en/latest/) - Flask webpack extension
-- [oarepo-ui webpack.py](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/webpack.py) - oarepo-ui webpack configuration
-- [Run frontend assets builder](/installation/run_instance#run-frontend-assets-builder-optional) - Running the assets builder with hot-reload for development
-- [Integrating React](/customize/repository_ui/js_assets/react/integration) - Setting up React entry points
-- [Simple JavaScript](/customize/repository_ui/js_assets/vanilla_js) - Vanilla JavaScript patterns
+<Cards>
+  <Card
+    title="Invenio Webpack Documentation"
+    href="https://flask-webpackext.readthedocs.io/en/latest/"
+  >
+    Flask webpack extension
+  </Card>
+  <Card
+    title="oarepo-ui webpack.py"
+    href="https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/webpack.py"
+  >
+    oarepo-ui webpack configuration
+  </Card>
+  <Card
+    title="Run frontend assets builder"
+    href="/installation/run_instance#run-frontend-assets-builder-optional"
+  >
+    Running the assets builder with hot-reload for development
+  </Card>
+  <Card
+    title="Integrating React"
+    href="/customize/repository_ui/js_assets/react/integration"
+  >
+    Setting up React entry points
+  </Card>
+  <Card
+    title="Simple JavaScript"
+    href="/customize/repository_ui/js_assets/vanilla_js"
+  >
+    Vanilla JavaScript patterns
+  </Card>
+</Cards>

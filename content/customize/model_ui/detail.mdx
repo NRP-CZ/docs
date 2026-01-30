@@ -1,4 +1,5 @@
-import { Callout, FileTree } from "nextra/components";
+import { Callout, FileTree, Cards } from "nextra/components";
+import { Card } from "@/components/card";
 
 # Record landing page
 
@@ -257,12 +258,39 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     }
 ```
 
-See [JinjaX Components](/customize/repository_ui/jinjax) for more on creating page components.
+See [JinjaX Components](/customize/repository_ui/templating/jinjax) for more on creating page components.
 
 ## Related Resources
 
-- [UI Resource Views](/customize/repository_ui/resources) - UI resource architecture
-- [JinjaX Components](/customize/repository_ui/jinjax) - JinjaX component system
-- [Templating](/customize/repository_ui/branding/templating) - Jinja template customization
-- [Deposit form](/customize/model_ui/deposit) - Record deposit form customization
-- [Search result](/customize/model_ui/search) - Search page customization
+<Cards>
+  <Card
+    title="UI Resource Views"
+    href="/customize/repository_ui/resources"
+  >
+    UI resource architecture
+  </Card>
+  <Card
+    title="JinjaX Components"
+    href="/customize/repository_ui/templating/jinjax"
+  >
+    JinjaX component system
+  </Card>
+  <Card
+    title="Templating"
+    href="/customize/repository_ui/branding/templating"
+  >
+    Jinja template customization
+  </Card>
+  <Card
+    title="Deposit form"
+    href="/customize/model_ui/deposit"
+  >
+    Record deposit form customization
+  </Card>
+  <Card
+    title="Search result"
+    href="/customize/model_ui/search"
+  >
+    Search page customization
+  </Card>
+</Cards>

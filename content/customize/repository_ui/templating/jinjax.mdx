@@ -1,4 +1,5 @@
-import { Callout } from 'nextra/components'
+import { Callout, Cards } from 'nextra/components'
+import { Card } from "@/components/card"
 
 # JinjaX components
 
@@ -8,10 +9,6 @@ use it anywhere in your templates.
 
 This guide will show you how to create and use JinjaX components in your repository.
 
-<Callout type="info">
-**Official Documentation**: For comprehensive information about JinjaX, visit the [JinjaX official documentation](https://jinjax.scaletti.dev/).
-</Callout>
-
 ## Relationship to Jinja Templates
 
 JinjaX components are an enhancement to the traditional [Jinja templating system](jinja) used throughout InvenioRDM. While Jinja provides powerful features like template inheritance, macros, and filters, JinjaX adds a more intuitive, component-based approach that resembles modern frontend frameworks like React.
@@ -20,11 +17,11 @@ JinjaX components can be used within regular Jinja templates, allowing you to co
 - Use Jinja for overall page structure, template inheritance, and complex logic
 - Use JinjaX for reusable UI components with cleaner, more declarative syntax
 
-This hybrid approach is part of the [hybrid frontend architecture](index#frontend-architecture-overview) used in NRP repositories, where server-side rendering with Jinja/JinjaX templates provides fast initial page loads and SEO benefits, while React is used for interactive components.
+This hybrid approach is part of the frontend architecture used in NRP repositories, where server-side rendering with Jinja/JinjaX templates provides fast initial page loads and SEO benefits, while React is used for interactive components.
 
 ## Integration with UI Resources
 
-JinjaX components are rendered through the [UI Resource architecture](resources) that connects backend data with frontend templates. When a UI Resource view method is called, it uses the oarepo-ui catalog to render JinjaX components with the appropriate context data.
+JinjaX components are rendered through the [UI Resource architecture](/customize/repository_ui/resources) that connects backend data with frontend templates. When a UI Resource view method is called, it uses the oarepo-ui catalog to render JinjaX components with the appropriate context data.
 
 The rendering process works as follows:
 1. A UI Resource view method prepares the context data by calling service layers and resource components
@@ -46,9 +43,9 @@ Component's name corresponds directly to its filename.
 
 ### Traditional Jinja macros
 
-Let's start with a traditional Jinja template that uses [macros](jinja#macros):
+Let's start with a traditional Jinja template that uses macros:
 
-```jinja
+```jinja 
 {% extends "layout.html" %}
 {% block title %}My title{% endblock %}
 
@@ -75,7 +72,7 @@ Let's start with a traditional Jinja template that uses [macros](jinja#macros):
 ### JinjaX component syntax
 Here's how you would write the equivalent code using JinjaX components:
 
-```jsx copy
+```jsx copy filename="templates/products/Products.jinja"
 {#def products, msg="World!" #}
 
 <Layout title="My title">
@@ -220,3 +217,14 @@ Before using a component in production, test it with different parameter values 
 7. **Always declare all acceptable props**:
 Declare all props used by a component right at the component's `{# def #}` header.
 When you try to pass anything else not declared there, it would cause an error.
+
+## Further reading
+
+<Cards>
+    <Card title="Official JinjaX Documentation" href="https://jinjax.scaletti.dev/guide/">
+        Complete reference for JinjaX syntax and features.
+    </Card>
+    <Card title="oarepo-ui JinjaX catalog" href="https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templating/catalog.py">
+        Implementation of the JinjaX catalog in oarepo-ui.
+    </Card>
+</Cards>

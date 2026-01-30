@@ -1,4 +1,5 @@
-import { Callout, FileTree } from "nextra/components";
+import { Callout, FileTree, Cards } from "nextra/components";
+import { Card } from "@/components/card";
 
 # Deposit form
 
@@ -192,7 +193,7 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     }
 ```
 
-See [JinjaX Components](/customize/repository_ui/jinjax) for more on creating page components.
+See [JinjaX Components](/customize/repository_ui/templating/jinjax) for more on creating page components.
 
 ## Adding Form Context Data
 
@@ -226,7 +227,29 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
 
 ## Related Resources
 
-- [Deposit form components](/customize/model_ui/deposit_components) - Available form field components
-- [UI Resource Views](/customize/repository_ui/resources) - UI resource architecture
-- [Webpack Configuration](/customize/repository_ui/webpack) - Entry point configuration
-- [Record landing page](/customize/model_ui/detail) - Record detail customization
+<Cards>
+  <Card
+    title="Deposit form components"
+    href="/customize/model_ui/deposit_components"
+  >
+    Available form field components
+  </Card>
+  <Card
+    title="UI Resource Views"
+    href="/customize/repository_ui/resources"
+  >
+    UI resource architecture
+  </Card>
+  <Card
+    title="Webpack Configuration"
+    href="/customize/repository_ui/webpack"
+  >
+    Entry point configuration
+  </Card>
+  <Card
+    title="Record landing page"
+    href="/customize/model_ui/detail"
+  >
+    Record detail customization
+  </Card>
+</Cards>

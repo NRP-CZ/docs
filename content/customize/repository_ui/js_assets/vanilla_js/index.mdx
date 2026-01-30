@@ -1,20 +1,9 @@
-import { Callout, FileTree, Steps, Tabs, Tab } from "nextra/components";
+import { Callout, FileTree, Steps, Tabs, Tab, Cards } from "nextra/components";
+import { Card } from "@/components/card";
 
 # Simple JavaScript
 
 For lightweight client-side interactions — toggles, form enhancements, mobile menus, simple event listeners — vanilla JavaScript is often sufficient and easier to maintain than a full React setup.
-
-## When to Use Vanilla JavaScript
-
-| Use Case | Best Approach |
-|----------|---------------|
-| Simple toggle buttons, accordions | Vanilla JS |
-| Mobile navigation menus | Vanilla JS |
-| Form pre-validation hints | Vanilla JS |
-| One-time event listeners | Vanilla JS |
-| State that needs to flow between components | React |
-| Complex multi-step forms | React |
-| Search/filter/sort lists | React |
 
 <Callout type="info">
 Vanilla JavaScript files are configured as webpack entry points and built into bundles the same way as React assets, but they don't require the React runtime library. Use React when you truly need component reusability, complex state, or data-driven interfaces.
@@ -44,49 +33,6 @@ Create a dedicated folder for each feature under `ui/components/semantic-ui/js/`
     </FileTree.Folder>
   </FileTree.Folder>
 </FileTree>
-
-## Quick Start
-
-<Steps>
-
-1. Create a new folder for your feature in `ui/components/semantic-ui/js/`
-
-2. Create an `index.js` file with your JavaScript:
-
-```js
-// ui/components/semantic-ui/js/example-feature/index.js
-(function() {
-  const toggleButton = document.querySelector('.my-toggle-button');
-  const content = document.querySelector('.my-content');
-
-  if (toggleButton && content) {
-    toggleButton.addEventListener('click', () => {
-      content.classList.toggle('visible');
-    });
-  }
-})();
-```
-
-3. Register the entry point in your module's `webpack.py`:
-
-```python
- # ui/components/webpack.py
- theme = WebpackThemeBundle(
-     __name__,
-     ".",
-     themes={
-         "semantic-ui": dict(
-             entry={
-                 "example_feature": "./js/example-feature/index.js",
-             }
-         )
-     },
- )
-```
-
-See [Webpack Configuration](/customize/repository_ui/webpack) for full details on entry points, rebuilding, and template inclusion.
-
-</Steps>
 
 ## Common Patterns
 
@@ -276,7 +222,16 @@ $(document).ready(() => {
 - Check the browser console for errors
 - Verify your element selectors exist by logging `document.querySelector('.my-selector')`
 
-## Related Resources
+## Further Reading
 
-- [React Components](/customize/repository_ui/js_assets/react) - For complex, stateful interfaces
-- [Webpack Configuration](/customize/repository_ui/webpack) - Managing entry points
+<Cards>
+  <Card title="React Components" href="/customize/repository_ui/js_assets/react">
+    For complex, stateful interfaces requiring component reusability and state management
+  </Card>
+  <Card title="Webpack Configuration" href="/customize/repository_ui/webpack">
+    Managing entry points, building, and template inclusion
+  </Card>
+  <Card title="jQuery Documentation" href="https://jquery.com/">
+    Simplified DOM manipulation and AJAX for legacy integrations
+  </Card>
+</Cards>

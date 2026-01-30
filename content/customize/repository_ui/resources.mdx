@@ -157,32 +157,57 @@ Common rendering lifecycle hooks include:
 More hooks can be found or created by defining them in the `UIResource`-based class view methods.
 
 E.g. to define a `before_my_custom_page` hook:
-```python filename="ui/articles/__init__.py" copy {14-17}
-from oarepo_ui.resources.base import UIResourceConfig
+```python filename="ui/articles/__init__.py" copy {16-19}
+from oarepo_ui.resources.base import UIResource, UIResourceConfig
 from .components import ArticleContextComponent
+from flask import current_oarepo_ui
 
 class ArticleUIResourceConfig(UIResourceConfig):
     blueprint_name = "articles"
     url_prefix = "/articles"
     template = "articles/detail.html"
     components = [ArticleContextComponent]
-    #...
 
+    # Bind view method to URL route
+    routes = {
+        "my_custom_page": "/custom/<pid_value>",
+    }
+    # Optionally set a custom template for this view
+    templates = {
+        "my_custom_page": "articles.custom_page",  # JinjaX uses dot notation
+    }
+
+
+class ArticleUIResource(UIResource):
     def my_custom_page(self):
-        #...
-        my_context = {}
+        # Prepare template context
+        my_context = {
+            "record": self.service.read(),
+            "custom_data": "some value",
+        }
+
+        # Run components (lifecycle hooks)
         self.run_components(
             "before_my_custom_page",
-            extra_context=extra_context,
+            extra_context=my_context,
         )
-        #...
+
+        # Render the template using JinjaX catalog
         return current_oarepo_ui.catalog.render(
             self.get_jinjax_macro(
-                "my_custom_page",
+                "my_custom_page",  # Uses templates["my_custom_page"] or falls back to macro name
             ),
             **my_context,
         )
 ```
+
+This creates a complete binding:
+
+1. **URL route**: `routes["my_custom_page"]` maps the view to `/custom/<pid_value>`
+2. **Template**: `templates["my_custom_page"]` specifies the JinjaX template using dot notation (`articles.custom_page`)
+3. **View method**: `my_custom_page()` in `ArticleUIResource` creates the context and renders
+
+The template file would be located at `ui/articles/templates/articles/custom_page.jinja` and export a macro named `custom_page`.
 
 We now implement the hook as a method of a resource component:
 ```python filename="ui/articles/components.py" copy {7-9}
@@ -195,21 +220,6 @@ class ArticleContextComponent(UIResourceComponent):
     def before_my_custom_page(self, extra_context):
         extra_context["foo"] = "bar"
 ```
-
-## Template Rendering
-UI resources render the template declared in their config.
-Template context comes from resource view methods.
-Context is extended via resource components.
-Templates live in the resource's registered `templates/` directory.
-
-Example structure:
-<FileTree>
-    <FileTree.Folder name="ui/articles/templates" defaultOpen>
-        <FileTree.Folder name="articles" defaultOpen>
-            <FileTree.File name="RecordDetail.jinja" />
-        </FileTree.Folder>
-    </FileTree.Folder>
-</FileTree>
 
 ## Further reading
 

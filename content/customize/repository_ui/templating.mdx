@@ -1,0 +1,195 @@
+import { Callout, FileTree, Cards } from "nextra/components";
+import { Card } from "@/components/card";
+import { Difficulty } from "@/components/difficulty";
+
+# Templating in NRP Repositories <Difficulty level="intermediate" />
+
+NRP repositories use two complementary templating systems: **Jinja** and **JinjaX**.
+
+- **Jinja** - The traditional Flask templating engine for server-side HTML rendering
+- **JinjaX** - A component-based templating system for reusable UI components
+
+Both systems coexist in NRP applications, serving different purposes in the same codebase.
+
+## How Flask Collects Templates
+
+Flask uses Jinja2's template loading system to discover and collect templates from multiple sources. When a template is requested to be rendered, Flask searches through registered template locations.
+
+### Template Collection Sources
+
+1. **Application templates** - Files in your repository site's `templates/` directory
+2. **Blueprint templates** - Each registered Flask blueprint can have its own `templates/` folder (Flask extensions like Invenio theme use this mechanism)
+
+<Callout type="info">
+Flask blueprints organize application code into smaller, reusable components. Blueprints can contain their own templates, static files, URL prefix, and more. See [Modular Applications with Blueprints](https://flask.palletsprojects.com/blueprints/) in the Flask documentation.
+</Callout>
+
+Templates are collected when the Flask application initializes. Flask creates a `Jinja2` environment and configures a list of template loaders that search these directories.
+
+<FileTree>
+  <FileTree.Folder name="my-repo" defaultOpen>
+    <FileTree.Folder name="templates" defaultOpen />
+    <FileTree.Folder name="ui" defaultOpen>
+      <FileTree.Folder name="datasets" defaultOpen>
+        <FileTree.Folder name="templates" defaultOpen />
+      </FileTree.Folder>
+      <FileTree.Folder name="other_module" defaultOpen>
+        <FileTree.Folder name="templates" defaultOpen />
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+### Template Resolution
+
+When `render_template('articles/detail.html')` is called:
+
+1. Flask looks for `articles/detail.html` in each registered template location
+2. The **first match** wins - templates earlier in the search path override later ones
+3. This allows overriding by placing a file with the same path in a higher-priority location
+
+<Callout type="info">
+For more on overriding templates, see the [InvenioRDM Documentation on Template Overrides](https://inveniordm.docs.cern.ch/maintenance/internals/templating/) and [Branding: Templating](/customize/repository_ui/branding/templating).
+</Callout>
+
+The exact resolution order depends on how blueprints are registered and configured. Application templates typically have higher priority than blueprint templates, the rest can vary based on blueprint registration order.
+
+## Page Composition: Inheritance, Includes, and Macros
+
+Pages in NRP are built using three fundamental templating patterns working together.
+
+### Template Inheritance
+
+Inheritance creates a hierarchy where child templates extend parent templates and override or provide content for defined template blocks:
+
+```jinja
+{# base/page.html #}
+<html>
+<head><title>{% block title %}Default Title{% endblock %}</title></head>
+<body>
+  {% block header %}<header>Site Header</header>{% endblock %}
+  {% block content %}{% endblock %}
+  {% block footer %}<footer>Site Footer</footer>{% endblock %}
+</body>
+</html>
+```
+
+```jinja
+{# records/detail.html #}
+{% extends "base/page.html" %}
+
+{% block title %}{{ record.title }}{% endblock %}
+{% block content %}
+  <h1>{{ record.title }}</h1>
+  <p>{{ record.description }}</p>
+{% endblock %}
+```
+
+If a child template wants to preserve the parent block content and add to it, use `{{ super() }}`:
+
+```jinja
+{# records/detail.html #}
+{% extends "base/page.html" %}
+
+{% block title %}
+  {{ record.title }} - {{ super() }}
+{% endblock %}
+```
+
+This calls `{{ super() }}` to include the parent's title (the `Default Title`), then appends the record title. This is useful when you want to extend rather than completely replace parent content of a block.
+
+### Template Includes
+
+Includes pull in other template fragments directly - useful for shared components like headers:
+
+```jinja
+{# components/header.html #}
+<header class="site-header">
+  <h1>My Repository</h1>
+</header>
+```
+
+```jinja
+{# base/page.html #}
+{% include "components/header.html" %}
+<main>{% block content %}{% endblock %}</main>
+```
+
+### Macros
+
+Macros are reusable Jinja functions, similar to functions in programming languages. They accept parameters and return rendered content:
+
+```jinja
+{# macros/records.html #}
+{% macro record_card(record, show_metadata=false) %}
+<div class="record-card">
+  <h3>{{ record.title }}</h3>
+  {% if show_metadata %}
+    <p>{{ record.description }}</p>
+    <span class="badge">{{ record.type }}</span>
+  {% endif %}
+</div>
+{% endmacro %}
+```
+
+```jinja
+{# Using the macro #}
+{% from "macros/records.html" import record_card %}
+{{ record_card(my_record, show_metadata=true) }}
+```
+
+### Putting It All Together
+
+A typical NRP page combines all three patterns:
+
+```jinja
+{# records/detail.html #}
+{% extends "invenio_theme/page.html" %}
+
+{% from "macros/records.html" import record_card, metadata_table %}
+
+{% block page_content %}
+  {% include "components/breadcrumbs.html" %}
+  <div class="ui container">
+    {{ record_card(record, show_metadata=true) }}
+  </div>
+{% endblock %}
+```
+
+**Composition hierarchy**:
+
+```
+invenio_theme/page.html (inheritance base)
+  ├─ block: page_content
+      ├─ include: breadcrumbs.html (composition)
+      └─ record_card() macro call (reusable component)
+```
+
+## Choosing Between Jinja and JinjaX
+
+Both systems can be used together—JinjaX components can be used within Jinja templates. The choice depends on what you're building:
+
+| Use Case | Template System |
+|----------|-----------------|
+| **Page layouts, base templates** | Jinja (`extends`, `blocks`) |
+| **UI resource view pages** | Either Jinja or JinjaX |
+| **Reusable UI components** | Either Jinja macros or JinjaX components |
+| **Simple shared fragments** | Either Jinja `include` or JinjaX components |
+| **Override built-in templates** | Jinja (file placement) |
+
+
+## Templating Topics
+
+<Cards>
+    <Card title="Jinja Templates" arrow href="/customize/repository_ui/templating/jinja">
+        Server-side templating engine for page layout, custom views, and template overrides. Learn Jinja syntax, filters, and best practices.
+    </Card>
+
+    <Card title="JinjaX Components" arrow href="/customize/repository_ui/templating/jinjax">
+        Component-based templating system for reusable UI elements. Learn to create and use JinjaX macros and components.
+    </Card>
+
+    <Card title="Branding: Templating" arrow href="/customize/repository_ui/branding/templating">
+        Customizing built-in Invenio templates. Learn about template inheritance, blocks, and site-wide overrides.
+    </Card>
+</Cards>

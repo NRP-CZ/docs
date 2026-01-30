@@ -1,4 +1,4 @@
-import { Callout, FileTree, Steps } from "nextra/components";
+import { Callout, FileTree, Steps, Cards } from "nextra/components";
 import { Card } from "@/components/card";
 
 # JavaScript Assets
@@ -6,6 +6,8 @@ import { Card } from "@/components/card";
 NRP repositories support two approaches for client-side interactivity: **simple/vanilla JavaScript** for lightweight DOM manipulation, and **React** for complex stateful UI components.
 
 ## Choosing the Right Approach
+
+All JavaScript in NRP repositories is bundled through Webpack/RSpack (see [Webpack Configuration](/customize/repository_ui/webpack)), regardless of whether you use vanilla JS or React. Start with vanilla JavaScript for simple use cases -- it's easier to implement for lightweight interactions. Introduce React when you need state management, component reusability, or any complex interfaces.
 
 | Scenario | Use |
 |----------|-----|
@@ -16,38 +18,41 @@ NRP repositories support two approaches for client-side interactivity: **simple/
 | State-driven interfaces (filters, tabs) | React |
 | Datasets with search/filter/sort | React |
 
-<Callout type="info">
-Start with vanilla JavaScript. It has no build step and is easier to maintain for simple use cases. Introduce React when you truly need state management or component reusability.
-</Callout>
-
 ## File Organization
 
-JavaScript assets are organized under `ui/components/`:
+JavaScript assets are organized within each UI module, typically with a nested folder structure that mirrors the module name under `ui/<module>/semantic-ui/js/<module>/`:
 
 <FileTree>
   <FileTree.Folder name="ui" defaultOpen>
-    <FileTree.Folder name="components" defaultOpen>
+    <FileTree.Folder name="mymodel" defaultOpen>
+      <FileTree.File name="webpack.py" />
       <FileTree.Folder name="semantic-ui" defaultOpen>
         <FileTree.Folder name="js" defaultOpen>
-          <FileTree.Folder name="MyFeature" defaultOpen>
-            <FileTree.File name="index.js" />
-            <FileTree.File name="feature.js" />
+          <FileTree.Folder name="mymodel" defaultOpen>
+            <FileTree.Folder name="detail" defaultOpen>
+              <FileTree.File name="index.js" />
+            </FileTree.Folder>
+            <FileTree.Folder name="search" defaultOpen>
+              <FileTree.File name="index.js" />
+              <FileTree.File name="filters.js" />
+            </FileTree.Folder>
           </FileTree.Folder>
-          <FileTree.Folder name="react-apps" defaultOpen>
-            <FileTree.File name="MyComponent.jsx" />
-            <FileTree.File name="index.js" />
-          </FileTree.Folder>
-          <FileTree.File name="app.js" />
         </FileTree.Folder>
       </FileTree.Folder>
+    </FileTree.Folder>
+    <FileTree.Folder name="components" defaultOpen>
       <FileTree.File name="webpack.py" />
+      <FileTree.Folder name="semantic-ui" defaultOpen>
+        <FileTree.Folder name="js" defaultOpen>
+          <FileTree.Folder name="components" defaultOpen />
+        </FileTree.Folder>
+      </FileTree.Folder>
     </FileTree.Folder>
   </FileTree.Folder>
 </FileTree>
 
-- **`app.js`** - Main entry point that imports and initializes all JS files
-- **Feature folders** - Group related vanilla JS files
-- **`react-apps/`** - React components and application entry points
+- **Module folders** - Each UI module has its own `webpack.py` and `semantic-ui/js/` directory
+- **`semantic-ui/js/<module>/`** - JavaScript folder named after the module
 
 ## Quick Start
 
@@ -55,12 +60,12 @@ JavaScript assets are organized under `ui/components/`:
 
 <Steps>
 
-1. Create a JS file for your feature in `ui/components/semantic-ui/js/`:
+1. Create a JS file for your feature in `ui/<module>/semantic-ui/js/<module>/`:
 
 ```js
-// ui/components/semantic-ui/js/home-page-search.js
+// ui/myfeature/semantic-ui/js/myfeature/home-page-search.js
 document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.getElementById('home-search');
+  const searchInput = document.querySelector('input.form-control');
   if (searchInput) {
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -71,71 +76,102 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 ```
 
-2. Import it in the main `app.js`:
+2. Register the entry point in your module's `webpack.py` (see [Webpack Configuration](/customize/repository_ui/webpack)):
 
-```js
-import './home-page-search.js';
+```python filename="ui/myfeature/webpack.py"{10}
+from invenio_assets.webpack import WebpackThemeBundle
+
+theme = WebpackThemeBundle(
+    __name__,
+    ".",
+    default="semantic-ui",
+    themes={
+        "semantic-ui": dict(
+            entry={
+                "home-page-search": "./js/myfeature/search/home-page-search.js",  # ← Add your entry point here
+            },
+        )
+    }
+)
 ```
 
+3. Include the webpack bundle in your Jinja/JinjaX template:
+
+```jinja filename="templates/homepage.html"
+{%- block javascript %}
+{{ webpack['home-page-search'] }}
+{%- endblock %}
+```
 </Steps>
 
-### Adding a React Component
+### Adding a React app
 
 <Steps>
 
-1. Create your component in `ui/components/semantic-ui/js/react-apps/`:
-
-```jsx
-// ui/components/semantic-ui/js/react-apps/MyFeature.jsx
-import React, { useState } from 'react';
-
-export const MyFeature = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  return <button onClick={() => setIsOpen(!isOpen)}>{isOpen ? 'Close' : 'Open'}</button>;
-};
-```
-
-2. Create an entry point:
-
-```js
-// ui/components/semantic-ui/js/react-apps/index.js
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { MyComponent } from './MyComponent.jsx';
-
-const domElement = document.getElementById('my-component-root');
-if (domElement) {
-  ReactDOM.createRoot(domElement).render(<MyComponent />);
-}
-```
-
-3. Register the entry point in your module's `webpack.py`:
-
-```python
-["my_feature_js"] = {"entry": "js/react-apps/index.js", "config": "semantic-ui"}
-```
-
-4. Mount in a template:
+1. Include a `div` with your target id in the Jinja or JinjaX template where you want the React app to appear:
 
 ```html
-<div id="my-component-root"></div>
-{%- assets "my_feature_js" %}
-  {{ javascript_tag(asset_path) }}
-{%- endassets %}
+<div id="search-root"></div>
 ```
+
+2. Create your React app in `ui/<module>/semantic-ui/js/<module>/`:
+
+```jsx
+// ui/mymodel/semantic-ui/js/mymodel/search/search.js
+import ReactDOM from "react-dom";
+import { SearchApp } from './SearchApp';
+
+document.addEventListener('DOMContentLoaded', () => {
+  const rootElement = document.getElementById('search-root');
+  if (rootElement) {
+    ReactDOM.render(<SearchApp />, rootElement);
+  }
+});
+```
+
+3. Register the entry point in your module's `webpack.py` (see [Webpack Configuration](/customize/repository_ui/webpack)):
+
+```python filename="ui/mymodel/webpack.py"{10}
+from invenio_assets.webpack import WebpackThemeBundle
+
+theme = WebpackThemeBundle(
+    __name__,
+    ".",
+    default="semantic-ui",
+    themes={
+        "semantic-ui": dict(
+            entry={
+                "search": "./js/mymodel/search/search.js",  # ← Add your entry point here
+            },
+        )
+    }
+)
+```
+
+4. Include the webpack bundle in your Jinja/JinjaX template:
+
+```jinja filename="templates/search.html"
+{%- block javascript %}
+{{ webpack['search.js'] }}
+{%- endblock %}
+```
+
+The `webpack` Jinja variable provides access to all bundled JavaScript assets. Use the entry point name (from step 3) with `.js` appended to include the bundle entry.
 
 </Steps>
 
 ## Topics
 
-<Card title="Simple JavaScript" href="/customize/repository_ui/js_assets/vanilla_js">
-  Adding vanilla JS files for lightweight interactivity
-</Card>
+<Cards>
+  <Card title="Simple JavaScript" href="/customize/repository_ui/js_assets/vanilla_js">
+    Adding vanilla JS files for lightweight interactivity
+  </Card>
 
-<Card title="React Components" href="/customize/repository_ui/js_assets/react">
-  Building complex, stateful UI components with React
-</Card>
+  <Card title="React Components" href="/customize/repository_ui/js_assets/react">
+    Building complex, stateful UI components with React
+  </Card>
 
-<Card title="Webpack Configuration" href="/customize/repository_ui/webpack">
-  Managing entry points, aliases, and NPM dependencies
-</Card>
+  <Card title="Webpack Configuration" href="/customize/repository_ui/webpack">
+    Managing entry points, aliases, and NPM dependencies
+  </Card>
+</Cards>

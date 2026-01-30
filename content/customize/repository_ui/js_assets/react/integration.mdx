@@ -1,48 +1,17 @@
-import { Callout, FileTree } from 'nextra/components';
+import { Callout, FileTree, Cards, Steps } from 'nextra/components';
+import { Card } from "@/components/card";
 
-# Integrating React
+# React apps Integration
 
 This page covers how to integrate React components into your repository, including configuring entry points, building bundles, and mounting components in Jinja/JinjaX templates.
 
-## Architecture Overview
-
-React integration in NRP repositories follows this flow:
-
-```mermaid
-graph TD
-    subgraph Development
-        JS["JavaScript Entry Points"]
-        WP["webpack.py Config"]
-    end
-
-    subgraph Build
-        WB["Webpack Builder"]
-        BUNDLES["JS Bundles"]
-    end
-
-    subgraph Runtime
-        JINXA["JinjaX Templates"]
-        DATA["data-* Attributes"]
-        DOM["DOM Elements"]
-        REACT["React Components"]
-    end
-
-    JS -->|configured in| WP
-    WP --> WB
-    WB --> BUNDLES
-    BUNDLES -->|included in| JINXA
-    JINXA -->|renders| DOM
-    DATA -->|passes state| DOM
-    DOM -->|mounts| REACT
-
-    style Development fill:#e1f5ff,stroke:#333
-    style Build fill:#fff4e1,stroke:#333
-    style Runtime fill:#e8f5e9,stroke:#333
-```
+<Callout type="info">
+For an overview of the React architecture in NRP repositories, see the [Overview](/customize/repository_ui/js_assets/react) page.
+</Callout>
 
 ## Repository-Level Component Structure
 
-Place repository-wide React components in `ui/components/`:
+Repository-wide React components are typically placed in `ui/components/`:
 
 <FileTree>
   <FileTree.Folder name="ui/components" defaultOpen>
@@ -68,11 +37,23 @@ Place repository-wide React components in `ui/components/`:
 
 ## Creating a New Component
 
-### Step 1: Create the Component
+<Steps>
+
+### Add Mount Point to Template
+
+First, declare a DOM mount point in your Jinja template where the React component will be rendered:
+
+```html filename="ui/components/templates/home.jinja"
+<div id="welcome-banner" data-user='{{ user | tojson }}'></div>
+```
+
+The `id` attribute is used by the JavaScript entry point to locate the element, and `data-*` attributes pass server-side data to the React component.
+
+### Create the Component
 
 Create a simple React component that displays a welcome message:
 
-```jsx filename="ui/components/semantic-ui/js/WelcomeBanner/WelcomeBanner.jsx"
+```jsx filename="ui/components/semantic-ui/js/WelcomeBanner/WelcomeBanner.js"
 import React from "react";
 
 export function WelcomeBanner({ user }) {
@@ -90,7 +71,7 @@ export function WelcomeBanner({ user }) {
 }
 ```
 
-### Step 2: Create the Entry Point
+### Create the Entry Point
 
 Create an entry point that mounts your component to the DOM:
 
@@ -118,7 +99,7 @@ if (document.readyState === "loading") {
 }
 ```
 
-### Step 3: Configure Entry Points in webpack.py
+### Configure Entry Points in webpack.py
 
 Add the entry point to your webpack configuration:
 
@@ -142,11 +123,11 @@ theme = WebpackThemeBundle(
 )
 ```
 
-### Step 4: Include Entry Point in Template
+### Include Bundle in Template
 
-Include the bundled JavaScript in your Jinja template and add a mount point:
+Include the bundled JavaScript in your Jinja template:
 
-```jinja filename="ui/components/templates/home.jinja"
+```jinja filename="ui/components/templates/home.jinja"{4}
 <div id="welcome-banner" data-user='{{ user | tojson }}'></div>
 
 {%- block javascript %}
@@ -154,35 +135,29 @@ Include the bundled JavaScript in your Jinja template and add a mount point:
 {%- endblock %}
 ```
 
-### Step 5: Rebuild JavaScript Assets
-
-After adding or modifying entry points, rebuild the JavaScript bundles:
-
-```bash
-invenio webpack clean create
-invenio webpack install
-```
-
-## Available Entry Points from oarepo-ui
-
-When using oarepo-ui, these entry points are available for inclusion:
-
-| Entry Point | Purpose |
-|-------------|---------|
-| `oarepo_ui` | Core oarepo-ui utilities |
-| `oarepo_ui_search` | Search app components and initialization |
-| `oarepo_ui_forms` | Form components and contexts |
-| `oarepo_ui_theme` | Theme-related JavaScript |
-| `oarepo_ui_components` | Reusable UI components |
-
-Include these in your templates as needed:
+<Callout type="info">
+**Extending templates with inheritance:** When your template extends another page that also defines a `javascript` block, use `{{ super() }}` to preserve the parent's JavaScript bundles:
 
 ```jinja
 {%- block javascript %}
 {{ super() }}
-{{ webpack['oarepo_ui_search.js'] }}
+{{ webpack['welcome_banner.js'] }}
 {%- endblock %}
 ```
+
+This ensures that any JavaScript bundles defined in the parent template (such as search UI, theme scripts, etc.) are still loaded in addition to your custom bundle.
+</Callout>
+
+### Rebuild JavaScript Assets
+
+After adding or modifying entry points, rebuild the JavaScript bundles:
+
+```bash
+./run.sh invenio webpack clean create
+./run.sh invenio webpack install
+```
+
+</Steps>
 
 ## Data Passing with data-* Attributes
 
@@ -201,6 +176,7 @@ The `tojson` filter serializes Python objects to JSON:
      data-settings='{{ settings | tojson }}'>
 </div>
 
+
 {%- block javascript %}
 {{ webpack['welcome_banner.js'] }}
 {%- endblock %}
@@ -208,13 +184,14 @@ The `tojson` filter serializes Python objects to JSON:
 
 Use `data-*` attributes for simple values and `| tojson` for complex objects like nested data structures or arrays.
 
-## Multiple Components on One Page
+## Multiple Apps on One Page
 
-You can embed multiple React components in a single page. Each component has its own DOM mount point and entry point:
+You can embed multiple React apps in a single page. Each component has its own DOM mount point and entry point:
 
 ```jinja filename="ui/components/templates/home.jinja"
 <div id="welcome-banner" data-user='{{ user | tojson }}'></div>
 <div id="recent-items" data-items='{{ recent_items | tojson }}'></div>
+
 
 {%- block javascript %}
 {{ webpack['welcome_banner.js'] }}
@@ -230,8 +207,35 @@ Avoid mounting multiple apps to the same DOM element, as this causes state confl
 
 ## Related Resources
 
-- [Components](/customize/repository_ui/js_assets/react/components) - Available form and search components
-- [Component Override](/customize/repository_ui/js_assets/react/overrides) - Component customization patterns
-- [State Management](/customize/repository_ui/js_assets/react/state_management) - Managing React state
-- [Webpack Configuration](/customize/repository_ui/webpack) - Entry point and bundle configuration
-- [JinjaX Components](/customize/repository_ui/jinjax) - Template component system
+<Cards>
+  <Card
+    title="Components"
+    href="/customize/repository_ui/js_assets/react/components"
+  >
+    Available form and search components
+  </Card>
+  <Card
+    title="Component Override"
+    href="/customize/repository_ui/js_assets/react/overrides"
+  >
+    Component customization patterns
+  </Card>
+  <Card
+    title="State Management"
+    href="/customize/repository_ui/js_assets/react/state_management"
+  >
+    Managing React state
+  </Card>
+  <Card
+    title="Webpack Configuration"
+    href="/customize/repository_ui/webpack"
+  >
+    Entry point and bundle configuration
+  </Card>
+  <Card
+    title="JinjaX Components"
+    href="/customize/repository_ui/templating/jinjax"
+  >
+    Template component system
+  </Card>
+</Cards>
