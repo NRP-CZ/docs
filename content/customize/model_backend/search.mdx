@@ -1,0 +1,201 @@
+import { Cards } from 'nextra/components';
+import { Card } from "@/components/card";
+
+
+# Search configuration
+
+This page covers how to customize search behavior for your model using oarepo-model's preset system and customizations.
+
+## Presets
+
+The oarepo-model framework uses presets to dynamically generate search configuration at build time. These presets scan your model schema and create the necessary service classes, facets, and OpenSearch mappings.
+
+| Preset | Generated | Description |
+|--------|-----------|-------------|
+| `RecordSearchOptionsPreset` | `RecordSearchOptions` class | Adds grouped facets (`GroupedFacetsParam`) and query parsing with `SearchQueryValidator` |
+| `RecordFacetsPreset` | `RecordFacets` dict | Generates facets from model's record fields |
+| `MetadataFacetsPreset` | facet modules | Generates facets from model's metadata fields |
+| `RecordMappingPreset` | Elasticsearch mapping | Creates JSON mapping for the index |
+
+### How Facets Are Generated
+
+The `get_facets()` function scans your model's schema types through the type registry:
+
+1. **Schema Type Discovery** - Each datatype in the type registry implements `get_facet()`
+2. **Facet Building** - `build_facet()` converts facet definitions into facet objects
+3. **Module Generation** - Facets are added to the `facets` module with `AddToModule`
+4. **Dictionary Collection** - All facets are collected into `RecordFacets` dictionary
+
+### How Mappings Are Generated
+
+The `get_mapping()` function creates OpenSearch mappings from your model metadata:
+
+1. **Type Resolution** - Datatype is retrieved from the type registry
+2. **Mapping Creation** - `create_mapping()` generates base mapping from the schema
+3. **Type Removal** - The top-level `"type"` key is removed from the mapping
+4. **Merge with Defaults** - Final mapping is merged with default fields (id, created, pid, etc.)
+5. **File Output** - Mapping is written to `mappings/os-v2/<base_name>/metadata-v<version>.json`
+
+The merged mapping includes base fields:
+
+```json
+{
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "$schema": {"type": "keyword"},
+      "id": {"type": "keyword"},
+      "created": {"type": "date"},
+      "updated": {"type": "date"},
+      "expires_at": {"type": "date"},
+      "indexed_at": {"type": "date"},
+      "uuid": {"type": "keyword"},
+      "version_id": {"type": "integer"},
+      "pid": {
+        "properties": {
+          "obj_type": {"type": "keyword", "index": false},
+          "pid_type": {"type": "keyword", "index": false},
+          "pk": {"type": "long", "index": false},
+          "status": {"type": "keyword", "index": false}
+        }
+      },
+      "metadata": { /* your model's fields */ }
+    }
+  }
+}
+```
+
+## Customizations
+
+Add these customizations in your model's `model/model_config.py` to modify search behavior without overriding base classes.
+
+### Basic Search Customizations
+
+```python filename="model/model_config.py"
+from oarepo_model.customizations import (
+    SetDefaultSearchFields,
+    SetIndexTotalFieldsLimit,
+    SetIndexNestedFieldsLimit,
+)
+
+class ModelConfig:
+    customizations = [
+        # Set default text search fields for Full Text Search
+        SetDefaultSearchFields("metadata.title", "metadata.description"),
+
+        # Increase field limits for complex metadata models
+        SetIndexTotalFieldsLimit(5000),
+        SetIndexNestedFieldsLimit(500),
+    ]
+```
+
+### Custom Analyzers and Multi-Field Mappings
+
+For advanced search scenarios like people names with diacritics, you can add custom analyzers and multi-field mappings:
+
+```python filename="datasets/model.py" copy
+from oarepo_model.customizations import (
+    PatchIndexSettings,
+    PatchIndexPropertyMapping,
+    AddFacetGroup,
+)
+
+customizations = [
+    # Define custom analyzers for name search
+    PatchIndexSettings({
+        "analysis": {
+            "people_analyzer": {
+                "tokenizer": "people_tokenizer",
+            },
+            "asciifolded_people_analyzer": {
+                "tokenizer": "people_tokenizer",
+                "filter": ["asciifolding"],
+            },
+        },
+        "tokenizer": {
+            "people_tokenizer": {
+                "type": "pattern",
+                "pattern": "\\s*[,.]\\s*",
+            },
+        },
+    }),
+
+    # Add multi-field mappings for creator/contributor names
+    PatchIndexPropertyMapping("metadata.creators.person_or_org.name", {
+        "type": "text",
+        "fields": {
+            "_search": {
+                "type": "text",
+                "analyzer": "people_analyzer",
+            },
+            "_ascii_search": {
+                "type": "text",
+                "analyzer": "asciifolded_people_analyzer",
+            },
+        },
+    }),
+
+    # Add facet groups for organizing filters
+    AddFacetGroup(
+        "default",
+        ["metadata.publisher", "metadata.resource_type", "metadata.languages"],
+    ),
+]
+```
+
+This allows:
+- Searching for names with diacritics (e.g., "Černý") while also matching ASCII-folded versions (e.g., "Cerny")
+- Names are tokenized by pattern (`\s*[,.]\s*`) to handle different name formats
+- Facets organized into groups for better UX
+
+### Available Search Customizations
+
+| Customization | Description |
+|---------------|-------------|
+| `SetDefaultSearchFields(*search_fields)` | Specifies default text search fields for Full Text Search |
+| `PatchIndexSettings(settings)` | Modifies OpenSearch index settings (analyzers, tokenizers, filters, etc.) |
+| `SetIndexTotalFieldsLimit(limit)` | Sets the maximum number of top-level fields in mapping |
+| `SetIndexNestedFieldsLimit(limit)` | Sets the maximum number of nested object fields |
+| `PatchIndexPropertyMapping(field, mapping)` | Modifies or adds OpenSearch mapping for a specific field |
+| `AddFacetGroup(name, facets, exists_ok=False)` | Adds a facet group for organizing related filters |
+
+## Facet Configuration in Model Schema
+
+Facets are automatically generated from fields that define facet behavior in your model schema. For vocabulary fields and custom types, facets are built by calling `get_facet()` on the datatype.
+
+### Example: Adding Facet to a Field
+
+To make a field facetable, the datatype must implement the `get_facet()` method that returns facet configuration. Most built-in types already support facets.
+
+```yaml filename="model/{{model_name}}/metadata.yaml"
+publishers:
+  type: vocabulary
+  vocabulary-type: institutions
+  label:
+    en: Publisher
+  facets:
+    aggregation: publisherfacet
+```
+
+## Further Reading
+
+<Cards>
+  <Card
+    title="oarepo-model repository"
+    href="https://github.com/oarepo/oarepo-model"
+  >
+    Model framework customization reference
+  </Card>
+  <Card
+    title="Search page"
+    href="/customize/model_ui/search"
+  >
+    Search page UI configuration
+  </Card>
+  <Card
+    title="datasets model"
+    href="https://github.com/EOSC-CZ/nma/blob/main/datasets/model.py"
+  >
+    Real-world model configuration example
+  </Card>
+</Cards>

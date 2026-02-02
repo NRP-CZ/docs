@@ -1,207 +1,446 @@
-import { Cards } from 'nextra/components';
+import { Cards } from "nextra/components";
 import { Card } from "@/components/card";
 
-# Search result components
+# Search UI Components
 
-This page documents the search result components for customizing record search displays. For deposit form components, see [Deposit form components](/customize/model_ui/deposit_components).
+This page documents the React components available for customizing record search pages. For deposit form components, see [Deposit Form Components](/customize/model_ui/deposit_components). For search page configuration, see [Search page](/customize/model_ui/search).
 
-## Result item components
+## Search App Configuration
 
-Search apps display results using list or grid layouts. The most commonly customized component is the result item.
+The search page uses the **react-searchkit** library with custom layout and result components. The search is configured through the `oarepo_ui.search` module:
 
-### ResultsListItem
-
-Displays individual records in search results. This component receives a `result` object containing the record metadata:
-
-```jsx filename="ui/mymodel/semantic-ui/js/Search/ResultsListItem.jsx"
-import React from "react";
-import { RecordFacetsLabels } from "@js/oarepo_ui/search";
-import { RecordAuthors } from "@js/invenio_app_rdm";
-import _ from "lodash";
-
-export const ResultsListItem = ({ result }) => {
-  return (
-    <div className="result-item">
-      <a href={result.links.self_html}>
-        <h3>{result.metadata.title}</h3>
-      </a>
-
-      <div className="record-authors">
-        <RecordAuthors creators={result.metadata.creators} />
-      </div>
-
-      <div className="record-keywords">
-        {_.get(result, "metadata.subjects", []).map((subject, idx) => (
-          <span key={idx} className="badge">
-            {subject.title || subject}
-          </span>
-        ))}
-      </div>
-
-      <div className="record-date">
-        Published: {result.metadata.publicationDate}
-      </div>
-    </div>
-  );
-};
-```
-
-### Result object structure
-
-The `result` object contains:
-
-| Property | Description |
-|----------|-------------|
-| `result.id` | Record ID |
-| `result.links.self_html` | Link to render (detail) page |
-| `result.metadata` | Record metadata fields |
-| `result.created` | Creation date |
-| `result.updated` | Last update date |
-
-### ResultsGridItem
-
-Similar to `ResultsListItem` but optimized for grid layout views:
-
-```jsx filename="ui/mymodel/semantic-ui/js/Search/ResultsGridItem.jsx"
-export const ResultsGridItem = ({ result }) => {
-  return (
-    <div className="result-grid-item">
-      <h4>{result.metadata.title}</h4>
-      <p>{_.get(result, "metadata.description", "").substring(0, 150)}...</p>
-    </div>
-  );
-};
-```
-
-## Utility components
-
-These components are available for building search result items:
-
-### RecordAuthors
-
-Displays creators/contributors with links:
-
-```jsx
-import { RecordAuthors } from "@js/invenio_app_rdm";
-
-<RecordAuthors creators={result.metadata.creators} />
-```
-
-### RecordFacetsLabels
-
-Displays facet labels for vocabulary fields:
-
-```jsx
-import { RecordFacetsLabels } from "@js/oarepo_ui/search";
-
-<RecordFacetsLabels
-  aggs={result.aggs}
-  metadata={result.metadata}
-  vocabularies={{ subjects: "subjects" }}
-/>
-```
-
-## Global search with multiple record models
-
-The global search component provided by oarepo-ui can render search results containing records of different types (e.g., datasets, publications, documents). It uses each record's `$schema` field to determine which component to render for that specific record type.
-
-### How it works
-
-1. The global search app renders a `ResultsList` component
-2. For each record in the results, it reads the `$schema` field (e.g., `"schemas/datasets-v1.0.0.json"`)
-3. Based on the schema, it dynamically selects the appropriate `ResultsListItem` component for that record type
-
-This allows a single search page to display heterogeneous results where records of different models are rendered with their respective custom components.
-
-### Registering custom result list items
-
-To use a custom result list component for a specific record model, register it with the `register_result_list_item()` method:
-
-```python
-from oarepo_ui.overrides import UIComponent, UIComponentImportMode
-from oarepo_ui.resources.records.config import RecordsUIResourceConfig
-from oarepo_ui.proxies import current_oarepo_ui
-
-class DatasetsUIResourceConfig(RecordsUIResourceConfig):
-    model_name = "datasets"
-
-    search_component = UIComponent(
-        import_name="DatasetsResultsListItem",
-        import_path="@js/datasets/search/ResultsListItem",
-        import_mode=UIComponentImportMode.DEFAULT,
-    )
-
-def ui_overrides(app):
-    """Register search result items during app initialization."""
-    ui_resource_config = DatasetsUIResourceConfig()
-
-    if (
-        current_oarepo_ui is not None
-        and ui_resource_config.model
-        and ui_resource_config.model.record_json_schema
-        and ui_resource_config.search_component
-    ):
-        current_oarepo_ui.register_result_list_item(
-            ui_resource_config.model.record_json_schema,
-            ui_resource_config.search_component,
-        )
-
-def finalize_app(app):
-    """Finalize app initialization."""
-    ui_overrides(app)
-```
-
-Register `finalize_app` as an entry point in `pyproject.toml` to call it during Flask app initialization:
-
-```toml
-# pyproject.toml
-[project.entry-points."invenio_base.finalize_app"]
-ui_datasets = "ui.datasets:finalize_app"
-```
-
-This registration allows the global search component to automatically use `DatasetsResultsListItem` when rendering records whose `$schema` matches `datasets-v1.0.0.json`.
-
-## Initializing search app with custom components
-
-Create a search app entry point that registers your custom components:
-
-```jsx filename="ui/mymodel/semantic-ui/js/Search/index.js"
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/index.js"
 import {
   parseSearchAppConfigs,
   createSearchAppsInit,
 } from "@js/oarepo_ui/search";
 import ResultsListItem from "./ResultsListItem";
 
-const [{ overridableIdPrefix }] = parseSearchAppConfigs();
-
 export const componentOverrides = {
-  [`${overridableIdPrefix}.ResultsList.item`]: ResultsListItem,
+  // Override the default result list item
+  `${overridableIdPrefix}.ResultsList.item`: ResultsListItem,
 };
-
-createSearchAppsInit({ componentOverrides });
 ```
 
-See [Search result](/customize/model_ui/search) for registration via UI Resource Config or OAREPO_UI_OVERRIDES.
+For more on search endpoint configuration, see [Search page](/customize/model_ui/search#search-endpoint-configuration).
 
-## Related Resources
+## Components
+
+### ResultsList (Custom)
+
+The `ResultsList` displays search results using customizable list items. You override the individual item component to control how each result appears.
+
+The nrp-model-copier template provides a `ResultsListItem` component at the model's search directory. This is the component you customize to match your record's metadata:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx"
+import React from "react";
+import PropTypes from "prop-types";
+import _get from "lodash/get";
+import _join from "lodash/join";
+import { Grid, Item, Label } from "semantic-ui-react";
+import { i18next } from "@translations/i18next";
+
+export const ResultsListItem = ({ result, ...rest }) => {
+  const accessRights = _get(result, "ui.access_status", null);
+  const createdDate = _get(
+    result,
+    "ui.created_date_l10n_short",
+    "No creation date found."
+  );
+  const languages = _get(result, "metadata.languages", []);
+  const version = _get(result, "metadata.version", null);
+  const title = _get(result, "metadata.title", i18next.t("No title"));
+
+  return (
+    <Item key={result.id} data-testid="result-item">
+      <Item.Content>
+        <Grid>
+          <Grid.Row>
+            <Grid.Column className="results-list item-main">
+              <div className="justify-space-between flex">
+                <Item.Header as="h2">
+                  <a href={result.links.self_html}>{title}</a>
+                </Item.Header>
+                <div className="item-access-rights">
+                  {result.state && (
+                    <Label title={result.state_timestamp}>{result.state}</Label>
+                  )}
+                  {accessRights && accessRights.id !== "open" && (
+                    <Label title={`${accessRights.description_l10n}`}>
+                      {accessRights.title_l10n}
+                    </Label>
+                  )}
+                </div>
+              </div>
+              <Item.Meta>
+                <Grid columns={1}>
+                  <Grid.Column>
+                    <Grid.Row className="ui separated">
+                      <span
+                        aria-label={i18next.t("Languages")}
+                        title={i18next.t("Languages")}
+                      >
+                        {_join(languages.map((l) => l.title), ", ")}
+                      </span>
+                    </Grid.Row>
+                  </Grid.Column>
+                </Grid>
+              </Item.Meta>
+              <Item.Extra>
+                <div>
+                  <small>
+                    <p>
+                      {createdDate && (
+                        <>
+                          {i18next.t("Uploaded on")} <span>{createdDate}</span>{" "}
+                          {version && `(${i18next.t("version")}: ${version})`}
+                        </>
+                      )}
+                    </p>
+                  </small>
+                </div>
+              </Item.Extra>
+            </Grid.Column>
+          </Grid.Row>
+        </Grid>
+      </Item.Content>
+    </Item>
+  );
+};
+
+ResultsListItem.propTypes = {
+  result: PropTypes.object.isRequired,
+};
+
+export default ResultsListItem;
+```
+
+**Source:** Model-specific (via [nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/21e842ec50eaf3f484e27ce52c5df80e3af592da/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/search))
+
+**Based on:** `react-searchkit` ResultsList item
+
+**Prop:**
+
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| `result` | object | yes | Search result object from API |
+
+**Result object structure:**
+
+| Path | Type | Description |
+|------|------|-------------|
+| `result.id` | string | Record ID |
+| `result.links.self_html` | string | Link to record detail page |
+| `result.state` | string | Record state (e.g., "draft", "published") |
+| `result.state_timestamp` | string | State change timestamp |
+| `result.ui.access_status` | object | Access rights with `id` and `title_l10n` |
+| `result.ui.created_date_l10n_short` | string | Formatted creation date |
+| `result.metadata.title` | string | Record title |
+| `result.metadata.languages` | array | Array of language objects with `title` |
+| `result.metadata.version` | string | Record version |
+
+## Search Layout Components
+
+Components from [oarepo-ui/search](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search) for customizing search UI layout:
+
+### RecordsList
+
+Container component that renders the list of search results with loading and empty states:
+
+```jsx
+import { RecordsList } from "@js/oarepo_ui/search";
+
+<RecordsList loading={loading} totalResults={totalResults}>
+  <YourCustomResultsItems />
+</RecordsList>
+```
+
+**Source:** [oarepo-ui/RecordsList](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/RecordsList)
+
+### ResultsList
+
+Wrapper for search result items using react-overridable:
+
+```jsx
+import { ResultsList } from "@js/oarepo_ui/search";
+
+<ResultsList />
+```
+
+**Source:** [oarepo-ui/ResultsList](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/ResultsList)
+
+### DynamicResultsListItem
+
+Dynamic result item component that handles loading and error states:
+
+```jsx
+import { DynamicResultsListItem } from "@js/oarepo_ui/search";
+
+<DynamicResultsListItem result={result} loading={loading} error={error} />
+```
+
+**Source:** [oarepo-ui/DynamicResultsListItem](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/DynamicResultsListItem)
+
+### SearchAppLayout
+
+Main layout component for the search page - contains facets and results:
+
+```jsx
+import { SearchAppLayout } from "@js/oarepo_ui/search";
+
+<SearchAppLayout>
+  <SearchAppFacets />
+  <SearchAppResults />
+</SearchAppLayout>
+```
+
+**Source:** [oarepo-ui/SearchAppLayout](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/SearchAppLayout)
+
+### SearchAppLayoutWithSearchbar
+
+Layout with integrated search bar at the top:
+
+```jsx
+import { SearchAppLayoutWithSearchbar } from "@js/oarepo_ui/search";
+
+<SearchAppLayoutWithSearchbar>
+  <YourSearchComponents />
+</SearchAppLayoutWithSearchbar>
+```
+
+**Source:** [oarepo-ui/SearchAppLayoutWithSearchbar](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/SearchAppLayoutWithSearchbar)
+
+### SearchAppFacets
+
+Facet/aggregation panel component for filters:
+
+```jsx
+import { SearchAppFacets } from "@js/oarepo_ui/search";
+
+<SearchAppFacets />
+```
+
+**Source:** [oarepo-ui/SearchAppFacets](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/SearchAppFacets)
+
+### BucketAggregationElement
+
+Single bucket aggregation facet component:
+
+```jsx
+import { BucketAggregationElement } from "@js/oarepo_ui/search";
+
+<BucketAggregationElement title="Resource Type" bucketAggKey="resource_type" />
+```
+
+**Source:** [oarepo-ui/BucketAggregationElement](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/BucketAggregationElement)
+
+### FoldableBucketAggregationElement
+
+Foldable bucket aggregation for hierarchical facets:
+
+```jsx
+import { FoldableBucketAggregationElement } from "@js/oarepo_ui/search";
+
+<FoldableBucketAggregationElement title="Subject Categories" bucketAggKey="subject" />
+```
+
+**Source:** [oarepo-ui/FoldableBucketAggregationElement](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/FoldableBucketAggregationElement)
+
+### SearchBar Components
+
+#### SearchAppSearchbarContainer
+
+Container for search bar component:
+
+```jsx
+import { SearchAppSearchbarContainer } from "@js/oarepo_ui/search";
+
+<SearchAppSearchbarContainer>
+  <YourSearchbar />
+</SearchAppSearchbarContainer>
+```
+
+**Source:** [oarepo-ui/SearchAppSearchbarContainer](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/SearchAppSearchbarContainer)
+
+#### ClearableSearchbarElement
+
+Single-line search bar with clear button:
+
+```jsx
+import { ClearableSearchbarElement } from "@js/oarepo_ui/search";
+
+<ClearableSearchbarElement
+  placeholder="Search records..."
+  queryHelperSchema={queryHelperSchema}
+/>
+```
+
+**Source:** [oarepo-ui/ClearableSearchbarElement](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/ClearableSearchbarElement)
+
+#### MultilineSearchbarElement
+
+Multi-line search bar for complex queries:
+
+```jsx
+import { MultilineSearchbarElement } from "@js/oarepo_ui/search";
+
+<MultilineSearchbarElement
+  placeholder="Search records..."
+  queryHelperSchema={queryHelperSchema}
+/>
+```
+
+**Source:** [oarepo-ui/MultilineSearchbarElement](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/MultilineSearchbarElement)
+
+### Result Controls
+
+#### SearchAppSort
+
+Sort control component:
+
+```jsx
+import { SearchAppSort } from "@js/oarepo_ui/search";
+
+<SearchAppSort />
+```
+
+**Source:** [oarepo-ui/SearchAppSort](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/SearchAppSort)
+
+#### SearchAppResults
+
+Results container component:
+
+```jsx
+import { SearchAppResults } from "@js/oarepo_ui/search";
+
+<SearchAppResults>
+  <YourResultsComponents />
+</SearchAppResults>
+```
+
+**Source:** [oarepo-ui/SearchAppResults](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/SearchAppResults)
+
+### Filter Components
+
+#### ActiveFiltersElement
+
+Active filter tags display:
+
+```jsx
+import { ActiveFiltersElement } from "@js/oarepo_ui/search";
+
+<ActiveFiltersElement />
+```
+
+**Source:** [oarepo-ui/ActiveFiltersElement](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/ActiveFiltersElement)
+
+#### ClearFiltersButton
+
+Button to clear all filters:
+
+```jsx
+import { ClearFiltersButton } from "@js/oarepo_ui/search";
+
+<ClearFiltersButton />
+```
+
+**Source:** [oarepo-ui/ClearFiltersButton](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/ClearFiltersButton)
+
+### State Components
+
+#### EmptyResultsElement
+
+Empty state component when no results found:
+
+```jsx
+import { EmptyResultsElement } from "@js/oarepo_ui/search";
+
+<EmptyResultsElement />
+```
+
+**Source:** [oarepo-ui/EmptyResultsElement](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/EmptyResultsElement)
+
+#### ErrorElement
+
+Error state component for search failures:
+
+```jsx
+import { ErrorElement } from "@js/oarepo_ui/search";
+
+<ErrorElement />
+```
+
+**Source:** [oarepo-ui/ErrorElement](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/ErrorElement)
+
+### Pagination & Info Components
+
+#### ResultCount
+
+Result count display:
+
+```jsx
+import { ResultCount } from "@js/oarepo_ui/search";
+
+<ResultCount />
+```
+
+**Source:** [oarepo-ui/ResultCount](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/ResultCount)
+
+#### ResultsPerPageLabel
+
+Results per page label:
+
+```jsx
+import { ResultsPerPageLabel } from "@js/oarepo_ui/search";
+
+<ResultsPerPageLabel />
+```
+
+**Source:** [oarepo-ui/ResultsPerPageLabel](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/ResultsPerPageLabel)
+
+#### SmallPagination
+
+Pagination component:
+
+```jsx
+import { SmallPagination } from "@js/oarepo_ui/search";
+
+<SmallPagination />
+```
+
+**Source:** [oarepo-ui/SmallPagination](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search/SmallPagination)
+
+## Further Reading
 
 <Cards>
   <Card
     title="Deposit form components"
     href="/customize/model_ui/deposit_components"
   >
-    Form input components
+    Record deposit form components
   </Card>
   <Card
-    title="Component Override"
-    href="/customize/repository_ui/js_assets/react/overrides"
+    title="Search page"
+    href="/customize/model_ui/search"
   >
-    General override concepts
+    Search page configuration
   </Card>
   <Card
     title="react-searchkit"
-    href="https://inveniosoftware.github.io/react-searchkit/"
+    href="https://github.com/inveniosoftware/react-searchkit"
   >
     Search library documentation
+  </Card>
+  <Card
+    title="invenio-search-ui"
+    href="https://github.com/inveniosoftware/invenio-search-ui"
+  >
+    Invenio search UI components
+  </Card>
+  <Card
+    title="oarepo-ui search components"
+    href="https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search"
+  >
+    Search components source
   </Card>
 </Cards>
