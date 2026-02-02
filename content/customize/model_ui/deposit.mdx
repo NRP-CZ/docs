@@ -5,15 +5,11 @@ import { Card } from "@/components/card";
 
 The deposit form enables users to create and edit records. It's a React-based form application that provides field validation, dynamic sections, and integration with your record model.
 
-## Architecture
+## Request and Application Flow
 
-The deposit form follows this flow:
+### Request Flow
 
-1. **User accesses** record deposition URL (e.g., `/mymodel/uploads/new` for create, `/mymodel/uploads/<pid_value>` for edit) of a specific model
-2. **UI Resource view** prepares initial form data and configuration
-3. **DepositForm.jinja** component renders the page, embedding model-specific form app JS bundle, providing initial data through hidden inputs
-4. **React app mounts** parses initial data from rendered template hidden inputs and renders the form interface
-5. **Form submission** sends data to the API endpoint for validation and storage
+When a user accesses the deposit form URL:
 
 ```mermaid
 graph TD
@@ -30,7 +26,73 @@ graph TD
     API -->|validated data| DB[Database]
 ```
 
-## UI Resource Configuration
+### Application Layers
+
+The deposit form application is organized into server-side and client-side layers:
+
+```mermaid
+graph TD
+    subgraph ServerSide["Server-Side (Python/JinjaX)"]
+        VR["RecordsUIResource.deposit<br/>create/edit()"]
+        RC["UI Resource Components<br/>run_components()"]
+        DJ["DepositForm.jinja<br/>(oarepo-ui)"]
+        BT["Base deposit.html<br/>(invenio-app-rdm)"]
+        FH["deposit/form.html<br/>(oarepo-ui)"]
+    end
+
+    subgraph ClientSide["Client-Side (React)"]
+        EP["Webpack Entry Point<br/>(model-specific)"]
+        DFA["DepositFormApp"]
+        DB["DepositBootstrap"]
+        BFL["BaseFormLayout"]
+        FFC["FormFieldsContainer"]
+    end
+
+    VR -->|auth and permissions<br/>fetch record data| RC
+    RC -->|form_config and context| DJ
+    DJ -->|extends| BT
+    DJ -->|includes| FH
+    FH -->|hidden inputs and<br/>placeholder div| EP
+    EP -->|mounts React app<br/>parses config| DFA
+    DFA -->|renders| DB
+    DB -->|renders| BFL
+    BFL -->|renders via component override| FFC
+
+    style VR fill:#e1f5fe
+    style RC fill:#e1f5fe
+    style DJ fill:#bbf,stroke:#333,stroke-width:2px
+    style BT fill:#fcf
+    style FH fill:#ffc
+    style EP fill:#fff9c4
+    style DFA fill:#c8e6c9
+    style DB fill:#c8e6c9
+    style BFL fill:#c8e6c9
+    style FFC fill:#ce93d8,stroke:#333,stroke-width:2px
+```
+
+#### Server-Side Layers
+
+| Layer | Component | Source | Purpose |
+|-------|-----------|--------|---------|
+| **View** | `RecordsUIResource.deposit_create/edit()` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py) | Handles HTTP request, authenticates user, fetches record/draft data |
+| **Components** | `run_components()` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py) | Executes component hooks to modify `form_config` and add context variables |
+| **Page Template** | `DepositForm.jinja` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/pages/DepositForm.jinja) | JinjaX component that extends base template and includes form content |
+| **Base Template** | `deposit.html` | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm) | Provides page skeleton (CSS, JS, header, footer blocks) |
+| **Form Content** | `deposit/form.html` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app |
+
+#### Client-Side Layers
+
+| Layer | Component | Source | Purpose |
+|-------|-----------|--------|---------|
+| **Entry Point** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Webpack entry that mounts React app to `#deposit-form` div |
+| **Form App** | `DepositFormApp` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx) | Main React form component with providers, router, and context |
+| **Bootstrap** | `DepositBootstrap` | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wraps form with notification providers and service setup |
+| **Form Layout** | `BaseFormLayout` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout) | Generic form layout component with overridable fields container |
+| **Fields Container** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Your custom component that defines form fields |
+
+## Configuration
+
+### UI Resource Routes
 
 The deposit routes are defined in your model's UI resource config:
 
@@ -48,19 +110,13 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     }
 ```
 
-## Form Configuration
+### Form Configuration
 
 Form field definitions, labels, hints, and validation rules are derived from your record model's YAML schema definition. See [Model schema customization](/customize/model_backend/model) for details on defining field types, labels, hints, and help text.
 
-## Template Structure
+### Template Context
 
-The deposit page uses a generic template provided by oarepo-ui (`oarepo_ui.pages.DepositForm`). This template handles the page structure and includes the deposit form container.
-
-<Callout type="info">
-The generic `oarepo_ui.pages.DepositForm` template provides all standard deposit form functionality including the form container, data attributes, and React app initialization. Form field customization is done through the FormFieldsContainer component.
-</Callout>
-
-### Available Context Variables
+The `DepositForm.jinja` component receives these context variables from the UI resource view:
 
 | Variable | Description |
 |----------|-------------|
@@ -76,16 +132,15 @@ The generic `oarepo_ui.pages.DepositForm` template provides all standard deposit
 | `permissions` | User permissions |
 | `webpack_entry` | Webpack entry point for the deposit form JavaScript |
 
-## Form Fields Container
+## Customization
 
-The `FormFieldsContainer.jsx` component located at `ui/mymodel/semantic-ui/js/mymodel/forms/FormFieldsContainer.jsx` is where you define your form fields using AccordionField for sections.
+### Form Fields
 
-This component is designed to be modified directly when implementing your deposit form. It receives the `record` prop and `formConfig` from the Redux store:
+The copier template generates `FormFieldsContainer.jsx` at `ui/mymodel/semantic-ui/js/mymodel/forms/FormFieldsContainer.jsx`. Modify this component to define your form fields using `AccordionField` for sections:
 
 ```jsx filename="ui/mymodel/semantic-ui/js/mymodel/forms/FormFieldsContainer.jsx"
 import { TextField } from "@js/oarepo_ui/forms";
 import { AccordionField } from "react-invenio-forms";
-import { connect } from "react-redux";
 
 const FormFieldsContainerComponent = ({ record }) => {
   return (
@@ -109,18 +164,18 @@ const FormFieldsContainerComponent = ({ record }) => {
   );
 };
 
-const mapStateToProps = (state) => ({
-  record: state.deposit.record,
-});
-
-export default connect(mapStateToProps)(FormFieldsContainerComponent);
+export const FormFieldsContainer = connect(
+  (state) => ({
+    record: state.deposit.record,
+    formConfig: state.deposit.formConfig,
+  }),
+  null
+)(FormFieldsContainerComponent);
 ```
 
-See [Deposit form components](/customize/model_ui/deposit_components) for available form field components.
+### React App Entry Point
 
-## Entry Point
-
-The entry point at `ui/mymodel/semantic-ui/js/mymodel/forms/index.js` renders the deposit app and registers the FormFieldsContainer as a component override:
+The copier template configures the webpack entry point automatically. The entry point at `ui/mymodel/semantic-ui/js/mymodel/forms/index.js` renders the deposit app and registers the FormFieldsContainer as a component override:
 
 ```jsx filename="ui/mymodel/semantic-ui/js/mymodel/forms/index.js"
 import { DepositFormApp, parseFormAppConfig } from "@js/oarepo_ui/forms";
@@ -128,57 +183,59 @@ import ReactDOM from "react-dom";
 import { OARepoDepositSerializer } from "@js/oarepo_ui/api";
 import FormFieldsContainer from "./FormFieldsContainer";
 
-const recordSerializer = new OARepoDepositSerializer(
-  ["errors", "expanded"],
-  ["__key"]
-);
+const overridableIdPrefix = "DepositForm";
+const rootElem = document.getElementById("deposit-form");
 
-const { rootEl, config, ...rest } = parseFormAppConfig();
-const overridableIdPrefix = config.overridableIdPrefix;
+const config = parseFormAppConfig(rootElem);
 
-export const componentOverrides = {
+// Replace the container component
+config.overridableComponents = {
   [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
 };
 
 ReactDOM.render(
   <DepositFormApp
     config={config}
-    {...rest}
-    recordSerializer={recordSerializer}
-    componentOverrides={componentOverrides}
+    serializer={OARepoDepositSerializer}
   />,
-  rootEl
+  rootElem
 );
 ```
 
+### Custom Templates
+
 <Callout type="info">
-The copier template configures the webpack entry point automatically. Developers only need to modify the FormFieldsContainer component to add their form fields.
+The generic `oarepo_ui.pages.DepositForm` template provides all standard deposit form functionality. For most use cases, you only need to modify the FormFieldsContainer component.
 </Callout>
 
-See [Component Override](/customize/repository_ui/js_assets/react/overrides) for more details on component overrides.
-
-## Replacing the Default Deposit Template
-
-By default, the deposit form page uses the generic `oarepo_ui.pages.DepositForm` template.
-
-If you need to replace the entire deposit form template with your own model-specific implementation:
-
-### Create a Custom Page Component
+If you need to replace the entire deposit form template with a model-specific implementation:
 
 ```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/pages/DepositForm.jinja"
-{#def theme, forms_config, record, community, files, extra_context, ui_links, permissions, webpack_entry #}
+{#def
+    theme,
+    forms_config,
+    searchbar_config,
+    record,
+    community,
+    community_ui,
+    community_use_jinja_header,
+    files,
+    preselectedCommunity=None,
+    files_locked,
+    extra_context,
+    ui_links,
+    permissions,
+    webpack_entry
+#}
 {%- extends "invenio_app_rdm/records/deposit.html" -%}
 
-{# Add custom content above the form #}
 {%- block page_body %}
-  {% if extra_context.get('show_custom_banner') %}
   <div class="ui message info">
-    <i class="info circle icon"></i>
-    {{ extra_context.get('custom_banner_text', _('Important: Review the guidelines before submitting')) }}
+    {{ extra_context.get('custom_banner_text',
+        _('Important: Review the guidelines before submitting')) }}
   </div>
-  {% endif %}
-  {{ super() }}
-{%- endblock %}
+  {%- include "oarepo_ui/deposit/form.html" -%}
+{%- endblock page_body %}
 
 {%- block javascript %}
     {% include "oarepo_ui/javascript.html" %}
@@ -186,49 +243,40 @@ If you need to replace the entire deposit form template with your own model-spec
 {%- endblock %}
 ```
 
-Register it in your UI resource config:
+Register in your UI resource config:
 
-```python filename="ui/mymodel/__init__.py"
+```python
 class MymodelUIResourceConfig(RecordsUIResourceConfig):
-    templates = {
+    # ...
+    resource_templates = {
         "deposit_create": "mymodel.pages.DepositForm",
         "deposit_edit": "mymodel.pages.DepositForm",
     }
 ```
 
-See [JinjaX Components](/customize/repository_ui/templating/jinjax) for more on creating page components.
+### Resource Components
 
-## Adding Form Context Data
-
-Add or modify form configuration and context variables through resource components:
+Use resource component hooks to modify form configuration or add template context:
 
 ```python filename="ui/mymodel/components.py"
 from oarepo_ui.resources.components import UIResourceComponent
 
-class MymodelFormComponent(UIResourceComponent):
-    def before_ui_create(self, resource, request, extra_context, **kwargs):
-        # Add data available in create mode
-        extra_context["extra_form_options"] = {
-            "customFeature": True,
-        }
-
+class ExtraContextComponent(UIResourceComponent):
     def before_ui_edit(self, resource, request, extra_context, **kwargs):
-        # Add data available in edit mode
-        record = extra_context.get("record")
-        if record:
-            extra_context["record_history"] = self._get_history(record)
+        """Add custom context to edit page."""
+        record = record_from_resource(request)
+        extra_context["record_history"] = self._get_history(record)
 ```
 
 Register in your UI resource config:
 
-```python filename="ui/mymodel/__init__.py"
+```python
 class MymodelUIResourceConfig(RecordsUIResourceConfig):
-    components = [
-        MymodelFormComponent,
-    ]
+    # ...
+    components = [ExtraContextComponent]
 ```
 
-## Related Resources
+## Further Reading
 
 <Cards>
   <Card
@@ -238,14 +286,8 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     Available form field components
   </Card>
   <Card
-    title="UI Resource Views"
-    href="/customize/repository_ui/resources"
-  >
-    UI resource architecture
-  </Card>
-  <Card
-    title="Webpack Configuration"
-    href="/customize/repository_ui/webpack"
+    title="UI resource architecture"
+    href="/customize/model_ui/architecture"
   >
     Entry point configuration
   </Card>
