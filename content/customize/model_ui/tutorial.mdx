@@ -15,7 +15,7 @@ The nrp-model-copier template provides starter files that you **edit directly** 
 
 | Component | Purpose | Starter File | Documentation |
 |-----------|---------|--------------|----------------|
-| **Record detail** | Displays individual record | `templates/semantic-ui/{{model_name}}/record_detail/main.html` | [Record landing page](/customize/model_ui/detail) |
+| **Record detail** | Displays individual record | `ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html` | [Record landing page](/customize/model_ui/detail) |
 | **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | [Deposit form](/customize/model_ui/deposit) |
 | **Search result** | How records appear in search | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx` | [Search page](/customize/model_ui/search) |
 
@@ -52,36 +52,31 @@ authors:
 
 ### Step 2: Edit the starter template
 
-Edit `templates/semantic-ui/{{model_name}}/record_detail/main.html`:
+Edit `ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html`:
 
-```html filename="templates/semantic-ui/{{model_name}}/record_detail/main.html"
+```html filename="ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html"
 {% extends "oarepo_ui/record_detail/main.html" %}
 
-{%- block record_header -%}
-<h1 class="ui header">{{ record.metadata.title }}</h1>
+{%- block record_content -%}
 {%- if record.metadata.description -%}
-<p>{{ record.metadata.description }}</p>
+<div class="ui segment">
+  <p>{{ record.metadata.description }}</p>
+</div>
 {%- endif -%}
-{%- endblock record_header -%}
 
-{%- block record_header_info -%}
 {%- if record.metadata.authors -%}
 <div class="ui segment">
   <strong>Authors:</strong> {{ record.metadata.authors | join(', ') }}
 </div>
 {%- endif -%}
-{%- endblock record_header_info -%}
+{%- endblock record_content -%}
 ```
 
 For available override blocks, see [Template structure](/customize/model_ui/detail#template-structure).
 
-### Step 3: Restart your server and test
+### Step 3: Visit the page
 
-```bash
-pip install -e . && invenio run
-```
-
-Visit a record detail page at `http://localhost:5000/mymodel/your-record-id`
+Visit a record detail page at `http://127.0.0.1:5000/mymodel/your-record-id`
 
 </Steps>
 
@@ -89,12 +84,10 @@ Visit a record detail page at `http://localhost:5000/mymodel/your-record-id`
 
 | Block | Purpose |
 |-------|---------|
-| `record_header` | Page header area |
-| `record_header_info` | Custom info below header |
-| `record_sidebar` | Right sidebar content (add to `side_bar/` directory) |
-| `banner_draft_header` | Draft warning banner (in `banners.html`) |
+| `record_content` | Main record content - your custom metadata display |
+| `record_title` | Record title section |
+| `additional_record_details` | Additional metadata fields |
 
----
 
 ## 2. Customize Deposit Form
 
@@ -168,7 +161,7 @@ invenio run
 
 ### Step 3: Test the form
 
-Visit the deposit page at `http://localhost:5000/mymodel/deposit/new`
+Visit the deposit page at `http://127.0.0.1:5000/mymodel/deposit/new`
 
 </Steps>
 
@@ -250,7 +243,7 @@ invenio run
 
 ### Step 3: View search results
 
-Visit the search page at `http://localhost:5000/mymodel`
+Visit the search page at `http://127.0.0.1:5000/mymodel`
 
 </Steps>
 
@@ -305,17 +298,10 @@ For more on defining metadata schema, see [Metadata](/customize/model_backend/mo
 
 ### Record Detail Template
 
-```html filename="templates/semantic-ui/{{model_name}}/record_detail/main.html"
+```html filename="ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html"
 {% extends "oarepo_ui/record_detail/main.html" %}
 
-{%- block record_header -%}
-<h1 class="ui header">{{ record.metadata.title }}</h1>
-{%- if record.metadata.subtitle -%}
-<p class="ui sub header">{{ record.metadata.subtitle }}</p>
-{%- endif -%}
-{%- endblock record_header -%}
-
-{%- block record_header_info -%}
+{%- block record_content -%}
 <div class="ui segment">
   <div class="ui divided items">
     {%- if record.metadata.authors -%}
@@ -360,7 +346,7 @@ For more on defining metadata schema, see [Metadata](/customize/model_backend/mo
   <p>{{ record.metadata.abstract }}</p>
 </div>
 {%- endif -%}
-{%- endblock record_header_info -%}
+{%- endblock record_content -%}
 ```
 
 For more detail page customization options, see [Record landing page](/customize/model_ui/detail).
