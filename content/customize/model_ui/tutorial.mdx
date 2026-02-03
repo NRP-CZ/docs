@@ -1,0 +1,471 @@
+import { Callout, Steps, Cards } from "nextra/components";
+import { Card } from "@/components/card";
+
+# Quick Start: Customizing Your Model UI
+
+After generating your repository with `nrp-model-copier`, you'll want to customize the starter pages to display your actual record model. This tutorial walks you through the most common customization tasks.
+
+<Callout type="info">
+This tutorial assumes you've already generated a model using `nrp-model-copier` and have a working repository. For detailed architecture and configuration topics, see the in-depth documentation for [Record landing page](/customize/model_ui/detail), [Deposit form](/customize/model_ui/deposit), and [Search page](/customize/model_ui/search).
+</Callout>
+
+## Overview
+
+The nrp-model-copier template provides three main UI entry points for customization:
+
+| Component | Purpose | File Location | Documentation |
+|-----------|---------|---------------|----------------|
+| **Record detail** | Displays individual record | `ui/{{model_name}}/templates/` | [Record landing page](/customize/model_ui/detail) |
+| **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/deposit/` | [Deposit form](/customize/model_ui/deposit) |
+| **Search result** | How records appear in search | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/` | [Search page](/customize/model_ui/search) |
+
+---
+
+## 1. Customize Record Detail Page
+
+The record detail page uses predefined JinjaX blocks that you can override for each metadata field. For more on the detail page architecture and available blocks, see [Record landing page](/customize/model_ui/detail).
+
+<Steps>
+
+### Step 1: Find the metadata field you want to display
+
+Looking at your metadata schema:
+
+```yaml filename="model/{{model_name}}/metadata.yaml"
+title:
+  type: string
+  label:
+    en: Title
+
+description:
+  type: string
+  ui:
+    component: TextareaField
+  label:
+    en: Description
+
+authors:
+  type: keyword
+  label:
+    en: Authors
+```
+
+### Step 2: Create a template override
+
+Create `ui/{{model_name}}/templates/record/detail.html.jinja`:
+
+```jinja filename="ui/{{model_name}}/templates/record/detail.html.jinja"
+{%- extends "oarepo_ui/records/detail.html" %}
+
+{%- block record_metadata %}
+<div class="ui segments">
+  {%- block record_title %}
+  <div class="ui segment">
+    <h1 class="ui header">{{ record.metadata.title }}</h1>
+  </div>
+  {%- endblock record_title %}
+
+  {%- block record_description %}
+  {%- if record.metadata.description %}
+  <div class="ui segment">
+    <p>{{ record.metadata.description }}</p>
+  </div>
+  {%- endif %}
+  {%- endblock record_description %}
+
+  {%- block record_authors %}
+  {%- if record.metadata.authors %}
+  <div class="ui segment">
+    <strong>Authors:</strong> {{ record.metadata.authors | join(', ') }}
+  </div>
+  {%- endif %}
+  {%- endblock record_authors %}
+</div>
+{%- endblock record_metadata %}
+```
+
+For more on template context and available override blocks, see [Template context](/customize/model_ui/detail#template-context) and [Available override blocks](/customize/model_ui/detail#available-override-blocks).
+
+### Step 3: Restart your server and test
+
+```bash
+pip install -e . && invenio run
+```
+
+Visit a record detail page at `http://localhost:5000/mymodel/your-record-id`
+
+</Steps>
+
+### Common Override Blocks
+
+| Block | Purpose | Documentation |
+|-------|---------|----------------|
+| `record_header` | Page header area | [Record header](/customize/model_ui/detail#option-1-add-branding-banners) |
+| `record_metadata` | Main metadata section | [Metadata display](/customize/model_ui/detail#available-override-blocks) |
+| `record_links` | Related files/links | [Links configuration](/customize/model_ui/detail#ui-resource-configuration) |
+| `record_versions` | Version history | [Version display](/customize/model_ui/detail#available-override-blocks) |
+| `record_sidebar` | Right sidebar content | [Sidebar configuration](/customize/model_ui/detail#available-override-blocks) |
+
+---
+
+## 2. Customize Deposit Form
+
+Modify the deposit form to match your record's metadata schema. For deposit form architecture and configuration, see [Deposit form](/customize/model_ui/deposit). For available form components, see [Deposit form components](/customize/model_ui/deposit_components).
+
+<Steps>
+
+### Step 1: Open the deposit form component
+
+Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/deposit/DepositForm.jsx`:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/deposit/DepositForm.jsx"
+import React from "react";
+import { i18next } from "@translations/i18next";
+import _get from "lodash/get";
+
+export const DepositForm = () => {
+  const { record, formConfig, ...props } = props;
+
+  return (
+    <div className="deposit-form">
+      <Accordion fluid className="pr-1 ml-0">
+        <Accordion.Content id="general" active="true" title="General">
+          <Form.Field required>
+            <label>Title</label>
+            <TextField
+              fieldPath="metadata.title"
+              label="Title"
+              required
+              {...props}
+            />
+          </Form.Field>
+
+          <Form.Field>
+            <label>Description</label>
+            <RichInputField
+              fieldPath="metadata.description"
+              label="Description"
+              {...props}
+            />
+          </Form.Field>
+
+          <Form.Field>
+            <label>Authors</label>
+            <ArrayField
+              fieldPath="metadata.authors"
+              label="Authors"
+              {...props}
+            >
+              <ArrayInput.Item>
+                <TextField fieldPath="" label="Author" required />
+              </ArrayInput.Item>
+            </ArrayField>
+          </Form.Field>
+        </Accordion.Content>
+      </Accordion>
+    </div>
+  );
+};
+
+export default DepositForm;
+```
+
+For more on deposit form structure and configuration, see [Building Your Deposit Form](/customize/model_ui/deposit#building-your-deposit-form).
+
+### Step 2: Rebuild and restart
+
+```bash
+cd ui/{{model_name}}
+npm run build
+cd ../..
+invenio run
+```
+
+### Step 3: Test the form
+
+Visit the deposit page at `http://localhost:5000/mymodel/deposit/new`
+
+</Steps>
+
+### Available Form Fields
+
+| Component | Best For | Documentation |
+|-----------|----------|----------------|
+| `TextField` | Simple text input | [TextField](/customize/model_ui/deposit_components#textfield) |
+| `RichInputField` | Rich text/description | [RichInputField](/customize/model_ui/deposit_components#richinputfield) |
+| `ArrayField` | Repeating fields | [ArrayField](/customize/model_ui/deposit_components#arrayfield) |
+| `SelectField` | Dropdown selection | [SelectField](/customize/model_ui/deposit_components#selectfield) |
+| `DateField` | Date/time pickers | [DateField](/customize/model_ui/deposit_components#datefield) |
+| `BooleanField` | Yes/no toggles | [BooleanField](/customize/model_ui/deposit_components#booleanfield) |
+
+For a complete list of available components, see [Deposit form components](/customize/model_ui/deposit_components).
+
+---
+
+## 3. Customize Search Result Item
+
+Customize how your records appear in search results. For search page architecture and configuration, see [Search page](/customize/model_ui/search). For available search UI components, see [Search UI components](/customize/model_ui/search_components).
+
+<Steps>
+
+### Step 1: Edit the ResultsListItem component
+
+Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx`:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx"
+import React from "react";
+import PropTypes from "prop-types";
+import _get from "lodash/get";
+import { Item, Label } from "semantic-ui-react";
+import { i18next } from "@translations/i18next";
+
+export const ResultsListItem = ({ result }) => {
+  const title = _get(result, "metadata.title", i18next.t("No title"));
+  const description = _get(result, "metadata.description", "");
+  const authors = _get(result, "metadata.authors", []);
+
+  return (
+    <Item key={result.id}>
+      <Item.Content>
+        <Item.Header as="h2">
+          <a href={result.links.self_html}>{title}</a>
+        </Item.Header>
+        {description && (
+          <Item.Description>
+            {description}
+          </Item.Description>
+        )}
+        {authors.length > 0 && (
+          <Item.Meta>
+            Authors: {authors.join(", ")}
+          </Item.Meta>
+        )}
+      </Item.Content>
+    </Item>
+  );
+};
+
+ResultsListItem.propTypes = {
+  result: PropTypes.object.isRequired,
+};
+
+export default ResultsListItem;
+```
+
+For more on building your search result item, see [Building Your Search Result Item](/customize/model_ui/search#building-your-search-result-item).
+
+### Step 2: Rebuild and restart
+
+```bash
+cd ui/{{model_name}}
+npm run build
+cd ../..
+invenio run
+```
+
+### Step 3: View search results
+
+Visit the search page at `http://localhost:5000/mymodel`
+
+For search backend configuration (facets, mappings, analyzers), see [Search configuration](/customize/model_backend/search).
+
+</Steps>
+
+---
+
+## Putting It All Together
+
+Here's a complete example for a "Book" record model:
+
+### Metadata Schema
+
+```yaml filename="model/{{model_name}}/metadata.yaml"
+title:
+  type: string
+  label:
+    en: Title
+
+subtitle:
+  type: string
+  label:
+    en: Subtitle
+
+isbn:
+  type: string
+  label:
+    en: ISBN
+
+authors:
+  type: keyword
+  label:
+    en: Authors
+
+publisher:
+  type: string
+  label:
+    en: Publisher
+
+published_date:
+  type: date
+  label:
+    en: Published date
+
+abstract:
+  type: string
+  ui:
+    component: TextareaField
+  label:
+    en: Abstract
+```
+
+For more on defining metadata schema, see [Metadata](/customize/model_backend/model).
+
+### Record Detail Template
+
+```jinja filename="ui/{{model_name}}/templates/record/detail.html.jinja"
+{%- extends "oarepo_ui/records/detail.html" %}
+
+{%- block record_metadata %}
+<div class="ui segments">
+  {%- block record_header %}
+  <div class="ui segment">
+    <h1 class="ui header">{{ record.metadata.title }}</h1>
+    {%- if record.metadata.subtitle %}
+    <p class="ui sub header">{{ record.metadata.subtitle }}</p>
+    {%- endif %}
+  </div>
+  {%- endblock record_header %}
+
+  {%- block record_authors %}
+  {%- if record.metadata.authors %}
+  <div class="ui segment">
+    <strong>Authors:</strong>
+    <ul>
+    {%- for author in record.metadata.authors %}
+      <li>{{ author }}</li>
+    {%- endfor %}
+    </ul>
+  </div>
+  {%- endif %}
+  {%- endblock record_authors %}
+
+  {%- block record_abstract %}
+  {%- if record.metadata.abstract %}
+  <div class="ui segment">
+    <strong>Abstract:</strong>
+    <p>{{ record.metadata.abstract }}</p>
+  </div>
+  {%- endif %}
+  {%- endblock record_abstract %}
+
+  {%- block record_book_info %}
+  <div class="ui segment">
+    <div class="ui divided items">
+      {%- if record.metadata.isbn %}
+      <div class="item">
+        <div class="content">
+          <strong>ISBN:</strong> {{ record.metadata.isbn }}
+        </div>
+      </div>
+      {%- endif %}
+      {%- if record.metadata.publisher %}
+      <div class="item">
+        <div class="content">
+          <strong>Publisher:</strong> {{ record.metadata.publisher }}
+        </div>
+      </div>
+      {%- endif %}
+      {%- if record.metadata.published_date %}
+      <div class="item">
+        <div class="content">
+          <strong>Published:</strong> {{ record.metadata.published_date }}
+        </div>
+      </div>
+      {%- endif %}
+    </div>
+  </div>
+  {%- endblock record_book_info %}
+</div>
+{%- endblock record_metadata %}
+```
+
+For more detail page customization options, see [Record landing page](/customize/model_ui/detail).
+
+### Search Result Item
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx"
+export const ResultsListItem = ({ result }) => {
+  const title = _get(result, "metadata.title", i18next.t("No title"));
+  const subtitle = _get(result, "metadata.subtitle", "");
+  const authors = _get(result, "metadata.authors", []);
+  const isbn = _get(result, "metadata.isbn", "");
+
+  return (
+    <Item key={result.id}>
+      <Item.Content>
+        <Item.Header as="h2">
+          <a href={result.links.self_html}>{title}</a>
+        </Item.Header>
+        {subtitle && (
+          <Item.Meta>{subtitle}</Item.Meta>
+        )}
+        {authors.length > 0 && (
+          <Item.Description>
+            By {authors.join(", ")}
+          </Item.Description>
+        )}
+        {isbn && (
+          <Item.Extra>
+            <Label>ISBN: {isbn}</Label>
+          </Item.Extra>
+        )}
+      </Item.Content>
+    </Item>
+  );
+};
+```
+
+For more search result customization and configuration, see [Search page](/customize/model_ui/search).
+
+---
+
+## Further Reading
+
+<Cards>
+  <Card
+    title="Record landing page"
+    href="/customize/model_ui/detail"
+  >
+    Detailed record page architecture and available override blocks
+  </Card>
+  <Card
+    title="Deposit form"
+    href="/customize/model_ui/deposit"
+  >
+    Deposit form architecture and configuration
+  </Card>
+  <Card
+    title="Deposit form components"
+    href="/customize/model_ui/deposit_components"
+  >
+    Available form field components reference
+  </Card>
+  <Card
+    title="Search page"
+    href="/customize/model_ui/search"
+  >
+    Search page architecture and configuration
+  </Card>
+  <Card
+    title="Search configuration"
+    href="/customize/model_backend/search"
+  >
+    Backend search customization (facets, mappings, analyzers)
+  </Card>
+  <Card
+    title="Search UI components"
+    href="/customize/model_ui/search_components"
+  >
+    Search UI component reference
+  </Card>
+</Cards>

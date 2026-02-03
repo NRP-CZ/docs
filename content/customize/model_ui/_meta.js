@@ -1,4 +1,5 @@
 export default {
+    "tutorial": "Quick start tutorial",
     "index": "Overview",
     "detail": "Record landing page",
     "deposit": "Deposit form",
