@@ -11,19 +11,19 @@ This tutorial assumes you've already generated a model using `nrp-model-copier` 
 
 ## Overview
 
-The nrp-model-copier template provides three main UI entry points for customization:
+The nrp-model-copier template provides starter files that you **edit directly** to customize your model's UI:
 
-| Component | Purpose | File Location | Documentation |
-|-----------|---------|---------------|----------------|
-| **Record detail** | Displays individual record | `ui/{{model_name}}/templates/` | [Record landing page](/customize/model_ui/detail) |
-| **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/deposit/` | [Deposit form](/customize/model_ui/deposit) |
-| **Search result** | How records appear in search | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/` | [Search page](/customize/model_ui/search) |
+| Component | Purpose | Starter File | Documentation |
+|-----------|---------|--------------|----------------|
+| **Record detail** | Displays individual record | `templates/semantic-ui/{{model_name}}/record_detail/main.html` | [Record landing page](/customize/model_ui/detail) |
+| **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | [Deposit form](/customize/model_ui/deposit) |
+| **Search result** | How records appear in search | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx` | [Search page](/customize/model_ui/search) |
 
 ---
 
 ## 1. Customize Record Detail Page
 
-The record detail page uses predefined JinjaX blocks that you can override for each metadata field. For more on the detail page architecture and available blocks, see [Record landing page](/customize/model_ui/detail).
+The record detail page starter template contains predefined JinjaX blocks that you modify to display your metadata.
 
 <Steps>
 
@@ -50,41 +50,30 @@ authors:
     en: Authors
 ```
 
-### Step 2: Create a template override
+### Step 2: Edit the starter template
 
-Create `ui/{{model_name}}/templates/record/detail.html.jinja`:
+Edit `templates/semantic-ui/{{model_name}}/record_detail/main.html`:
 
-```jinja filename="ui/{{model_name}}/templates/record/detail.html.jinja"
-{%- extends "oarepo_ui/records/detail.html" %}
+```html filename="templates/semantic-ui/{{model_name}}/record_detail/main.html"
+{% extends "oarepo_ui/record_detail/main.html" %}
 
-{%- block record_metadata %}
-<div class="ui segments">
-  {%- block record_title %}
-  <div class="ui segment">
-    <h1 class="ui header">{{ record.metadata.title }}</h1>
-  </div>
-  {%- endblock record_title %}
+{%- block record_header -%}
+<h1 class="ui header">{{ record.metadata.title }}</h1>
+{%- if record.metadata.description -%}
+<p>{{ record.metadata.description }}</p>
+{%- endif -%}
+{%- endblock record_header -%}
 
-  {%- block record_description %}
-  {%- if record.metadata.description %}
-  <div class="ui segment">
-    <p>{{ record.metadata.description }}</p>
-  </div>
-  {%- endif %}
-  {%- endblock record_description %}
-
-  {%- block record_authors %}
-  {%- if record.metadata.authors %}
-  <div class="ui segment">
-    <strong>Authors:</strong> {{ record.metadata.authors | join(', ') }}
-  </div>
-  {%- endif %}
-  {%- endblock record_authors %}
+{%- block record_header_info -%}
+{%- if record.metadata.authors -%}
+<div class="ui segment">
+  <strong>Authors:</strong> {{ record.metadata.authors | join(', ') }}
 </div>
-{%- endblock record_metadata %}
+{%- endif -%}
+{%- endblock record_header_info -%}
 ```
 
-For more on template context and available override blocks, see [Template context](/customize/model_ui/detail#template-context) and [Available override blocks](/customize/model_ui/detail#available-override-blocks).
+For available override blocks, see [Template structure](/customize/model_ui/detail#template-structure).
 
 ### Step 3: Restart your server and test
 
@@ -98,79 +87,75 @@ Visit a record detail page at `http://localhost:5000/mymodel/your-record-id`
 
 ### Common Override Blocks
 
-| Block | Purpose | Documentation |
-|-------|---------|----------------|
-| `record_header` | Page header area | [Record header](/customize/model_ui/detail#option-1-add-branding-banners) |
-| `record_metadata` | Main metadata section | [Metadata display](/customize/model_ui/detail#available-override-blocks) |
-| `record_links` | Related files/links | [Links configuration](/customize/model_ui/detail#ui-resource-configuration) |
-| `record_versions` | Version history | [Version display](/customize/model_ui/detail#available-override-blocks) |
-| `record_sidebar` | Right sidebar content | [Sidebar configuration](/customize/model_ui/detail#available-override-blocks) |
+| Block | Purpose |
+|-------|---------|
+| `record_header` | Page header area |
+| `record_header_info` | Custom info below header |
+| `record_sidebar` | Right sidebar content (add to `side_bar/` directory) |
+| `banner_draft_header` | Draft warning banner (in `banners.html`) |
 
 ---
 
 ## 2. Customize Deposit Form
 
-Modify the deposit form to match your record's metadata schema. For deposit form architecture and configuration, see [Deposit form](/customize/model_ui/deposit). For available form components, see [Deposit form components](/customize/model_ui/deposit_components).
+Modify the deposit form starter component to match your record's metadata schema.
 
 <Steps>
 
-### Step 1: Open the deposit form component
+### Step 1: Edit the starter form component
 
-Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/deposit/DepositForm.jsx`:
+Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx`:
 
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/deposit/DepositForm.jsx"
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
 import React from "react";
 import { i18next } from "@translations/i18next";
-import _get from "lodash/get";
 
-export const DepositForm = () => {
-  const { record, formConfig, ...props } = props;
+export const FormFieldsContainer = (props) => {
+  const { formik, fieldPath } = props;
 
   return (
-    <div className="deposit-form">
-      <Accordion fluid className="pr-1 ml-0">
-        <Accordion.Content id="general" active="true" title="General">
-          <Form.Field required>
-            <label>Title</label>
-            <TextField
-              fieldPath="metadata.title"
-              label="Title"
-              required
-              {...props}
-            />
-          </Form.Field>
+    <Accordion fluid className="pr-1 ml-0">
+      <Accordion.Content id="general" activeTitle="General">
+        <Form.Field required>
+          <label>Title</label>
+          <TextField
+            fieldPath="metadata.title"
+            label="Title"
+            required
+            {...props}
+          />
+        </Form.Field>
 
-          <Form.Field>
-            <label>Description</label>
-            <RichInputField
-              fieldPath="metadata.description"
-              label="Description"
-              {...props}
-            />
-          </Form.Field>
+        <Form.Field>
+          <label>Description</label>
+          <RichInputField
+            fieldPath="metadata.description"
+            label="Description"
+            {...props}
+          />
+        </Form.Field>
 
-          <Form.Field>
-            <label>Authors</label>
-            <ArrayField
-              fieldPath="metadata.authors"
-              label="Authors"
-              {...props}
-            >
-              <ArrayInput.Item>
-                <TextField fieldPath="" label="Author" required />
-              </ArrayInput.Item>
-            </ArrayField>
-          </Form.Field>
-        </Accordion.Content>
-      </Accordion>
-    </div>
+        <Form.Field>
+          <label>Authors</label>
+          <ArrayField
+            fieldPath="metadata.authors"
+            label="Authors"
+            {...props}
+          >
+            <ArrayInput.Item>
+              <TextField fieldPath="" label="Author" required />
+            </ArrayInput.Item>
+          </ArrayField>
+        </Form.Field>
+      </Accordion.Content>
+    </Accordion>
   );
 };
 
-export default DepositForm;
+export default FormFieldsContainer;
 ```
 
-For more on deposit form structure and configuration, see [Building Your Deposit Form](/customize/model_ui/deposit#building-your-deposit-form).
+For more on deposit form structure, see [Building Your Deposit Form](/customize/model_ui/deposit#building-your-deposit-form).
 
 ### Step 2: Rebuild and restart
 
@@ -198,17 +183,17 @@ Visit the deposit page at `http://localhost:5000/mymodel/deposit/new`
 | `DateField` | Date/time pickers | [DateField](/customize/model_ui/deposit_components#datefield) |
 | `BooleanField` | Yes/no toggles | [BooleanField](/customize/model_ui/deposit_components#booleanfield) |
 
-For a complete list of available components, see [Deposit form components](/customize/model_ui/deposit_components).
+For a complete list, see [Deposit form components](/customize/model_ui/deposit_components).
 
 ---
 
 ## 3. Customize Search Result Item
 
-Customize how your records appear in search results. For search page architecture and configuration, see [Search page](/customize/model_ui/search). For available search UI components, see [Search UI components](/customize/model_ui/search_components).
+Edit the search result starter component to display how your records appear in search.
 
 <Steps>
 
-### Step 1: Edit the ResultsListItem component
+### Step 1: Edit the starter component
 
 Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx`:
 
@@ -219,7 +204,7 @@ import _get from "lodash/get";
 import { Item, Label } from "semantic-ui-react";
 import { i18next } from "@translations/i18next";
 
-export const ResultsListItem = ({ result }) => {
+export const ResultsListItem = ({ result, ...rest }) => {
   const title = _get(result, "metadata.title", i18next.t("No title"));
   const description = _get(result, "metadata.description", "");
   const authors = _get(result, "metadata.authors", []);
@@ -266,8 +251,6 @@ invenio run
 ### Step 3: View search results
 
 Visit the search page at `http://localhost:5000/mymodel`
-
-For search backend configuration (facets, mappings, analyzers), see [Search configuration](/customize/model_backend/search).
 
 </Steps>
 
@@ -322,74 +305,138 @@ For more on defining metadata schema, see [Metadata](/customize/model_backend/mo
 
 ### Record Detail Template
 
-```jinja filename="ui/{{model_name}}/templates/record/detail.html.jinja"
-{%- extends "oarepo_ui/records/detail.html" %}
+```html filename="templates/semantic-ui/{{model_name}}/record_detail/main.html"
+{% extends "oarepo_ui/record_detail/main.html" %}
 
-{%- block record_metadata %}
-<div class="ui segments">
-  {%- block record_header %}
-  <div class="ui segment">
-    <h1 class="ui header">{{ record.metadata.title }}</h1>
-    {%- if record.metadata.subtitle %}
-    <p class="ui sub header">{{ record.metadata.subtitle }}</p>
-    {%- endif %}
-  </div>
-  {%- endblock record_header %}
+{%- block record_header -%}
+<h1 class="ui header">{{ record.metadata.title }}</h1>
+{%- if record.metadata.subtitle -%}
+<p class="ui sub header">{{ record.metadata.subtitle }}</p>
+{%- endif -%}
+{%- endblock record_header -%}
 
-  {%- block record_authors %}
-  {%- if record.metadata.authors %}
-  <div class="ui segment">
-    <strong>Authors:</strong>
-    <ul>
-    {%- for author in record.metadata.authors %}
-      <li>{{ author }}</li>
-    {%- endfor %}
-    </ul>
-  </div>
-  {%- endif %}
-  {%- endblock record_authors %}
-
-  {%- block record_abstract %}
-  {%- if record.metadata.abstract %}
-  <div class="ui segment">
-    <strong>Abstract:</strong>
-    <p>{{ record.metadata.abstract }}</p>
-  </div>
-  {%- endif %}
-  {%- endblock record_abstract %}
-
-  {%- block record_book_info %}
-  <div class="ui segment">
-    <div class="ui divided items">
-      {%- if record.metadata.isbn %}
-      <div class="item">
-        <div class="content">
-          <strong>ISBN:</strong> {{ record.metadata.isbn }}
-        </div>
+{%- block record_header_info -%}
+<div class="ui segment">
+  <div class="ui divided items">
+    {%- if record.metadata.authors -%}
+    <div class="item">
+      <div class="content">
+        <strong>Authors:</strong>
+        <ul>
+        {%- for author in record.metadata.authors -%}
+          <li>{{ author }}</li>
+        {%- endfor -%}
+        </ul>
       </div>
-      {%- endif %}
-      {%- if record.metadata.publisher %}
-      <div class="item">
-        <div class="content">
-          <strong>Publisher:</strong> {{ record.metadata.publisher }}
-        </div>
-      </div>
-      {%- endif %}
-      {%- if record.metadata.published_date %}
-      <div class="item">
-        <div class="content">
-          <strong>Published:</strong> {{ record.metadata.published_date }}
-        </div>
-      </div>
-      {%- endif %}
     </div>
+    {%- endif -%}
+    {%- if record.metadata.publisher -%}
+    <div class="item">
+      <div class="content">
+        <strong>Publisher:</strong> {{ record.metadata.publisher }}
+      </div>
+    </div>
+    {%- endif -%}
+    {%- if record.metadata.published_date -%}
+    <div class="item">
+      <div class="content">
+        <strong>Published:</strong> {{ record.metadata.published_date }}
+      </div>
+    </div>
+    {%- endif -%}
+    {%- if record.metadata.isbn -%}
+    <div class="item">
+      <div class="content">
+        <strong>ISBN:</strong> {{ record.metadata.isbn }}
+      </div>
+    </div>
+    {%- endif -%}
   </div>
-  {%- endblock record_book_info %}
 </div>
-{%- endblock record_metadata %}
+
+{%- if record.metadata.abstract -%}
+<div class="ui segment">
+  <strong>Abstract:</strong>
+  <p>{{ record.metadata.abstract }}</p>
+</div>
+{%- endif -%}
+{%- endblock record_header_info -%}
 ```
 
 For more detail page customization options, see [Record landing page](/customize/model_ui/detail).
+
+### Deposit Form
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
+export const FormFieldsContainer = (props) => {
+  return (
+    <Accordion fluid className="pr-1 ml-0">
+      <Accordion.Content id="general" activeTitle="General">
+        <Form.Field required>
+          <TextField
+            fieldPath="metadata.title"
+            label="Title"
+            required
+            {...props}
+          />
+        </Form.Field>
+        <Form.Field>
+          <TextField
+            fieldPath="metadata.subtitle"
+            label="Subtitle"
+            {...props}
+          />
+        </Form.Field>
+        <Form.Field>
+          <TextField
+            fieldPath="metadata.isbn"
+            label="ISBN"
+            {...props}
+          />
+        </Form.Field>
+        <Form.Field>
+          <TextField
+            fieldPath="metadata.publisher"
+            label="Publisher"
+            {...props}
+          />
+        </Form.Field>
+        <Form.Field>
+          <DateField
+            fieldPath="metadata.published_date"
+            label="Published date"
+            {...props}
+          />
+        </Form.Field>
+      </Accordion.Content>
+
+      <Accordion.Content id="authors">
+        <Form.Field>
+          <ArrayField
+            fieldPath="metadata.authors"
+            label="Authors"
+            {...props}
+          >
+            <ArrayInput.Item>
+              <TextField fieldPath="" label="Author" required />
+            </ArrayInput.Item>
+          </ArrayField>
+        </Form.Field>
+      </Accordion.Content>
+
+      <Accordion.Content id="abstract">
+        <Form.Field>
+          <RichInputField
+            fieldPath="metadata.abstract"
+            label="Abstract"
+            {...props}
+          />
+        </Form.Field>
+      </Accordion.Content>
+    </Accordion>
+  );
+};
+```
 
 ### Search Result Item
 
