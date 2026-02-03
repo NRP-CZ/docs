@@ -104,7 +104,8 @@ Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
 import React from "react";
-import { i18next } from "@translations/i18next";
+import { Accordion, Form } from "semantic-ui-react";
+import { TextField, RichInputField, ArrayField } from "@js/oarepo_ui/forms";
 
 export const FormFieldsContainer = (props) => {
   return (
@@ -340,6 +341,10 @@ For more detail page customization options, see [Record landing page](/customize
 ### Deposit Form
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
+import React from "react";
+import { Accordion, Form } from "semantic-ui-react";
+import { TextField, RichInputField, DateField, ArrayField } from "@js/oarepo_ui/forms";
+
 export const FormFieldsContainer = (props) => {
   return (
     <Accordion fluid className="pr-1 ml-0">
