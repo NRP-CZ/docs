@@ -223,7 +223,9 @@ export default ResultsListItem;
 
 ## Component Overrides
 
-Register your customized components in the search index file:
+Components can be overridden server-side via `UIComponent` (recommended) or client-side in JavaScript. For more on server-side overrides, see [Component Overrides](/customize/repository_ui/js_assets/react/overrides).
+
+**Client-side overrides:**
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/index.js"
 import {
