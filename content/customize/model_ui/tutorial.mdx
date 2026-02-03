@@ -78,7 +78,7 @@ For available override blocks, see also [Template structure](/customize/model_ui
 
 ### Step 3: Visit the page
 
-Visit a record detail page at `http://127.0.0.1:5000/mymodel/your-record-id`
+Visit a record detail page at `https://127.0.0.1:5000/mymodel/your-record-id`
 
 </Steps>
 
@@ -97,8 +97,6 @@ import React from "react";
 import { i18next } from "@translations/i18next";
 
 export const FormFieldsContainer = (props) => {
-  const { formik, fieldPath } = props;
-
   return (
     <Accordion fluid className="pr-1 ml-0">
       <Accordion.Content id="general" activeTitle="General">
@@ -154,7 +152,7 @@ invenio run
 
 ### Step 3: Test the form
 
-Visit the deposit page at `http://127.0.0.1:5000/mymodel/deposit/new`
+Visit the deposit page at `https://127.0.0.1:5000/mymodel/deposit/new`
 
 </Steps>
 
