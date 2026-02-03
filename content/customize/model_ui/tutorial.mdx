@@ -19,11 +19,15 @@ The nrp-model-copier template provides starter files that you **edit directly** 
 | **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | [Deposit form](/customize/model_ui/deposit) |
 | **Search result** | How records appear in search | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx` | [Search page](/customize/model_ui/search) |
 
-> **Tip:** For JavaScript file changes (deposit form, search result), run the assets watcher in a separate terminal to automatically rebuild on file changes:
-> ```bash
-> ./run.sh cli assets watch
-> ```
-> For more information, see [Run frontend assets builder](/installation/run_instance#run-frontend-assets-builder-optional).
+<Callout type="info">
+For JavaScript file changes (deposit form, search result), run the assets watcher in a separate terminal to automatically rebuild on file changes:
+
+```bash
+./run.sh cli assets watch
+```
+
+For more information, see [Run frontend assets builder](/installation/run_instance#run-frontend-assets-builder-optional).
+</Callout>
 
 ---
 
@@ -147,6 +151,10 @@ export default FormFieldsContainer;
 
 For more on deposit form structure, see [Building Your Deposit Form](/customize/model_ui/deposit#building-your-deposit-form).
 
+### Step 2: View changes
+
+The assets watcher will automatically rebuild your changes. Visit the deposit page to see the updated form.
+
 ### Step 3: Test the form
 
 Visit the deposit page at `https://127.0.0.1:5000/mymodel/deposit/new`
@@ -166,7 +174,6 @@ Visit the deposit page at `https://127.0.0.1:5000/mymodel/deposit/new`
 
 For a complete list, see [Deposit form components](/customize/model_ui/deposit_components).
 
----
 
 ## 3. Customize Search Result Item
 
