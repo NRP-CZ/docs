@@ -1,0 +1,515 @@
+import { Callout, Steps, Cards } from "nextra/components";
+import { Card } from "@/components/card";
+
+# Quick Start: Customizing Your Model UI
+
+After generating your repository with `nrp-model-copier`, you'll want to customize the starter pages to display your actual record model. This tutorial walks you through the most common customization tasks.
+
+<Callout type="info">
+This tutorial assumes you've already generated a model using `nrp-model-copier` and have a working repository. For detailed architecture and configuration topics, see the in-depth documentation for [Record landing page](/customize/model_ui/detail), [Deposit form](/customize/model_ui/deposit), and [Search page](/customize/model_ui/search).
+</Callout>
+
+## Overview
+
+The nrp-model-copier template provides starter files that you **edit directly** to customize your model's UI:
+
+| Component | Purpose | Starter File | Documentation |
+|-----------|---------|--------------|----------------|
+| **Record detail** | Displays individual record | `ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html` | [Record landing page](/customize/model_ui/detail) |
+| **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | [Deposit form](/customize/model_ui/deposit) |
+| **Search result** | How records appear in search | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx` | [Search page](/customize/model_ui/search) |
+
+<Callout type="info">
+For JavaScript file changes (deposit form, search result), run the assets watcher in a separate terminal to automatically rebuild on file changes:
+
+```bash
+./run.sh cli assets watch
+```
+
+For more information, see [Run frontend assets builder](/installation/run_instance#run-frontend-assets-builder-optional).
+</Callout>
+
+---
+
+## 1. Customize Record Detail Page
+
+The record detail page starter template contains predefined JinjaX blocks that you modify to display your metadata.
+
+<Steps>
+
+### Step 1: Find the metadata field you want to display
+
+Looking at your metadata schema:
+
+```yaml filename="{{model_name}}/metadata.yaml"
+# Definition of metadata for {{model_name}}
+
+Metadata:
+  properties:
+    title:
+      type: fulltext+keyword
+      label:
+        en: Title
+
+    description:
+      type: fulltext
+      label:
+        en: Description
+
+    authors:
+      type: array
+      items:
+        type: keyword
+      label:
+        en: Authors
+```
+
+### Step 2: Edit the starter template
+
+Edit `ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html`:
+
+```html filename="ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html"
+{% extends "oarepo_ui/record_detail/main.html" %}
+
+{%- block record_content -%}
+{%- if record.metadata.description -%}
+<div class="ui segment">
+  <p>{{ record.metadata.description }}</p>
+</div>
+{%- endif -%}
+
+{%- if record.metadata.authors -%}
+<div class="ui segment">
+  <strong>Authors:</strong> {{ record.metadata.authors | join(', ') }}
+</div>
+{%- endif -%}
+{%- endblock record_content -%}
+```
+
+The starter template includes commented-out blocks - uncomment the blocks you want to customize.
+
+For available override blocks, see also [Template structure](/customize/model_ui/detail#template-structure).
+
+### Step 3: Visit the page
+
+Visit a record detail page at `https://127.0.0.1:5000/mymodel/your-record-id`
+
+</Steps>
+
+## 2. Customize Deposit Form
+
+Modify the deposit form starter component to match your record's metadata schema.
+
+<Steps>
+
+### Step 1: Edit the starter form component
+
+Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` and add form fields that match your model's metadata schema:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
+import React from "react";
+import { Accordion, Form } from "semantic-ui-react";
+import { TextField, RichInputField, ArrayField } from "@js/oarepo_ui/forms";
+
+export const FormFieldsContainer = (props) => {
+  return (
+    <Accordion fluid className="pr-1 ml-0">
+      <Accordion.Content id="general" activeTitle="General">
+        <Form.Field required>
+          <label>Title</label>
+          <TextField
+            fieldPath="metadata.title"
+            label="Title"
+            required
+            {...props}
+          />
+        </Form.Field>
+
+        <Form.Field>
+          <label>Description</label>
+          <RichInputField
+            fieldPath="metadata.description"
+            label="Description"
+            {...props}
+          />
+        </Form.Field>
+
+        <Form.Field>
+          <label>Authors</label>
+          <ArrayField
+            fieldPath="metadata.authors"
+            label="Authors"
+            {...props}
+          >
+            <ArrayInput.Item>
+              <TextField fieldPath="" label="Author" required />
+            </ArrayInput.Item>
+          </ArrayField>
+        </Form.Field>
+      </Accordion.Content>
+    </Accordion>
+  );
+};
+
+export default FormFieldsContainer;
+```
+
+For more on deposit form structure, see [Building Your Deposit Form](/customize/model_ui/deposit#building-your-deposit-form).
+
+### Step 2: View changes
+
+The assets watcher will automatically rebuild your changes. Visit the deposit page to see the updated form.
+
+### Step 3: Test the form
+
+Visit the deposit page at `https://127.0.0.1:5000/mymodel/uploads/new`
+
+</Steps>
+
+### Available Form Fields
+
+| Component | Best For | Documentation |
+|-----------|----------|----------------|
+| `TextField` | Simple text input | [TextField](/customize/model_ui/deposit_components#textfield) |
+| `RichInputField` | Rich text/description | [RichInputField](/customize/model_ui/deposit_components#richinputfield) |
+| `ArrayField` | Repeating fields | [ArrayField](/customize/model_ui/deposit_components#arrayfield) |
+| `SelectField` | Dropdown selection | [SelectField](/customize/model_ui/deposit_components#selectfield) |
+| `DateField` | Date/time pickers | [DateField](/customize/model_ui/deposit_components#datefield) |
+| `BooleanField` | Yes/no toggles | [BooleanField](/customize/model_ui/deposit_components#booleanfield) |
+
+For a complete list, see [Deposit form components](/customize/model_ui/deposit_components).
+
+
+## 3. Customize Search Result Item
+
+Edit the search result starter component to display how your records appear in search.
+
+<Steps>
+
+### Step 1: Edit the starter component
+
+Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx`:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx"
+import React from "react";
+import PropTypes from "prop-types";
+import _get from "lodash/get";
+import { Item } from "semantic-ui-react";
+import { i18next } from "@translations/i18next";
+
+export const ResultsListItem = ({ result }) => {
+  const title = _get(result, "metadata.title", i18next.t("No title"));
+  const description = _get(result, "metadata.description", "");
+  const authors = _get(result, "metadata.authors", []);
+
+  return (
+    <Item key={result.id}>
+      <Item.Content>
+        <Item.Header as="h2">
+          <a href={result.links.self_html}>{title}</a>
+        </Item.Header>
+        {description && (
+          <Item.Description>
+            {description}
+          </Item.Description>
+        )}
+        {authors.length > 0 && (
+          <Item.Meta>
+            Authors: {authors.join(", ")}
+          </Item.Meta>
+        )}
+      </Item.Content>
+    </Item>
+  );
+};
+
+ResultsListItem.propTypes = {
+  result: PropTypes.object.isRequired,
+};
+
+export default ResultsListItem;
+```
+
+For more on building your search result item, see [Building Your Search Result Item](/customize/model_ui/search#building-your-search-result-item).
+
+### Step 2: View search results
+
+Visit the search page at `https://127.0.0.1:5000/mymodel`
+
+</Steps>
+
+---
+
+## Putting It All Together
+
+Here's a complete example for a "Book" record model:
+
+### Metadata Schema
+
+```yaml filename="{{model_name}}/metadata.yaml"
+# Definition of metadata for {{model_name}}
+
+Metadata:
+  properties:
+    title:
+      type: fulltext+keyword
+      label:
+        en: Title
+
+    subtitle:
+      type: fulltext
+      label:
+        en: Subtitle
+
+    isbn:
+      type: keyword
+      label:
+        en: ISBN
+
+    authors:
+      type: array
+      items:
+        type: keyword
+      label:
+        en: Authors
+
+    publisher:
+      type: keyword
+      label:
+        en: Publisher
+
+    published_date:
+      type: datetime
+      label:
+        en: Published date
+
+    abstract:
+      type: fulltext
+      label:
+        en: Abstract
+```
+
+For more on defining metadata schema, see [Metadata](/customize/model_backend/model).
+
+### Record Detail Template
+
+```html filename="ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html"
+{% extends "oarepo_ui/record_detail/main.html" %}
+
+{%- block record_content -%}
+<div class="ui segment">
+  <div class="ui divided items">
+    {%- if record.metadata.authors -%}
+    <div class="item">
+      <div class="content">
+        <strong>Authors:</strong>
+        <ul>
+        {%- for author in record.metadata.authors -%}
+          <li>{{ author }}</li>
+        {%- endfor -%}
+        </ul>
+      </div>
+    </div>
+    {%- endif -%}
+    {%- if record.metadata.publisher -%}
+    <div class="item">
+      <div class="content">
+        <strong>Publisher:</strong> {{ record.metadata.publisher }}
+      </div>
+    </div>
+    {%- endif -%}
+    {%- if record.metadata.published_date -%}
+    <div class="item">
+      <div class="content">
+        <strong>Published:</strong> {{ record.metadata.published_date }}
+      </div>
+    </div>
+    {%- endif -%}
+    {%- if record.metadata.isbn -%}
+    <div class="item">
+      <div class="content">
+        <strong>ISBN:</strong> {{ record.metadata.isbn }}
+      </div>
+    </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{%- if record.metadata.abstract -%}
+<div class="ui segment">
+  <strong>Abstract:</strong>
+  <p>{{ record.metadata.abstract }}</p>
+</div>
+{%- endif -%}
+{%- endblock record_content -%}
+```
+
+For more detail page customization options, see [Record landing page](/customize/model_ui/detail).
+
+### Deposit Form
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
+import React from "react";
+import { Accordion, Form } from "semantic-ui-react";
+import { TextField, RichInputField, DateField, ArrayField } from "@js/oarepo_ui/forms";
+
+export const FormFieldsContainer = (props) => {
+  return (
+    <Accordion fluid className="pr-1 ml-0">
+      <Accordion.Content id="general" activeTitle="General">
+        <Form.Field required>
+          <TextField
+            fieldPath="metadata.title"
+            label="Title"
+            required
+            {...props}
+          />
+        </Form.Field>
+        <Form.Field>
+          <TextField
+            fieldPath="metadata.subtitle"
+            label="Subtitle"
+            {...props}
+          />
+        </Form.Field>
+        <Form.Field>
+          <TextField
+            fieldPath="metadata.isbn"
+            label="ISBN"
+            {...props}
+          />
+        </Form.Field>
+        <Form.Field>
+          <TextField
+            fieldPath="metadata.publisher"
+            label="Publisher"
+            {...props}
+          />
+        </Form.Field>
+        <Form.Field>
+          <DateField
+            fieldPath="metadata.published_date"
+            label="Published date"
+            {...props}
+          />
+        </Form.Field>
+      </Accordion.Content>
+
+      <Accordion.Content id="authors">
+        <Form.Field>
+          <ArrayField
+            fieldPath="metadata.authors"
+            label="Authors"
+            {...props}
+          >
+            <ArrayInput.Item>
+              <TextField fieldPath="" label="Author" required />
+            </ArrayInput.Item>
+          </ArrayField>
+        </Form.Field>
+      </Accordion.Content>
+
+      <Accordion.Content id="abstract">
+        <Form.Field>
+          <RichInputField
+            fieldPath="metadata.abstract"
+            label="Abstract"
+            {...props}
+          />
+        </Form.Field>
+      </Accordion.Content>
+    </Accordion>
+  );
+};
+
+export default FormFieldsContainer;
+```
+
+### Search Result Item
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx"
+import React from "react";
+import PropTypes from "prop-types";
+import _get from "lodash/get";
+import { Item, Label } from "semantic-ui-react";
+import { i18next } from "@translations/i18next";
+
+export const ResultsListItem = ({ result }) => {
+  const title = _get(result, "metadata.title", i18next.t("No title"));
+  const subtitle = _get(result, "metadata.subtitle", "");
+  const authors = _get(result, "metadata.authors", []);
+  const isbn = _get(result, "metadata.isbn", "");
+
+  return (
+    <Item key={result.id}>
+      <Item.Content>
+        <Item.Header as="h2">
+          <a href={result.links.self_html}>{title}</a>
+        </Item.Header>
+        {subtitle && (
+          <Item.Meta>{subtitle}</Item.Meta>
+        )}
+        {authors.length > 0 && (
+          <Item.Description>
+            By {authors.join(", ")}
+          </Item.Description>
+        )}
+        {isbn && (
+          <Item.Extra>
+            <Label>ISBN: {isbn}</Label>
+          </Item.Extra>
+        )}
+      </Item.Content>
+    </Item>
+  );
+};
+
+ResultsListItem.propTypes = {
+  result: PropTypes.object.isRequired,
+};
+
+export default ResultsListItem;
+```
+
+For more search result customization and configuration, see [Search page](/customize/model_ui/search).
+
+## Further Reading
+
+<Cards>
+  <Card
+    title="Record landing page"
+    href="/customize/model_ui/detail"
+  >
+    Detailed record page architecture and available override blocks
+  </Card>
+  <Card
+    title="Deposit form"
+    href="/customize/model_ui/deposit"
+  >
+    Deposit form architecture and configuration
+  </Card>
+  <Card
+    title="Deposit form components"
+    href="/customize/model_ui/deposit_components"
+  >
+    Available form field components reference
+  </Card>
+  <Card
+    title="Search page"
+    href="/customize/model_ui/search"
+  >
+    Search page architecture and configuration
+  </Card>
+  <Card
+    title="Search configuration"
+    href="/customize/model_backend/search"
+  >
+    Backend search customization (facets, mappings, analyzers)
+  </Card>
+  <Card
+    title="Search UI components"
+    href="/customize/model_ui/search_components"
+  >
+    Search UI component reference
+  </Card>
+</Cards>

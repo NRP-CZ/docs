@@ -223,7 +223,9 @@ export default ResultsListItem;
 
 ## Component Overrides
 
-Register your customized components in the search index file:
+Components can be overridden server-side via `UIComponent` (recommended) or client-side in JavaScript. For more on server-side overrides, see [Component Overrides](/customize/repository_ui/js_assets/react/overrides).
+
+**Client-side overrides:**
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/index.js"
 import {
@@ -257,27 +259,38 @@ createSearchAppsInit({ componentOverrides });
 | `{Model}.Search.SearchApp.facets` | Facets panel |
 | `{Model}.Search.SearchApp.searchbar` | Search bar component |
 
-## Optional: Custom Page Templates
+## Optional: Customize Search Page Template
 
-By default, the search page uses the generic `oarepo_ui.pages.Search` template. To add a banner message to your search page:
+The default search page is rendered by `oarepo_ui.pages.Search.jinja`. To customize the page layout or add banners:
 
-```jinja filename="templates/search.html.jinja"
-{%- extends "oarepo_ui/pages/Search.html" %}
+### Step 1: Create a custom template
 
-{%- block page_content %}
-<div class="search-banner">
+Create `/ui/{{model_name}}/templates/semantic-ui/{{model_name}}/templates/pages/SearchPage.jinja`:
+
+```jinja filename="templates/semantic-ui/{{model_name}}/templates/pages/SearchPage.jinja"
+{#def search_app_config, ui_config, ui_resource, ui_links, webpack_entry, extra_context #}
+{%- extends "oarepo_ui/pages/Search.jinja" %}
+
+{%- set title = _("Custom Search") ~ " | " ~ _(ui_config.model_name) %}
+
+{%- block page_body %}
+<div class="search-banner ui info message">
   {{ extra_context.get('search_banner_text', _('Search tips: Use quotes for exact phrases')) }}
 </div>
 {{ super() }}
 {%- endblock %}
 ```
 
-Provide the extra context in your UI resource:
+### Step 2: Register the template
 
-```python
-class YourSearchResourceConfig(UIResourceConfig):
-    extra_template_context = {
-        "search_banner_text": _("Your custom search banner text")
+In your UI resource config, specify the custom template:
+
+```python filename="ui/mymodel/__init__.py"
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    # ... other config ...
+
+    templates = {
+        "search": "mymodel/templates/pages/SearchPage.jinja",
     }
 ```
 
