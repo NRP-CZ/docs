@@ -19,6 +19,12 @@ The nrp-model-copier template provides starter files that you **edit directly** 
 | **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | [Deposit form](/customize/model_ui/deposit) |
 | **Search result** | How records appear in search | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx` | [Search page](/customize/model_ui/search) |
 
+> **Tip:** For JavaScript file changes (deposit form, search result), run the assets watcher in a separate terminal to automatically rebuild on file changes:
+> ```bash
+> ./run.sh cli assets watch
+> ```
+> For more information, see [Run frontend assets builder](/installation/run_instance#run-frontend-assets-builder-optional).
+
 ---
 
 ## 1. Customize Record Detail Page
@@ -90,7 +96,7 @@ Modify the deposit form starter component to match your record's metadata schema
 
 ### Step 1: Edit the starter form component
 
-Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx`:
+Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` and add form fields that match your model's metadata schema:
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
 import React from "react";
@@ -140,15 +146,6 @@ export default FormFieldsContainer;
 ```
 
 For more on deposit form structure, see [Building Your Deposit Form](/customize/model_ui/deposit#building-your-deposit-form).
-
-### Step 2: Rebuild and restart
-
-```bash
-cd ui/{{model_name}}
-npm run build
-cd ../..
-invenio run
-```
 
 ### Step 3: Test the form
 
@@ -223,16 +220,7 @@ export default ResultsListItem;
 
 For more on building your search result item, see [Building Your Search Result Item](/customize/model_ui/search#building-your-search-result-item).
 
-### Step 2: Rebuild and restart
-
-```bash
-cd ui/{{model_name}}
-npm run build
-cd ../..
-invenio run
-```
-
-### Step 3: View search results
+### Step 2: View search results
 
 Visit the search page at `http://127.0.0.1:5000/mymodel`
 
