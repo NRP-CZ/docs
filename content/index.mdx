@@ -50,6 +50,85 @@ For questions, feedback, or contributions related to this documentation or NRP I
 
 We also provide a low-traffic mailing list for notifications about updates to the CESNET Invenio platform and InvenioRDM in general. You are welcome to subscribe at [lists.cesnet.cz](https://lists.cesnet.cz/wws/info/nrp-invenio).
 
+## Release Policy
+
+CESNET provides additional features and customizations on top of the core InvenioRDM software.  
+Starting with version 14, the release, support and versioning policy is defined as follows:
+
+### General Policy
+
+- The official InvenioRDM maintenance policy is defined at:  
+  [InvenioRDM maintenance policy](https://inveniordm.docs.cern.ch/releases/maintenance-policy/)
+
+- CESNET Invenio follows the same maintenance model for NRP Invenio releases.  
+  Each CESNET Invenio release is supported for **at least 18 months** from its release date.
+
+- During the supported period, CESNET provides:
+  - Bug fixes  
+  - Security updates  
+
+  No new features are added, and no breaking changes are introduced.
+
+### CESNET Invenio 14 Release
+
+CESNET Invenio 14 release is planned for July 2026.
+
+### CESNET Invenio 12 Support Policy
+
+Due to substantial architectural and functional changes introduced between CESNET Invenio 12 and CESNET Invenio 14,
+and skipping of CESNET Invenio 13 version, CESNET will provide extended support for CESNET Invenio 12 under the following conditions:
+
+- Support continues **until December 31, 2026**
+- Scope of support is limited to:
+  - Blocker bug fixes  
+  - Security updates  
+
+This extended support applies until December 31, 2026 even in case RDM 12 is no longer
+supported by the upstream InvenioRDM maintainers.
+
+### Development Version
+
+- Users may opt in to the **development version** of CESNET Invenio.
+- The development version:
+  - May include new features  
+  - May introduce breaking changes  
+  - Is not guaranteed to be stable  
+  - Is not covered by the standard support guarantees  
+
+- CESNET executes extensive unit and integration testing to reduce the risk of regressions and defects in the development branch.
+
+- CESNET informs users about the development version through:
+  - Release notes for each new release, highlighting changes and potential impacts  
+  - Regular updates on the mailing list regarding significant changes or issues in the development branch
+
+- Following a model similar to Zenodo, CESNET-owned repositories (such as datarepo and nma)
+  are built on defined tags of the development version.
+
+### Versioning Policy of Packages
+
+- CESNET Invenio versions are aligned with the upstream InvenioRDM versioning.  
+  For example, if the latest InvenioRDM release is `14.x`, the corresponding CESNET Invenio release will be `14.y`,
+  where x and y can differ based on the timing of releases and the inclusion of CESNET-specific features and fixes.
+
+- The top-level package that pins versions of all dependencies is named `oarepo-app`.  
+  This package is released with the same major version as the corresponding InvenioRDM release.
+
+- During development, dev, alpha, and beta releases of `oarepo-app` may be published to allow users to test new features and provide feedback before the final release.  
+  These pre-releases may contain breaking changes and are not guaranteed to be stable.
+
+- The final release of `oarepo-app` is published within a short timeframe after the corresponding InvenioRDM release.  
+  This final release is considered stable and is supported according to the general policy outlined above.
+
+- As CESNET Invenio releases contain patches to the original InvenioRDM codebase, the packages are published both on PyPI and on the public CESNET GitLab package registry.  
+  CESNET provides development scripts that automatically configure access to this registry.
+
+- CESNET libraries follow Semantic Versioning (SemVer):
+  - The **major** version is incremented when breaking changes are introduced.
+  - The **minor** version is incremented when new features are added in a backward-compatible manner.
+  - The **patch** version is incremented when backward-compatible bug fixes are made.
+
+For background information, please see [RDM release management](https://inveniordm.docs.cern.ch/maintenance/operations/release-management)
+
 ## What's Next?
 
 <Cards num={2}>
