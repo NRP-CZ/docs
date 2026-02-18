@@ -12,7 +12,11 @@ The record detail page follows this flow:
 1. **User accesses** a record URL (e.g., `/mymodels/<pid_value>`)
 2. **UI Resource view** (`record_detail`) fetches the record from the service layer
 3. **Resource components** prepare additional context data
-4. **RecordDetail.jinja** component renders the page using base template and model partials
+4. **Page component** renders the page using base template and model partials
+
+<Callout type="info">
+If no custom template is explicitly configured, the system automatically generates a JinjaX page component at runtime that extends the base template and includes your model-specific partials.
+</Callout>
 
 ```mermaid
 graph TD
@@ -21,53 +25,32 @@ graph TD
     SVC -->|record data| VR
     VR -->|lifecycle hooks| RC[Resource Components]
     RC -->|extra_context| VR
-    VR -->|record + context| RJD[RecordDetail.jinja]
-    RJD -->|extends base| RDH[invenio_app_rdm/records/detail.html]
-    RJD -->|includes| BANNERS[model_name/record_detail/banners.html]
-    RJD -->|includes| MAIN[model_name/record_detail/main.html]
+    VR -->|record + context| PC[Page Component]
+    PC -->|configured?| TC{Template Configured?}
+    TC -->|yes| CUST[Custom Component]
+    TC -->|no| AUTO[Auto-generated Component]
+    CUST -->|extends| BASE[oarepo_ui/record_detail.html]
+    AUTO -->|extends| BASE
+    BASE -->|includes| BANNERS[model_name/record_detail/banners.html]
+    BASE -->|includes| MAIN[model_name/record_detail/main.html]
 ```
 
-## RecordDetail.jinja Component
+## Runtime Component Generation
 
-The default record detail component is provided by `oarepo-ui` ([source](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/pages/RecordDetail.jinja)):
+By default, `oarepo-ui` automatically generates a JinjaX page component at runtime when no custom template is explicitly configured. This generated component extends a base template and is cached for subsequent requests.
 
-```jinja filename="oarepo_ui/templates/oarepo_ui/pages/RecordDetail.jinja"
-{#def
-    record,
-    record_ui,
-    files,
-    media_files,
-    permissions,
-    is_preview,
-    include_deleted,
-    is_draft,
-    model,
-    model_name,
-    community,
-    community_ui,
-    user_avatar,
-    record_owner_id,
-    ui_links,
-    extra_context,
-    d,
-#}
+### Base Template
+
+The base template used for runtime generation ([source](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/record_detail.html)):
+
+```jinja filename="oarepo_ui/templates/oarepo_ui/record_detail.html"
 {% extends "invenio_app_rdm/records/detail.html" %}
 
-{%- block page_body %}
-    {%- block page_banners -%}
-        {% include model_name ~ "/record_detail/banners.html" %}
-    {%- endblock page_banners -%}
-
-    {%- block page_main -%}
-        {% include model_name ~ "/record_detail/main.html" %}
-    {%- endblock page_main -%}
-{%- endblock page_body %}
-
 {%- block javascript %}
-    {{ super() }}
-    {% if not embedded %}
-        {{ webpack["record_sharing.js"] }}
-    {% endif %}
+  {{ super() }}
+  {% if not embedded %}
+    {{ webpack["record_sharing.js"] }}
+  {% endif %}
 {%- endblock javascript %}
 ```
 
@@ -75,9 +58,22 @@ The default record detail component is provided by `oarepo-ui` ([source](https:/
 The `embedded` flag toggles certain UI features when the detail page is rendered within another context (e.g., inside a modal or iframe).
 </Callout>
 
-### Component Props
+### Template Map
 
-The component receives these props from the UI resource:
+The system uses an internal `_TEMPLATE_MAP` to resolve base templates for different page types:
+
+| Page Type | Template Path Pattern |
+|-----------|----------------------|
+| `record_detail` | `{model_name}/record_detail.html` |
+| `search` | `{model_name}/record_search.html` |
+| `deposit_edit` | `{model_name}/deposit_edit.html` |
+| `deposit_create` | `{model_name}/deposit_create.html` |
+
+For a model named `mymodel`, the system looks for `{model_name}/record_detail.html` which resolves to `mymodel/record_detail.html`.
+
+### Generated Component Props
+
+When the component is auto-generated, all keys from the `render_kwargs` are declared as props in a `{# def #}` block. These typically include:
 
 | Prop | Description |
 |------|-------------|
@@ -98,6 +94,44 @@ The component receives these props from the UI resource:
 | `ui_links` | UI navigation links |
 | `extra_context` | Additional context from resource components |
 | `d` | Shorthand for record.metadata |
+
+### Template Structure
+
+When using the auto-generated component, the runtime generator extends your model's base template (`{model_name}/record_detail.html`), which is provided by nrp-model-copier. This template includes your model-specific partials and extends `oarepo_ui/record_detail.html`.
+
+For a model named `mymodel`, the structure is:
+
+<FileTree>
+  <FileTree.Folder name="ui/mymodel/templates" defaultOpen>
+    <FileTree.Folder name="semantic-ui" defaultOpen>
+      <FileTree.Folder name="mymodel" defaultOpen>
+        <FileTree.File name="record_detail.html" />
+        <FileTree.Folder name="record_detail" defaultOpen>
+          <FileTree.File name="banners.html" />
+          <FileTree.File name="main.html" />
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+The `record_detail.html` template ([source](https://github.com/oarepo/nrp-model-copier/blob/main/template/ui/%7B%7Bmodel_name%7D%7D/templates/semantic-ui/%7B%7Bmodel_name%7D%7D/record_detail.html)):
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail.html"
+{% extends "oarepo_ui/record_detail.html" %}
+
+{%- block page_banners %}
+  {% include "mymodel/record_detail/banners.html" %}
+{%- endblock page_banners %}
+
+{%- block page_main %}
+  {% include "mymodel/record_detail/main.html" %}
+{%- endblock page_main %}
+
+{%- block record_sidebar %}
+  {% include "mymodel/record_detail/side_bar.html" ignore missing %}
+{%- endblock record_sidebar %}
+```
 
 ### Available Blocks
 
@@ -126,23 +160,6 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
 ```
 
 See [UI Resource Views](/customize/repository_ui/resources) for full details on UI resources.
-
-## Template Structure
-
-The `RecordDetail.jinja` base page component includes model-specific partial templates. For a model named `mymodel`, it would include these template partials:
-
-<FileTree>
-  <FileTree.Folder name="ui/mymodel/templates" defaultOpen>
-    <FileTree.Folder name="semantic-ui" defaultOpen>
-      <FileTree.Folder name="mymodel" defaultOpen>
-        <FileTree.Folder name="record_detail" defaultOpen>
-          <FileTree.File name="banners.html" />
-          <FileTree.File name="main.html" />
-        </FileTree.Folder>
-      </FileTree.Folder>
-    </FileTree.Folder>
-  </FileTree.Folder>
-</FileTree>
 
 ## record_detail/banners.html
 
@@ -346,16 +363,46 @@ Access custom context in any override block:
 
 ## Replacing the Default Landing Page Template
 
-By default, the record detail page uses the generic `oarepo_ui.pages.RecordDetail` template that includes your model-specific `record_detail/banners.html` and `record_detail/main.html` partials.
+There are three ways to customize the record detail page, listed in order of increasing customization:
 
-If you need to replace the entire landing page template with your own model-specific implementation:
+### Option 1: Auto-generated (Default)
 
-### Create a Custom Page Component
+By default, the system automatically generates a JinjaX page component at runtime. No configuration is required. The generated component:
 
-```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/pages/RecordDetail.jinja"
-{#def record, record_ui, files, media_files, permissions, is_preview, include_deleted, is_draft, model_name, community, community_ui, user_avatar, record_owner_id, d, oai_record #}
+- Extends `oarepo_ui/record_detail.html`
+- Declares all `render_kwargs` as props in a `{# def #}` block
+- Includes your model's `record_detail/banners.html` and `record_detail/main.html` partials
+- Is cached in `catalog._generated_components` for performance
 
-{% extends "invenio_app_rdm/records/detail.html" %}
+This is the recommended approach unless you need custom page-level logic.
+
+### Option 2: Custom Page Component
+
+If you need full control over the page structure, create a custom JinjaX component:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail.html"
+{#def
+    record,
+    record_ui,
+    files,
+    media_files,
+    permissions,
+    is_preview,
+    include_deleted,
+    is_draft,
+    model,
+    model_name,
+    community,
+    community_ui,
+    user_avatar,
+    record_owner_id,
+    ui_links,
+    extra_context,
+    d,
+    oai_record,
+#}
+
+{% extends "oarepo_ui/record_detail.html" %}
 
 {# Your custom page structure here #}
 
@@ -372,9 +419,83 @@ Register it in your UI resource config:
 ```python filename="ui/mymodel/__init__.py"
 class MymodelUIResourceConfig(RecordsUIResourceConfig):
     templates = {
-        "record_detail": "mymodel.pages.RecordDetail",
+        "record_detail": "mymodel.RecordDetail",
     }
 ```
+
+<Callout type="info">
+Note the format difference: the configured template name uses dot notation (e.g., `mymodel.RecordDetail`) rather than path notation.
+</Callout>
+
+### Option 3: Model-specific Partials (Recommended for Most Cases)
+
+For most customization needs, you don't need to create a full page component. Instead, override specific blocks in your model's partial templates. The auto-generated component includes these partials, and you only customize what you need.
+
+<FileTree>
+  <FileTree.Folder name="ui/mymodel/templates" defaultOpen>
+    <FileTree.Folder name="semantic-ui" defaultOpen>
+      <FileTree.Folder name="mymodel" defaultOpen>
+        <FileTree.Folder name="record_detail" defaultOpen>
+          <FileTree.File name="banners.html" />
+          <FileTree.File name="main.html" />
+        </FileTree.Folder>
+      </FileTree.Folder>
+    </FileTree.Folder>
+  </FileTree.Folder>
+</FileTree>
+
+This is the most maintainable approach as you only need to customize the specific parts of the UI you want to change, and automatically get updates to the base template.
+
+## How Runtime Component Generation Works
+
+When you don't configure a custom template in `templates["record_detail"]`, the system generates a JinjaX component at runtime using the `generate_page_component()` function.
+
+### The Generation Process
+
+1. **Template resolution**: The system looks up `config.templates["record_detail"]`
+2. **If not configured** and `model_name` + `render_kwargs` are available:
+   - Generates a component named `{model_name}.record_detail`
+   - Creates a `{# def #}` block declaring all `render_kwargs` keys as props
+   - Generates `{% extends "{model_name}/record_detail.html" %}`
+3. **Caching**: The generated component source is stored in `catalog._generated_components`
+4. **Rendering**: Subsequent requests use the cached component
+
+### Generated Component Example
+
+For a model named `mymodel` with standard render kwargs, the runtime generator creates:
+
+```jinja
+{# def
+  record,
+  record_ui,
+  files,
+  media_files,
+  permissions,
+  is_preview,
+  include_deleted,
+  is_draft,
+  model,
+  model_name,
+  community,
+  community_ui,
+  user_avatar,
+  record_owner_id,
+  ui_links,
+  extra_context,
+  d,
+#}
+{% extends "mymodel/record_detail.html" %}
+```
+
+This generated component extends your model's base template (`mymodel/record_detail.html`), which in turn extends `oarepo_ui/record_detail.html` and includes your partials (`banners.html`, `main.html`, `side_bar.html`).
+
+This generated component then looks for and includes:
+- `mymodel/record_detail/banners.html` (via the base template)
+- `mymodel/record_detail/main.html` (via the base template)
+
+### When Generation Fails
+
+If the system cannot generate a component (missing `model_name` or `render_kwargs`), a `KeyError` will be raised.
 
 ## Related Resources
 
