@@ -1,74 +1,76 @@
 import { Badge } from "@/components/badge";
+import { Details } from "nextra/components";
 
 # Migrations & Updates
 
-## oarepo-ui Runtime Template Update
+## 2026-02-18: Model's Page Templates Generation Update
 
-<Badge variant="yellow">oarepo-ui PR #409</Badge>
-<Badge>February 2026</Badge>
+<a href="https://github.com/oarepo/oarepo-ui/pull/409" target="_blank" rel="noopener noreferrer"><Badge variant="yellow">oarepo-ui PR #409</Badge></a>
+<Badge variant="red">oarepo-ui &ge; 5.0</Badge>
+<Badge variant="green">RDM v14</Badge>
 
-### Who needs to act?
+oarepo-ui 5.0+ requires base template files in your model's UI module. The runtime generator produces components that extend your model's base templates, which then extend the oarepo-ui templates. See [Record landing page documentation](/customize/model_ui/detail) for the complete template inheritance flow.
 
-**You are affected if:**
-- Your model was created before February 2026
-- You use default templates (no custom `templates` or `resource_templates` in UI config)
-- You are upgrading oarepo-ui
+| Affected | Not affected |
+|----------|--------------|
+| Model UIs created before 2026-02-18 | Model UIs generated after 2026-02-18 |
+| Using default templates | Custom page templates configured |
+| **oarepo-ui >= 5.0** | older versions |
 
-**You are NOT affected if:**
-- Your model was generated with nrp-model-copier after February 2026
-- You have custom templates configured
+<details>
+<summary>Show migration steps</summary>
 
-### What changed
+Create these 4 files in `ui/mymodel/templates/semantic-ui/mymodel/`:
 
-oarepo-ui's runtime generator now produces JinjaX components that extend your model's base template instead of directly extending `oarepo_ui/*` templates:
+**record_detail.html**
 
-```
-Runtime Generated Component → mymodel/record_detail.html → oarepo_ui/record_detail.html
-```
-
-Base templates now include your partials (`banners.html`, `main.html`, `side_bar.html`).
-
-### Required changes
-
-Create these files in your UI module:
-
-**`ui/mymodel/templates/semantic-ui/mymodel/record_detail.html`**
 ```jinja
 {% extends "oarepo_ui/record_detail.html" %}
-{%- block page_banners %}{% include "mymodel/record_detail/banners.html" %}{%- endblock %}
-{%- block page_main %}{% include "mymodel/record_detail/main.html" %}{%- endblock %}
-{%- block record_sidebar %}{% include "mymodel/record_detail/side_bar.html" ignore missing %}{%- endblock %}
+
+{% block banners %}
+  {% include "mymodel/record_detail/banners.html" %}
+{% endblock banners %}
+
+{% block record_body %}
+  {% include "mymodel/record_detail/main.html" %}
+{% endblock record_body %}
+
+{% block record_sidebar %}
+  {# Uncomment to customize sidebar, or remove block to use oarepo_ui default
+  {#   include "mymodel/record_detail/side_bar.html" #}
+  {{ super() }}
+{% endblock record_sidebar %}
 ```
 
-**`ui/mymodel/templates/semantic-ui/mymodel/record_search.html`**
+**record_search.html**
+
 ```jinja
 {% extends "oarepo_ui/record_search.html" %}
-{%- block javascript %}{{ super() }}{{ webpack["mymodel_search_app.js"] }}{%- endblock %}
 ```
-*Replace `mymodel_search_app.js` with your webpack entry name.*
 
-**`ui/mymodel/templates/semantic-ui/mymodel/deposit_create.html`**
+**deposit_create.html**
+
 ```jinja
 {% extends "oarepo_ui/base_deposit.html" %}
 ```
 
-**`ui/mymodel/templates/semantic-ui/mymodel/deposit_edit.html`**
+**deposit_edit.html**
+
 ```jinja
 {% extends "oarepo_ui/base_deposit.html" %}
 ```
 
-### Verify after migration
+After creating the files:
 
-1. Build assets: `cd ui/mymodel && npm run build`
-2. Test: record detail page, search page, deposit forms
+```bash
+cd ui/mymodel && npm run build
+```
 
-### Common issues
+Common issues:
 
-| Error | Fix |
-|-------|-----|
-| `TemplateNotFound: mymodel/record_detail.html` | Create base template file |
-| Partials not showing | Check `record_detail/banners.html` and `main.html` exist |
-| Search JS errors | Verify webpack entry name matches `webpack.py` |
+- `TemplateNotFound: mymodel/record_detail.html` → Create base template file
+- Partials not showing → Check `record_detail/banners.html` and `main.html` exist
+- Search JS errors → Verify webpack entry name in `webpack.py` matches the bundle name
 
----
+</details>
 
