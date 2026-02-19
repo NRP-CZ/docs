@@ -20,6 +20,21 @@ oarepo-ui 5.0+ requires base template files in your model's UI module. The runti
 <details>
 <summary>Show migration steps</summary>
 
+**Option 1: Use copier recopy (Recommended)**
+
+Run copier from your model directory to get the latest default templates:
+
+```bash
+cd datasets
+copier recopy --skip-tasks
+```
+
+<Callout type="warning">
+Run this from the model directory (e.g., `datasets/`, not the repository root or ui/datasets/). The `.copier-answers.yml` is in the model directory, not under `ui/`.
+</Callout>
+
+**Option 2: Create files manually**
+
 Create these 4 files in `ui/mymodel/templates/semantic-ui/mymodel/`:
 
 **record_detail.html**
@@ -51,16 +66,16 @@ Create these 4 files in `ui/mymodel/templates/semantic-ui/mymodel/`:
 **deposit_create.html**
 
 ```jinja
-{% extends "oarepo_ui/base_deposit.html" %}
+{% extends "oarepo_ui/deposit_create.html" %}
 ```
 
 **deposit_edit.html**
 
 ```jinja
-{% extends "oarepo_ui/base_deposit.html" %}
+{% extends "oarepo_ui/deposit_edit.html" %}
 ```
 
-After creating the files:
+After creating the files (or running copier):
 
 ```bash
 cd ui/mymodel && npm run build

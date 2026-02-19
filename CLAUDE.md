@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an Nextra-based documentation site for NRP-CZ (National Repository Platform - Czech Republic), built with Next.js. It documents the InvenioRDM-based repository platform.
+This is an Nextra 4.6+ documentation site for NRP-CZ (National Repository Platform - Czech Republic), built with Next.js 16. It documents the InvenioRDM-based repository platform for Czech research repositories.
 
 ## Build & Development Commands
 
@@ -24,6 +24,11 @@ pnpm serve
 # Build with search index (runs pagefind automatically via postbuild)
 pnpm build && pnpm serve
 ```
+
+**Build Troubleshooting:**
+- MDX syntax errors (unescaped `{` in tables, unclosed JSX) cause cryptic "Unexpected end of file" errors
+- In tables, escape curly braces: use `model_name` not `{model_name}` or wrap in backticks
+- Mermaid diagrams also fail on `{` characters in node labels
 
 ## Architecture
 
