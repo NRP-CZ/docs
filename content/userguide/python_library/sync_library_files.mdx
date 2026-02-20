@@ -165,10 +165,38 @@ for key, path, description in files_to_upload:
 
 ### Upload with Transfer Type
 
+#### Uploading Large Files with Multipart Transfer
+
+To upload large files, you need to indicate the client to use a multipart transfer type.
+If you do so, the payload will be split into multiple parts and those will be uploaded
+in parallel, which can significantly speed up the upload process as well as make it more
+resilient to network issues.
+
+The source for uploading must be capable of seeking, so it can be split into parts.
+If FileSource or MemorySource is used, this is supported out of the box. If you implement
+your own source, make sure to make it seekable.
+
+```python
+file = client.files.upload(
+    record,
+    key="large-dataset.zip",
+    metadata={"description": "Data from URL"},
+    source=<path>,
+    transfer_type="M"
+)
+```
+
 <Callout type="info" emoji="ℹ️">
-    Some repositories support different transfer types like URL fetch or multipart upload.
-    Check your repository's documentation.
+    As a rule of thumb, use the multipart upload for files larger than 10MB, which should
+    be supported by most repositories. For smaller files, the standard upload method
+    is usually more efficient.
 </Callout>
+
+#### Importing Files from URL
+
+Another example is using a fetch transfer type, which allows the repository to fetch
+the file directly from a URL. This is useful when the file is already hosted somewhere
+and you want to avoid uploading it through your client.
 
 ```python
 # Upload via URL fetch (if supported by repository)
@@ -177,9 +205,15 @@ file = client.files.upload(
     key="remote-data.csv",
     metadata={"description": "Data from URL"},
     source="https://example.com/data.csv",
-    transfer_type="url-fetch"
+    transfer_type="F"
 )
 ```
+
+<Callout type="info" emoji="ℹ️">
+    A repository must be configured to allow users to upload files using this method.
+    Please check with your repository administrator if you want to use this feature.
+</Callout>
+
 
 ## Downloading Files
 
