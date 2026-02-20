@@ -196,15 +196,10 @@ class ArticleUIResource(UIResource):
         return current_oarepo_ui.catalog.render(
             self.get_jinjax_macro(
                 "my_custom_page",  # Uses templates["my_custom_page"] or falls back to macro name
-                render_kwargs=my_context,  # Optional: enables runtime component generation
             ),
             **my_context,
         )
 ```
-
-<Callout type="info">
-**Runtime Component Generation**: When `render_kwargs` is provided and no template is explicitly configured in `templates["my_custom_page"]`, the system can automatically generate a JinjaX component at runtime. The generated component extends the base template and declares props based on the keys in `render_kwargs`. If generation is not possible (e.g., missing `model_name`), a `KeyError` is raised.
-</Callout>
 
 This creates a complete binding:
 

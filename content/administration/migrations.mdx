@@ -1,91 +1,48 @@
-import { Badge } from "@/components/badge";
-import { Details } from "nextra/components";
+import { Callout } from "nextra/components";
+import {
+  MigrationHeader,
+  MigrationAffected,
+  MigrationSteps,
+} from "@/components/migration";
 
 # Migrations & Updates
 
-## 2026-02-18: Model's Page Templates Generation Update
+<MigrationHeader
+  date="2026-02-18"
+  title="oarepo-ui v7.0+ Required Base Templates"
+  prHref="https://github.com/oarepo/oarepo-ui/pull/409"
+  versionBadge="oarepo-ui ≥ 7.0"
+/>
 
-<a href="https://github.com/oarepo/oarepo-ui/pull/409" target="_blank" rel="noopener noreferrer"><Badge variant="yellow">oarepo-ui PR #409</Badge></a>
-<Badge variant="red">oarepo-ui &ge; 5.0</Badge>
-<Badge variant="green">RDM v14</Badge>
+oarepo-ui v7.0+ package requires base template files in your model's UI module. These templates must extend the oarepo-ui base templates. See [Record landing page documentation](/customize/model_ui/detail) for the complete template inheritance flow.
 
-oarepo-ui 5.0+ requires base template files in your model's UI module. The runtime generator produces components that extend your model's base templates, which then extend the oarepo-ui templates. See [Record landing page documentation](/customize/model_ui/detail) for the complete template inheritance flow.
+<MigrationAffected>
 
 | Affected | Not affected |
 |----------|--------------|
 | Model UIs created before 2026-02-18 | Model UIs generated after 2026-02-18 |
 | Using default templates | Custom page templates configured |
-| **oarepo-ui >= 5.0** | older versions |
+| **oarepo-ui >= 7.0** | older versions |
 
-<details>
-<summary>Show migration steps</summary>
+</MigrationAffected>
 
-**Option 1: Use copier recopy (Recommended)**
+<MigrationSteps>
 
-Run copier from your model directory to get the latest default templates:
+**Option 1: Use model update (Recommended)**
+
+Run the model update command from your repository root:
 
 ```bash
-cd datasets
-copier recopy --skip-tasks
+./run.sh model update <model_name>
 ```
-
-<Callout type="warning">
-Run this from the model directory (e.g., `datasets/`, not the repository root or ui/datasets/). The `.copier-answers.yml` is in the model directory, not under `ui/`.
-</Callout>
 
 **Option 2: Create files manually**
 
-Create these 4 files in `ui/mymodel/templates/semantic-ui/mymodel/`:
+If you prefer not to use model update, you can create the required template files manually in `ui/mymodel/templates/semantic-ui/mymodel/`. See the [model copier template](https://github.com/oarepo/nrp-model-copier/tree/main/template/ui/{%7B%7Bmodel_name%7D%7D}/templates/semantic-ui/{%7B%7Bmodel_name%7D%7D}) for the complete list of required files.
 
-**record_detail.html**
-
-```jinja
-{% extends "oarepo_ui/record_detail.html" %}
-
-{% block banners %}
-  {% include "mymodel/record_detail/banners.html" %}
-{% endblock banners %}
-
-{% block record_body %}
-  {% include "mymodel/record_detail/main.html" %}
-{% endblock record_body %}
-
-{% block record_sidebar %}
-  {# Uncomment to customize sidebar, or remove block to use oarepo_ui default
-  {#   include "mymodel/record_detail/side_bar.html" #}
-  {{ super() }}
-{% endblock record_sidebar %}
-```
-
-**record_search.html**
-
-```jinja
-{% extends "oarepo_ui/record_search.html" %}
-```
-
-**deposit_create.html**
-
-```jinja
-{% extends "oarepo_ui/deposit_create.html" %}
-```
-
-**deposit_edit.html**
-
-```jinja
-{% extends "oarepo_ui/deposit_edit.html" %}
-```
-
-After creating the files (or running copier):
-
-```bash
-cd ui/mymodel && npm run build
-```
-
-Common issues:
+**Common issues:**
 
 - `TemplateNotFound: mymodel/record_detail.html` → Create base template file
-- Partials not showing → Check `record_detail/banners.html` and `main.html` exist
-- Search JS errors → Verify webpack entry name in `webpack.py` matches the bundle name
+- Partials not showing → Check that `mymodel/record_detail/main.html` exist
 
-</details>
-
+</MigrationSteps>
