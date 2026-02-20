@@ -16,6 +16,50 @@ For example, a publication repository might need:
 
 Each record model defines its own UI resources that handle these page views, and Model UI customization lets you override the defaults to match your specific needs.
 
+### Page Customization Approaches
+
+There are three ways to customize model pages, from simplest to most complex:
+
+1. **Default page components (default)** — The system uses pre-defined JinjaX page components (`oarepo_ui.pages.*`) that extend the appropriate base template. No configuration required.
+2. **Model-specific partials** — Create partial templates using predictable naming patterns (e.g., `{model_name}/record_detail/main.html`, `{model_name}/record_search/main.html`) to override specific sections while keeping the base layout.
+3. **Custom page components** — Configure the `templates` dictionary in your `RecordsUIResourceConfig` to specify full JinjaX components for complete control over the page structure.
+
+<Callout type="info">
+**Backward compatibility:** Existing configurations using `templates = {...}` continue to work unchanged. The default page component is used when no template is explicitly configured for a given page type.
+</Callout>
+
+## Default Page Components
+
+When a page template is not explicitly configured, the system uses a pre-defined JinjaX page component. These components eliminate the need for boilerplate configuration while still allowing full customization when needed.
+
+### How It Works
+
+The default page component:
+- Declares all context variables in a `{# def #}` block
+- Extends the appropriate base template for the page type
+- Is provided by `oarepo-ui` and maintained as part of the framework
+
+### Page Types and Base Templates
+
+Each page type has a default base template that the page component extends:
+
+| Page Type | Base Template |
+|-----------|---------------|
+| `record_detail` | `{model_name}/record_detail.html` |
+| `search` | `{model_name}/record_search.html` |
+| `deposit_create` | `{model_name}/deposit_create.html` |
+| `deposit_edit` | `{model_name}/deposit_edit.html` |
+| `tombstone` | `tombstone.html` |
+| `not_found` | `not_found.html` |
+
+The base templates follow predictable naming patterns, making it easy to create model-specific overrides by placing templates at the appropriate path in your repository's template folder.
+
+### When to Customize
+
+- **Use default page components** when the default layout and behavior meet your needs
+- **Create model-specific partials** when you need to customize specific sections (main content, sidebars, etc.) while keeping the overall structure
+- **Configure custom components** when you need complete control over the page structure or props
+
 ## Related Concepts
 
 <Callout type="info">

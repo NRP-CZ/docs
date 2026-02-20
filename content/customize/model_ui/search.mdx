@@ -1,4 +1,4 @@
-import { FileTree, Cards, Steps } from "nextra/components";
+import { Callout, FileTree, Cards, Steps } from "nextra/components";
 import { Card } from "@/components/card";
 
 # Search page
@@ -12,7 +12,7 @@ The search page displays a list of records matching user queries. It uses **reac
 ```mermaid
 graph TD
     U[User] -->|GET /mymodel| VR[UI Resource View]
-    VR -->|search_app_config| ST[Search.jinja]
+    VR -->|search_app_config| ST[record_search.html]
     ST -->|embeds JS bundle and data-invenio-search-config| PG[Rendered HTML Page]
     PG -->|mount| RA[React App]
 
@@ -33,7 +33,7 @@ graph TD
     subgraph ServerSide["Server-Side (Python/JinjaX)"]
         VR["UI Resource View<br/>(RecordsUIResource.search)"]
         SAC["search_app_config<br/>(search app configuration)"]
-        SJ["Search.jinja<br/>(oarepo-ui.pages.Search)"]
+        SJ["record_search.html"]
     end
 
     subgraph ClientSide["Client-Side (React)"]
@@ -58,7 +58,7 @@ graph TD
     RL -->|renders each item with| RLI
 ```
 
-Server-side, the **UI Resource View** handles the search page request and provides `search_app_config` containing the search endpoint, facets, sort options, and other configuration. The **Search.jinja** template renders a `<div>` with `data-invenio-search-config` attribute containing this JSON configuration and includes the webpack bundle.
+Server-side, the **UI Resource View** handles the search page request and provides `search_app_config` containing the search endpoint, facets, sort options, and other configuration. The **record_search.html** template renders a `<div>` with `data-invenio-search-config` attribute containing this JSON configuration and includes the webpack bundle.
 
 Client-side, the **Webpack Entry Point** reads the config, uses `parseSearchAppConfigs()` and `createSearchAppsInit()` to mount the **react-searchkit** app, and registers your component overrides (like `ResultsListItem`). The **react-searchkit** library renders **SearchAppLayout** which contains facets (**SearchAppFacets**) and results area (**SearchAppResults**). The results area renders **ResultsList** which loops through search results and renders each with your customized **ResultsListItem** component.
 
@@ -66,7 +66,7 @@ Client-side, the **Webpack Entry Point** reads the config, uses `parseSearchAppC
 
 | File | Location | Purpose |
 |------|----------|---------|
-| **Search template** | `oarepo_ui.pages.Search` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/pages/Search.jinja) | Renders `data-invenio-search-config` and includes webpack bundle |
+| **Search template** | `oarepo_ui.record_search` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/record_search.html) | Renders `data-invenio-search-config` and includes webpack bundle |
 | **Results list item** | `{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx` | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/blob/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/search/ResultsListItem.jsx)) | Your custom component that defines how each result appears |
 | **Search index** | `{{model_name}}/semantic-ui/js/{{model_name}}/search/index.js` | Model-specific | Entry point that registers your component overrides |
 | **Search components** | `oarepo_ui/search` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/search) | Available search UI components |
@@ -122,7 +122,9 @@ For detailed information on how to customize search behavior through oarepo-mode
 
 ### Template Context
 
-The `Search.jinja` template receives these context variables from the UI resource view:
+The search page receives context variables from the UI resource view. If no custom template is configured, the system uses the default page component (`oarepo_ui.pages.RecordSearch`), which extends your model's base `record_search.html` template.
+
+The following context variables are available:
 
 | Variable | Description |
 |----------|-------------|
@@ -133,6 +135,8 @@ The `Search.jinja` template receives these context variables from the UI resourc
 | `ui_links` | UI links |
 | `extra_context` | Additional context from resource components |
 | `webpack_entry` | Webpack entry point for the search app JavaScript |
+
+The default component (`oarepo_ui/pages/RecordSearch.jinja`) declares these variables in a `{# def #}` block and extends your model's base template (`{model_name}/record_search.html`), which is provided by nrp-model-copier and extends `oarepo_ui/record_search.html`.
 
 ## Building Your Search Result Item
 
@@ -261,24 +265,36 @@ createSearchAppsInit({ componentOverrides });
 
 ## Optional: Customize Search Page Template
 
-The default search page is rendered by `oarepo_ui.pages.Search.jinja`. To customize the page layout or add banners:
+By default, the search page uses the default page component (`oarepo_ui.pages.RecordSearch`), which extends your model's base `record_search.html` template. You only need to create a custom template if you want to customize the page layout or add custom content.
 
-### Step 1: Create a custom template
+<Callout type="warning">
+  When you use the `templates` configuration to specify a custom search template, you are **replacing the default JinjaX page component** with your own. Your custom template **must be a valid JinjaX component** with a proper `{# def #}` block declaring all context variables.
+</Callout>
 
-Create `/ui/{{model_name}}/templates/semantic-ui/{{model_name}}/templates/pages/SearchPage.jinja`:
+For the search page, the following context variables must be declared in the `{# def #}` block: `search_app_config`, `ui_config`, `ui_resource`, `ui_links`, `webpack_entry`, and `extra_context`. Without the `{# def #}` block, JinjaX will not recognize these variables and the template will fail to render.
 
-```jinja filename="templates/semantic-ui/{{model_name}}/templates/pages/SearchPage.jinja"
-{#def search_app_config, ui_config, ui_resource, ui_links, webpack_entry, extra_context #}
-{%- extends "oarepo_ui/pages/Search.jinja" %}
+### Step 1: Create the JinjaX page component
 
-{%- set title = _("Custom Search") ~ " | " ~ _(ui_config.model_name) %}
+Add a **search tips banner** that shows only on the first visit:
 
-{%- block page_body %}
-<div class="search-banner ui info message">
-  {{ extra_context.get('search_banner_text', _('Search tips: Use quotes for exact phrases')) }}
-</div>
-{{ super() }}
-{%- endblock %}
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/RecordSearch.jinja"
+{# def search_app_config, extra_context, model_name, ... #}
+{% extends model_name ~ "/record_search.html" %}
+```
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_search.html"
+{% extends "oarepo_ui/record_search.html" %}
+
+{% block page_body %}
+  {# Show tips banner only if no search query #}
+  {% if not search_app_config.get('initialQuery') %}
+  <div class="ui message info">
+    <i class="icon info circle"></i>
+    {{ _("Tip: Use quotes for exact phrases, OR to combine terms") }}
+  </div>
+  {% endif %}
+  {{ super() }}
+{% endblock %}
 ```
 
 ### Step 2: Register the template
@@ -290,9 +306,36 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     # ... other config ...
 
     templates = {
-        "search": "mymodel/templates/pages/SearchPage.jinja",
+        "search": "mymodel.RecordSearch",
     }
 ```
+
+<Callout type="info">
+Note the dot notation: `mymodel.RecordSearch` refers to the JinjaX component at `mymodel/RecordSearch.jinja`.
+</Callout>
+
+<Callout type="warning">
+**JinjaX Component Required:** When using `templates` configuration, you must create a valid **JinjaX page component** (e.g., `mymodel/RecordSearch.jinja`) with a `{# def #}` block declaring all context variables. The component should extend your model's base template. Without the `{# def #}` block, the template will fail to render.
+</Callout>
+
+## Custom JavaScript
+
+Add model-specific JavaScript to the search page without overriding the entire template:
+
+Create `ui/mymodel/templates/semantic-ui/mymodel/record_search/javascript.html`:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_search/javascript.html"
+<script>
+  // Custom search behavior
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Custom search page behavior');
+  });
+</script>
+```
+
+<Callout type="info">
+The base template automatically includes this file if it exists at `{model_name}/record_search/javascript.html`.
+</Callout>
 
 ## Further Reading
 

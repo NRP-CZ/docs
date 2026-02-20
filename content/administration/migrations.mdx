@@ -1,0 +1,48 @@
+import { Callout } from "nextra/components";
+import {
+  MigrationHeader,
+  MigrationAffected,
+  MigrationSteps,
+} from "@/components/migration";
+
+# Migrations & Updates
+
+<MigrationHeader
+  date="2026-02-18"
+  title="oarepo-ui v7.0+ Required Base Templates"
+  prHref="https://github.com/oarepo/oarepo-ui/pull/409"
+  versionBadge="oarepo-ui ≥ 7.0"
+/>
+
+oarepo-ui v7.0+ package requires base template files in your model's UI module. These templates must extend the oarepo-ui base templates. See [Record landing page documentation](/customize/model_ui/detail) for the complete template inheritance flow.
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Model UIs created before 2026-02-18 | Model UIs generated after 2026-02-18 |
+| Using default templates | Custom page templates configured |
+| **oarepo-ui >= 7.0** | older versions |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**Option 1: Use model update (Recommended)**
+
+Run the model update command from your repository root:
+
+```bash
+./run.sh model update <model_name>
+```
+
+**Option 2: Create files manually**
+
+If you prefer not to use model update, you can create the required template files manually in `ui/mymodel/templates/semantic-ui/mymodel/`. See the [model copier template](https://github.com/oarepo/nrp-model-copier/tree/main/template/ui/{%7B%7Bmodel_name%7D%7D}/templates/semantic-ui/{%7B%7Bmodel_name%7D%7D}) for the complete list of required files.
+
+**Common issues:**
+
+- `TemplateNotFound: mymodel/record_detail.html` → Create base template file
+- Partials not showing → Check that `mymodel/record_detail/main.html` exist
+
+</MigrationSteps>
