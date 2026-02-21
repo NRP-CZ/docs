@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "serve": "next serve",
-    "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind"
+    "postbuild": "pagefind --site out && cp -r out/_pagefind public/"
   },
   "repository": {
     "type": "git",
