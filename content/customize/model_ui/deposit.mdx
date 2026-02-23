@@ -15,15 +15,16 @@ When a user accesses the deposit form URL:
 graph TD
     U[User] -->|GET /mymodel/uploads/new| VR[UI Resource View]
     VR -->|fetch initial data and form config| SVC[Service Layer]
-    SVC -->|form config, initial data| VR
-    VR -->|context variables| DF[DepositForm.jinja]
-    DF -->|embeds JS bundle and hidden inputs| PG[Rendered HTML Page]
+    SVC -->|form config initial data| VR
+    VR -->|context variables| GC[Default JinjaX Component]
+    GC -->|extends| BD[mymodel/deposit_create or edit.html]
+    BD -->|embeds JS bundle| PG[Rendered HTML Page]
     PG -->|mount| RA[React App]
-    PG -->|hidden inputs with initial data| RA
-    RA -->|renders form interface| U
+    PG -->|hidden inputs| RA
+    RA -->|renders form| U
     RA -->|submit| API[REST APIs]
     API -->|validation errors| RA
-    API -->|validated data| DB[Database]
+    API -->|validated data| DB[(Database)]
 ```
 
 ### Application Layers
@@ -32,42 +33,35 @@ The deposit form application is organized into server-side and client-side layer
 
 ```mermaid
 graph TD
-    subgraph ServerSide["Server-Side (Python/JinjaX)"]
-        VR["RecordsUIResource.deposit<br/>create/edit()"]
-        RC["UI Resource Components<br/>run_components()"]
-        DJ["DepositForm.jinja<br/>(oarepo-ui)"]
-        BT["Base deposit.html<br/>(invenio-app-rdm)"]
-        FH["deposit/form.html<br/>(oarepo-ui)"]
+    subgraph ServerSide["Server-Side Python/JinjaX"]
+        VR["RecordsUIResource.deposit_{edit|create}"]
+        RC["UI Resource Components"]
+        GC["Default JinjaX Component"]
+        MT["mymodel/deposit_edit|create.html"]
+        BT["oarepo_ui/deposit_edit|create.html"]
+        ID["invenio_app_rdm/records/deposit.html"]
+        FH["deposit/form.html"]
     end
 
-    subgraph ClientSide["Client-Side (React)"]
-        EP["Webpack Entry Point<br/>(model-specific)"]
+    subgraph ClientSide["Client-Side React"]
+        EP["Webpack Entry Point"]
         DFA["DepositFormApp"]
         DB["DepositBootstrap"]
         BFL["BaseFormLayout"]
         FFC["FormFieldsContainer"]
     end
 
-    VR -->|auth and permissions<br/>fetch record data| RC
-    RC -->|form_config and context| DJ
-    DJ -->|extends| BT
-    DJ -->|includes| FH
-    FH -->|hidden inputs and<br/>placeholder div| EP
-    EP -->|mounts React app<br/>parses config| DFA
+    VR -->|auth and permissions| RC
+    RC -->|form_config and context| GC
+    GC -->|extends| MT
+    MT -->|extends| BT
+    BT -->|extends| ID
+    BT -->|includes| FH
+    FH -->|hidden inputs| EP
+    EP -->|mounts React app| DFA
     DFA -->|renders| DB
     DB -->|renders| BFL
-    BFL -->|renders via component override| FFC
-
-    style VR fill:#e1f5fe
-    style RC fill:#e1f5fe
-    style DJ fill:#bbf,stroke:#333,stroke-width:2px
-    style BT fill:#fcf
-    style FH fill:#ffc
-    style EP fill:#fff9c4
-    style DFA fill:#c8e6c9
-    style DB fill:#c8e6c9
-    style BFL fill:#c8e6c9
-    style FFC fill:#ce93d8,stroke:#333,stroke-width:2px
+    BFL -->|renders| FFC
 ```
 
 #### Server-Side Layers
@@ -76,8 +70,9 @@ graph TD
 |-------|-----------|--------|---------|
 | **View** | `RecordsUIResource.deposit_create/edit()` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py) | Handles HTTP request, authenticates user, fetches record/draft data |
 | **Components** | `run_components()` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py) | Executes component hooks to modify `form_config` and add context variables |
-| **Page Template** | `DepositForm.jinja` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/pages/DepositForm.jinja) | JinjaX component that extends base template and includes form content |
-| **Base Template** | `deposit.html` | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm) | Provides page skeleton (CSS, JS, header, footer blocks) |
+| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages) | Pre-defined JinjaX page component with def block |
+| **Model Template** | `model_name/deposit_edit|create.html` | nrp-model-copier | Model-specific template extending oarepo-ui base |
+| **Base Template** | `invenio_app_rdm/records/deposit.html` | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm) | Provides page skeleton (CSS, JS, header, footer blocks) |
 | **Form Content** | `deposit/form.html` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app |
 
 #### Client-Side Layers
@@ -116,7 +111,33 @@ Form field definitions, labels, hints, and validation rules are derived from you
 
 ### Template Context
 
-The `DepositForm.jinja` component receives these context variables from the UI resource view:
+When no custom page template is configured, oarepo-ui uses the default page component (`oarepo_ui.pages.DepositCreate` or `oarepo_ui.pages.DepositEdit`). This component declares all context variables in a `{# def #}` block and extends your model's base template.
+
+For example, the default component for `deposit_create` page:
+
+```jinja
+{# def
+  theme,
+  forms_config,
+  searchbar_config,
+  record,
+  community,
+  community_ui,
+  community_use_jinja_header,
+  files,
+  preselectedCommunity=None,
+  files_locked,
+  extra_context,
+  ui_links,
+  permissions,
+  webpack_entry,
+#}
+{% extends model_name ~ "/deposit_create.html" %}
+```
+
+The default component extends your model's base template (`mymodel/deposit_create.html` or `mymodel/deposit_edit.html`), which is provided by nrp-model-copier and extends `oarepo_ui/base_deposit.html`.
+
+These context variables are available in your templates:
 
 | Variable | Description |
 |----------|-------------|
@@ -545,43 +566,70 @@ const FormFieldsContainerComponent = ({ record }) => {
 
 ## Optional: Custom Page Templates
 
-For most models, the default `DepositForm.jinja` template is sufficient. If you need custom UI elements (banners, extra context variables), create a model-specific template:
+Add a **submission deadline banner** that appears when a deadline is approaching:
 
-```jinja filename="ui/{{model_name}}/templates/semantic-ui/mymodel/pages/DepositForm.jinja"
-{#def
-    theme, forms_config, searchbar_config, record, community, community_ui,
-    community_use_jinja_header, files, preselectedCommunity=None, files_locked,
-    extra_context, ui_links, permissions, webpack_entry
-#}
-{%- extends "invenio_app_rdm/records/deposit.html" -%}
+### Step 1: Create the JinjaX component
 
-{%- block page_body %}
-  {# Add custom banner if configured #}
-  {% if extra_context.get('show_custom_banner') %}
-    <div class="ui message info">
-      {{ extra_context.get('custom_banner_text',
-          _('Important: Review the guidelines before submitting')) }}
-    </div>
-  {% endif %}
-  {%- include "oarepo_ui/deposit/form.html" -%}
-{%- endblock page_body %}
-
-{%- block javascript %}
-    {% include "oarepo_ui/javascript.html" %}
-    {{ webpack[webpack_entry] }}
-{%- endblock %}
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/DepositCreate.jinja"
+{# def record, extra_context, model_name, ... #}
+{% extends model_name ~ "/deposit_create.html" %}
 ```
 
-Register in your UI resource config:
+### Step 2: Create the template
 
-```python
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/deposit_create.html"
+{% extends "oarepo_ui/deposit_create.html" %}
+
+{% block page_body %}
+  {% if extra_context.deadline %}
+  <div class="ui message warning">
+    <i class="icon clock"></i>
+    {{ _("Submission deadline:") }} {{ extra_context.deadline }}
+  </div>
+  {% endif %}
+  {{ super() }}
+{% endblock %}
+```
+
+### Step 2: Register the template
+
+Register in your UI resource config using dot notation:
+
+```python filename="ui/mymodel/__init__.py"
 class MymodelUIResourceConfig(RecordsUIResourceConfig):
     # ...
-    resource_templates = {
-        "deposit_create": "mymodel.pages.DepositForm",
-        "deposit_edit": "mymodel.pages.DepositForm",
+    templates = {
+        "deposit_create": "mymodel.DepositCreate",
+        "deposit_edit": "mymodel.DepositEdit",
     }
 ```
+
+<Callout type="info">
+Note the dot notation: `mymodel.DepositCreate` refers to the JinjaX component at `mymodel/DepositCreate.jinja`.
+</Callout>
+
+<Callout type="warning">
+**JinjaX Component Required:** When using `templates` configuration, you must create a valid **JinjaX page component** (e.g., `mymodel/DepositCreate.jinja`) with a `{# def #}` block declaring all context variables. The component should extend your model's base template. Without the `{# def #}` block, the template will fail to render.
+</Callout>
+
+## Custom JavaScript
+
+Add model-specific JavaScript to the deposit form without overriding the entire template:
+
+Create `ui/mymodel/templates/semantic-ui/mymodel/deposit_create/javascript.html`:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/deposit_create/javascript.html"
+<script>
+  // Custom validation before form submission
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Custom deposit form behavior');
+  });
+</script>
+```
+
+<Callout type="info">
+The base template automatically includes this file if it exists at `{model_name}/deposit_create/javascript.html`.
+</Callout>
 
 ## Optional: Resource Components
 
