@@ -319,6 +319,152 @@ ReactDOM.render(
 
 You typically **don't need to modify** the entry point - just update `FormFieldsContainer.jsx` with your form fields.
 
+### Use the Wizard Form Layout (Optional)
+
+For complex forms with many fields, you can enable a wizard-style layout with vertical tabs. Enable wizard mode by adding the `useWizardForm` prop and providing `sections`:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { DepositFormApp, parseFormAppConfig } from "@js/oarepo_ui/forms";
+import ReactDOM from "react-dom";
+import { OARepoDepositSerializer } from "@js/oarepo_ui/api";
+import FormFieldsContainer from "./FormFieldsContainer";
+import { mySections } from "./sections";
+
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridableIdPrefix = config.overridableIdPrefix;
+
+const componentOverrides = {
+  [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
+};
+
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    {...rest}
+    sections={mySections}
+    recordSerializer={OARepoDepositSerializer}
+    componentOverrides={componentOverrides}
+    useWizardForm  // Enable wizard layout
+  />,
+  rootEl
+);
+```
+
+#### Defining Sections
+
+Create a sections file that defines each tab in the wizard:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+import React from "react";
+import { TextField, CreatibutorsField } from "@js/oarepo_ui/forms";
+import { UppyUploader } from "@js/invenio_rdm_records";
+import { i18next } from "@translations/i18next";
+
+export const mySections = [
+  {
+    key: "basic-information",
+    label: i18next.t("Basic information"),
+    render: ({ record, formConfig }) => (
+      <>
+        <TextField fieldPath="metadata.title" />
+        <TextField fieldPath="metadata.description" />
+      </>
+    ),
+    includesPaths: ["metadata.title", "metadata.description"],
+  },
+  {
+    key: "creators",
+    label: i18next.t("Creators"),
+    render: () => (
+      <CreatibutorsField
+        fieldPath="metadata.creators"
+        schema="creators"
+        autocompleteNames="search"
+      />
+    ),
+    includesPaths: ["metadata.creators"],
+  },
+  {
+    key: "files",
+    label: i18next.t("Files"),
+    render: ({ record, formConfig }) => {
+      const { filesLocked } = formConfig.config;
+      return (
+        <UppyUploader
+          isDraftRecord={!record.is_published}
+          config={formConfig}
+          quota={formConfig.quota}
+          filesLocked={filesLocked}
+        />
+      );
+    },
+    includesPaths: ["files.enabled"],
+  },
+];
+```
+
+**Section object properties:**
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `key` | string | Unique identifier for the section (used in URL as `?tab=key`) |
+| `label` | string | Display label shown in the tab menu |
+| `render` | function | Render function receiving `{ record, formConfig, activeStep, next, back, initialRecord }` |
+| `includesPaths` | string[] | Field paths for error tracking - errors in these fields show indicators on this tab |
+
+#### Using Existing Sections
+
+If you're using a shared library that provides predefined sections (like `ccmm-invenio`), you can import them and extend with your own:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+import { CCMMSections } from "@js/ccmm_invenio/forms";
+import { TextField } from "@js/oarepo_ui/forms";
+import { i18next } from "@translations/i18next";
+
+// Start with the shared sections and add your own at the end
+export const mySections = [
+  ...CCMMSections,
+  {
+    key: "custom-metadata",
+    label: i18next.t("Custom metadata"),
+    render: () => (
+      <>
+        <TextField fieldPath="metadata.custom_field_1" />
+        <TextField fieldPath="metadata.custom_field_2" />
+      </>
+    ),
+    includesPaths: ["metadata.custom_field_1", "metadata.custom_field_2"],
+  },
+];
+```
+
+#### Adding Content to Every Section via Override
+
+To add inputs or content at the bottom of every section (or specific sections), use the Overridable pattern with the section key:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { Overridable } from "react-overridable";
+
+// Override for a specific section
+const BasicInfoExtra = ({ section, activeStep }) => (
+  <div className="ui segment">
+    <p>Additional content for {section.label}</p>
+  </div>
+);
+
+const componentOverrides = {
+  [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
+  // Add content below the "basic-information" section
+  "OarepoUI.TabContent.basic-information": BasicInfoExtra,
+};
+```
+
+The override component receives these props:
+- `section` - The current section object
+- `activeStep` - Current step index
+- `next` - Function to navigate to next step
+- `back` - Function to navigate to previous step
+
 </Steps>
 
 ## useFieldData Helper
