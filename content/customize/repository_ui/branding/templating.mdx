@@ -1,5 +1,5 @@
 import { Difficulty } from "@/components/difficulty";
-import { Callout, FileTree, Cards, Steps, Tabs } from "nextra/components";
+import { Callout, FileTree, Cards, Steps } from "nextra/components";
 
 # Templating <Difficulty level="easy" />
 
@@ -129,18 +129,9 @@ In NRP Invenio repositories, most templates follow this pattern, allowing you to
 
 ### 2. Configure Your Repository to Use the Custom Footer
 
-<Tabs items={["invenio.cfg", "variables"]}>
-  <Tabs.Tab>
-```python copy
+```python filename="invenio.cfg" copy
 THEME_FOOTER_TEMPLATE="custom/myfooter.html"
 ```
-  </Tabs.Tab>
-   <Tabs.Tab>
-```python copy
-INVENIO_THEME_FOOTER_TEMPLATE="custom/myfooter.html"
-```
-  </Tabs.Tab>
-</Tabs>
 </Steps>
 
 This just scratches the surface of what you can achieve with templating in NRP Invenio repositories. For a more in-depth Jinja template development
