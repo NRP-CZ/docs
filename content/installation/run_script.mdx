@@ -1,0 +1,364 @@
+import { Callout } from 'nextra/components'
+import {ToDo} from '@/components/todo'
+
+# The `./run.sh` script
+
+Every NRP repository contains a small stub script called `run.sh`. When invoked, the stub automatically downloads the full runner from the OARepo GitHub repository (if it is not already present locally) and delegates execution to it.
+
+```bash
+❯ ./run.sh
+Usage: run.sh command [options]
+
+Commands:
+
+  install                    Install the repository
+  upgrade                    Upgrade the repository (clean cache and reinstall)
+  services                   Docker services management
+      setup                  Setup docker services
+      start                  Start docker services
+      stop                   Stop docker services
+      destroy                Destroy docker services
+  model                      Record model management
+      create [model-name] [config-file]
+                             Create a new record model (config file is optional)
+      update [model-name] [answers-file]
+                             Update an existing record model (answers file is optional)
+  info                       Show Python version and models information
+  local                      Local package management
+      add <path>             Add a local package to tool.uv.sources
+      remove <name|--all>    Remove a local package or all from tool.uv.sources
+  run                        Run the repository
+      [--no-services]        Do not start docker services
+      [--no-celery]          Do not start background tasks
+  cli [subcommand]           Run the invenio-cli command
+  invenio [subcommand]       Run an invenio command inside the virtual environment
+
+  self-update                Update the runner script to the latest version
+  translations               Manage backend translations
+      init <lang>            Initialize backend translations for the given language
+      extract                Extract backend translations
+      update                 Update backend translations
+      compile                Compile backend translations
+  jstranslations             Manage frontend (JS) translations
+      extract                Extract frontend (JS) translations
+  index                      Index management commands
+      rebuild                Rebuild the search index (drops and recreates)
+  reset                      Perform a full reset of the repository (removes all data and re-installs)
+
+Options:
+  --help                     Show this help message
+```
+
+## How the runner works
+
+The `run.sh` file you commit to your repository is only a stub. On the first run it downloads the actual runner script from
+`https://raw.githubusercontent.com/oarepo/oarepo/main/tools/repository_runner.sh` and saves it locally as `.runner.sh`. Subsequent calls reuse the cached copy.
+
+To update the runner to the latest version, run:
+
+```bash
+❯ ./run.sh self-update
+```
+
+<Callout type="info">
+`.runner.sh` is intentionally excluded from version control. Only `run.sh` (the stub) should be committed.
+</Callout>
+
+---
+
+## `install` — install the repository
+
+```bash
+❯ ./run.sh install
+```
+
+Installs all Python and JavaScript dependencies, collects static files and builds the frontend webpack bundle. Internally it calls `invenio-cli install`.
+
+This step needs to be repeated whenever you:
+
+- add or remove a Python package dependency,
+- add or remove a JavaScript package,
+- change Jinja2 templates or LESS/CSS/JS assets.
+
+<Callout type="info">
+The first installation can take several minutes because all Python packages and Node modules need to be downloaded and compiled.
+</Callout>
+
+---
+
+## `upgrade` — upgrade the repository
+
+```bash
+❯ ./run.sh upgrade
+```
+
+Performs a clean reinstall: removes the `.venv` virtual environment and the `uv.lock` lock file, clears the `uv` package-manager cache, and then runs `install` from scratch. Use this after pulling upstream changes that modify `pyproject.toml` or when installation is broken.
+
+---
+
+## `services` — manage Docker services
+
+The repository depends on a set of containerised services (PostgreSQL database, OpenSearch, Redis cache, RabbitMQ message broker, and an S3-compatible object store). They are managed through `invenio-cli` Docker Compose wrappers.
+
+### `services setup` — initial setup
+
+```bash
+❯ ./run.sh services setup
+```
+
+Starts the service containers for the first time and initialises the database schema, search indices, and fixture data.
+
+Use `--no-demo-data` (short: `-N`) to skip loading sample records as the default demo records might not be usable for your model schema:
+
+```bash
+❯ ./run.sh services setup -N
+```
+
+Use `--force` (short: `-f`) to redo the setup even if services have already been initialised (this will erase all existing data):
+
+```bash
+❯ ./run.sh services setup --force
+```
+
+<Callout type="important">
+If you destroy and recreate the containers, open `.invenio.private` and set `services_setup=False` before running `./run.sh services setup` again.
+</Callout>
+
+### `services start` — start services
+
+```bash
+❯ ./run.sh services start
+```
+
+Starts the service containers without reinitialising them. All existing data is preserved.
+
+### `services stop` — stop services
+
+```bash
+❯ ./run.sh services stop
+```
+
+Stops the running service containers without removing them.
+
+### `services destroy` — destroy services
+
+```bash
+❯ ./run.sh services destroy
+```
+
+Stops and removes the service containers **and all their data**. Use this when you want to start completely fresh.
+
+---
+
+## `run` — run the repository
+
+```bash
+❯ ./run.sh run
+```
+
+Starts the Docker services, a Celery background-task worker, and the Flask/uWSGI development server. Once running, the repository is available at [https://127.0.0.1:5000/](https://127.0.0.1:5000/).
+
+<Callout type="warning">
+Use `127.0.0.1` rather than `localhost` in your browser. Due to Content Security Policy headers the two are not interchangeable.
+</Callout>
+
+Two optional flags let you skip parts of the startup:
+
+| Flag | Effect |
+|------|--------|
+| `--no-services` | Do not start the Docker service containers (useful when they are already running). |
+| `--no-celery` | Do not launch a Celery worker. Only the web server will be started. |
+
+```bash
+# Start only the web server (services and Celery already running elsewhere)
+❯ ./run.sh run --no-services --no-celery
+```
+
+After the initial startup, the first run will create and index all the initial data.
+When this process is complete, you will see messages like the following:
+
+```
+Scheduler: Sending due task indexer
+Task invenio_records_resources.tasks.manage_indexer_queues succeeded
+```
+
+From that moment the repository is fully operational and you can start using it.
+The startup time of subsequent runs will be much shorter as the services are already
+running and the data is indexed.
+
+---
+
+## `model` — manage record models
+
+### `model create` — create a new model
+
+```bash
+❯ ./run.sh model create <model-name> [config-file]
+```
+
+Scaffolds a new record model inside a subdirectory named `<model-name>` using the [Copier](https://copier.readthedocs.io/) template defined by `MODEL_TEMPLATE` (default: `https://github.com/oarepo/nrp-model-copier`, branch `rdm-14`).
+
+When no `config-file` is provided, you are prompted interactively. Supply a YAML answers file to run non-interactively or to reproduce an earlier scaffold:
+
+```bash
+❯ ./run.sh model create equipment equipment-answers.yml
+```
+
+After scaffolding, `install` is run automatically so the new model is immediately available.
+
+### `model update` — update an existing model
+
+```bash
+❯ ./run.sh model update <model-name> [answers-file]
+```
+
+Re-runs the Copier template over an existing model directory to pick up template changes. The `.copier-answers.yml` file inside the model directory is used by default; pass a custom answers file to override it.
+
+Conflicts between your customisations and template changes are marked inline (similar to a `git merge` conflict) so you can resolve them manually.
+
+---
+
+## `translations` — manage backend translations
+
+NRP repositories use [Flask-Babel](https://python-babel.github.io/flask-babel/) for backend (Python/Jinja2) translations.
+
+```bash
+# Initialise a new locale (e.g. Czech)
+❯ ./run.sh translations init cs
+
+# Extract translatable strings from source files into messages.pot
+❯ ./run.sh translations extract
+
+# Merge new strings from messages.pot into existing .po catalogues
+❯ ./run.sh translations update
+
+# Compile .po files into binary .mo files
+❯ ./run.sh translations compile
+```
+
+---
+
+## `jstranslations` — manage frontend translations
+
+```bash
+❯ ./run.sh jstranslations extract
+```
+
+Extracts translatable strings from JavaScript/React source files. The extraction is performed from the `i18n/semantic-ui/translations` directory using `npm run extract_messages`.
+
+---
+
+## `index` — manage the search index
+
+### `index rebuild` — rebuild the search index
+
+```bash
+❯ ./run.sh index rebuild
+```
+
+Destroys the existing OpenSearch indices, recreates them, re-initialises custom fields for both records and communities, and triggers a full reindex.
+
+<Callout type="info">
+Use this command after making changes to the metadata schema, especially if you added new fields.
+Otherwise, the new fields won't be indexed and won't be searchable or sortable.
+</Callout>
+
+<Callout type="important">
+After running this command the actual re-indexing of existing records is performed
+asynchronously by Celery workers. Start the server with `./run.sh run` and wait
+for the workers to finish processing the indexer queue.
+</Callout>
+
+---
+
+## `local` — use local package checkouts
+
+During development you may want to use a locally checked-out version of an upstream package instead of the one from PyPI/GitLab.
+
+```bash
+❯ ./run.sh local add ../oarepo-ui
+```
+
+This calls `uv add --editable` for the package at the given path and registers it in `tool.uv.sources` inside `pyproject.toml`, then reruns `upgrade` so the lock file and virtual environment are updated.
+
+<Callout type="info">
+Removing local sources is not yet automated. To revert, manually remove the entry from `pyproject.toml` and run `./run.sh upgrade`.
+</Callout>
+
+---
+
+## `info` — show repository information
+
+```bash
+❯ ./run.sh info
+```
+
+Prints the detected Python interpreter and lists the record models found in the current directory together with their version numbers.
+
+---
+
+## `cli` — run invenio-cli commands
+
+```bash
+❯ ./run.sh cli <subcommand> [args...]
+```
+
+Delegates directly to [invenio-cli](https://inveniordm.docs.cern.ch/reference/cli/). Useful for commands not covered by the runner's own subcommands, for example:
+
+```bash
+# Check that all installation prerequisites are met
+❯ ./run.sh cli check-requirements -d
+
+# Watch frontend assets and rebuild on change
+❯ ./run.sh cli assets watch
+```
+
+---
+
+## `invenio` — run invenio commands
+
+```bash
+❯ ./run.sh invenio <subcommand> [args...]
+```
+
+Activates the virtual environment and runs the `invenio` management CLI. Use this for operations such as creating users, managing roles, or running database migrations:
+
+```bash
+❯ ./run.sh invenio users create -a -c admin@example.com
+❯ ./run.sh invenio roles create administration
+❯ ./run.sh invenio roles add admin@example.com administration
+```
+
+---
+
+## `reset` — full repository reset
+
+```bash
+❯ ./run.sh reset
+```
+
+Asks for confirmation, then:
+
+1. Destroys the Docker service containers and all their data.
+2. Removes the `.venv` virtual environment and `uv.lock`.
+3. Cleans the `uv` cache.
+4. Runs a fresh `install`.
+5. Runs `services setup -N` to reinitialise services without demo data.
+6. Creates the `administration` role and a demo user `user@demo.org` with password `123456` (override with the `DEMO_USER_PASSWORD` environment variable).
+
+<Callout type="warning">
+This command is **destructive and irreversible**. All records, files, and database content will be lost.
+</Callout>
+
+---
+
+## `self-update` — update the runner script
+
+```bash
+❯ ./run.sh self-update
+```
+
+Downloads the latest version of `repository_runner.sh` from GitHub, verifies it works, and replaces the local `.runner.sh` cache. The `run.sh` stub itself is not modified.
+
+<ToDo/>
+Add commands for local UI development (like watching and recompiling assets).
