@@ -8,4 +8,7 @@ export default {
   "run_instance": {
     "title": "Run a repository"
   },
+  "run_script": {
+    "title": "The run.sh script"
+  },
 }
