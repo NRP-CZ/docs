@@ -7,8 +7,8 @@ Look at the [Getting started](/installation) to check that you have all the prer
 At first clone the repository to your local machine:
 
 ```bash
-❯ git clone <repository-url>
-❯ cd <repository-name>
+git clone <repository-url>
+cd <repository-name>
 ```
 
 ## Check that the basic tooling is running
@@ -16,7 +16,9 @@ At first clone the repository to your local machine:
 The `./run.sh` script is the main entry point for managing the repository. For a full reference of all available commands, see the [run.sh script reference](/installation/run_script).
 
 ```bash
-❯ ./run.sh
+./run.sh
+```
+```bash
 Usage: run.sh command [options]
 
 Commands:
@@ -42,8 +44,9 @@ Options:
 Let's check if all prerequisites are fulfilled. Run the following command in the repository directory:
 
 ```bash
-❯ ./run.sh cli check-requirements -d
-
+./run.sh cli check-requirements -d
+```
+```bash
 Checking pre-requirements...
 Checking Python version...
 Python version OK. Got 3.13.2.
@@ -75,7 +78,7 @@ os.environ["DYLD_FALLBACK_LIBRARY_PATH"]="/opt/homebrew/lib"
 ```
 
 ```bash
-❯ ./run.sh install
+./run.sh install
 ```
 
 <Callout type="info">
@@ -88,7 +91,7 @@ After successful installation, you need to do the initial setup of the database 
 
 ```bash
 # the -N option is to skip adding demo data (in most cases you want that)
-❯ ./run.sh services setup -N
+./run.sh services setup -N
 ```
 
 <Callout type="important">
@@ -100,7 +103,7 @@ If you destroy the containers, please edit the `.invenio.private` and set `servi
 Finally, you can run the repository using the following command:
 
 ```bash
-❯ ./run.sh run
+./run.sh run
 ```
 
 This command will start the background services (database, search engine, etc.), background tasks and the repository itself. At the beginning, pending tasks from the services setup will be processed, so it may take a couple of minutes before the repository is fully operational.
@@ -121,7 +124,7 @@ This is a sign that all background tasks have been processed and the repository 
 In case you want to make changes to the frontend code (LESS, JS, React components), you need to run the frontend assets builder in watch mode. Open another terminal, change to the repository directory and run the following command:
 
 ```bash
-❯ ./run.sh cli assets watch
+./run.sh cli assets watch
 ```
 <Callout type="info">
 This command will watch for changes to the frontend code and automatically rebuild the affected assets when changes are detected.
@@ -132,9 +135,9 @@ This command will watch for changes to the frontend code and automatically rebui
 To add support for administration users, the most scalable way is to create an "administration" group and give it the appropriate permissions. Open another terminal, change to the repository directory and run the following commands:
 
 ```bash
-❯ ./run.sh invenio roles create administration
-❯ ./run.sh invenio access allow administration-access role administration
-❯ ./run.sh invenio access allow administration-moderation role administration
+./run.sh invenio roles create administration
+./run.sh invenio access allow administration-access role administration
+./run.sh invenio access allow administration-moderation role administration
 ```
 
 ## Create an initial/administration user
@@ -142,10 +145,10 @@ To add support for administration users, the most scalable way is to create an "
 To create an initial administrator user, open another terminal, change to the repository directory and run the following command:
 
 ```bash
-❯ ./run.sh invenio users create -a -c admin@test.com
+./run.sh invenio users create -a -c admin@test.com
 
 # add the user to the administration group
-❯ ./run.sh invenio roles add admin@test.com administration
+./run.sh invenio roles add admin@test.com administration
 ```
 
 and login with the created user.

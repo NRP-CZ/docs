@@ -19,8 +19,9 @@ curl -o repository_installer.sh \
 Now run the installer to scaffold a new repository in the current directory:
 
 ```bash
-❯ bash repository_installer.sh instruments
-
+bash repository_installer.sh instruments
+```
+```bash
 Creating repository 'instruments' using template 'https://github.com/oarepo/nrp-app-copier' with version 'rdm-14'...
 Using template from GitHub: https://github.com/oarepo/nrp-app-copier with version rdm-14
 Installed 23 packages in 37ms
@@ -44,8 +45,10 @@ This will create a new directory `instruments` with the repository code.
 ## Change to the repository directory
 
 ```bash
-❯ cd instruments
-❯ ./run.sh
+cd instruments
+./run.sh
+```
+```bash
 Usage: run.sh command [options]
 
 Commands:
@@ -71,7 +74,9 @@ Options:
 Let's verify that all prerequisites are met. Run the following command in the repository directory:
 
 ```bash
-❯ ./run.sh cli check-requirements -d
+./run.sh cli check-requirements -d
+```
+```bash
 
 Checking pre-requirements...
 Checking Python version...
@@ -110,7 +115,9 @@ We recommend starting with either `ccmm` or `rdm full` templates. You can change
 
 
 ```bash
-❯ ./run.sh model create equipment
+./run.sh model create equipment
+```
+```bash
 Using template from GitHub: https://github.com/oarepo/nrp-model-copier with version rdm-14
 🎤 Human-readable name of the model
    Equipment

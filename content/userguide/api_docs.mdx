@@ -1,0 +1,640 @@
+import {Callout} from 'nextra/components'
+import {Difficulty} from '@/components/difficulty'
+import {ToDo} from '@/components/todo'
+
+# REST API <Difficulty level="advanced" />
+
+<Callout type="info" emoji="ℹ️">
+    CESNET Invenio follows the InvenioRDM REST API, with a few differences caused by
+    support for multiple metadata schemas in a single repository.
+</Callout>
+
+## Introspection
+
+<Callout type="info" emoji="ℹ️">
+Differs from RDM
+</Callout>
+To list the metadata schemas and other repository parameters, send a request to
+`GET /.well-known/repository`. The response contains general information about the
+repository, including a URL that describes the available metadata schemas.
+
+## Record manipulation
+
+<Callout type="info" emoji="ℹ️">
+Differs from RDM
+</Callout>
+Because CESNET Invenio supports multiple metadata schemas, you need to use the URLs
+returned by the API. Do not build URLs yourself, except for the initial entry point.
+Most API responses include a `links` section with named links. Use those links in
+your client.
+
+For example, to list files, do not construct `/api/records/<myid>/files`. First fetch
+the record and use the links it returns:
+
+```json
+{
+  "links": {
+      "self_html": "correct url to landing page",
+      "files": "correct url to list or create files"
+  }
+}
+```
+
+### Record creation
+
+To create a record, send an HTTP `POST` request. Unlike InvenioRDM, which creates
+records only with the RDM metadata schema, CESNET Invenio repositories can contain
+multiple models with different metadata schemas. Because of this, the client must
+specify which metadata schema to use.
+
+There are two ways to do this:
+
+#### Use a specialized URL
+
+<Callout type="info" emoji="ℹ️">
+Differs from RDM
+</Callout>
+
+Send the request to `POST /api/<model-name>` instead of `/api/records`. This tells
+the server which model, and therefore which metadata schema, to use. An example"
+
+```
+POST https://workflow-repo.test.du.cesnet.cz/api/datasets
+```
+
+#### Add a `$schema` to the payload
+
+<Callout type="info" emoji="ℹ️">
+Differs from RDM
+</Callout>
+
+You can also send `POST /api/records` with a payload such as:
+
+```json
+{
+  "$schema": "local://model-name-version",
+  "metadata": {
+  }
+}
+```
+
+The `$schema` field tells the server which metadata schema to use.
+
+For the full draft creation API, see the InvenioRDM documentation:
+[Create a draft record](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#create-a-draft-record).
+
+### Get a draft record
+
+Get a draft by sending `GET /api/records/{id}/draft`.
+
+This works as in InvenioRDM. The main difference is that the returned metadata can use
+a different schema than the default RDM schema, depending on the model used when the
+record was created.
+
+Example:
+
+```json
+{
+  "id": "abcde-12345",
+  "links": {
+    "self": "https://example.org/api/mymodel/abcde-12345/draft"
+  },
+  "metadata": {
+    "title": "Example record"
+  }
+}
+```
+
+For more details, see
+[Get a draft record](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#get-a-draft-record).
+
+### Update a draft record
+
+Update a draft by sending a `PUT` request to the URL in `links.self` returned by the
+draft record.
+
+This works as in InvenioRDM. The main difference is that the `metadata` field must
+follow the schema of the selected model, not necessarily the default RDM schema.
+
+Example:
+
+```json
+{
+  "links": {
+    "self": "https://example.org/api/models/abcde-12345/draft"
+  }
+}
+```
+
+Then send:
+
+```
+PUT https://example.org/api/models/abcde-12345/draft
+
+{
+  "metadata": {
+    "title": "Updated example record"
+  }
+}
+```
+
+For more details, see
+[Update a draft record](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#update-a-draft-record).
+
+### Publish a draft record
+
+Publish a draft by sending a `POST` request to the URL in the returned publish link,
+for example `links.publish`.
+
+This works the same as in InvenioRDM. The main difference is again the metadata schema
+used by the draft.
+
+Example:
+
+```json
+{
+  "links": {
+    "self": "https://example.org/api/models/abcde-12345/draft",
+    "publish": "https://example.org/api/models/abcde-12345/draft/actions/publish"
+  }
+}
+```
+
+Then send:
+
+```
+POST https://example.org/api/models/abcde-12345/draft/actions/publish
+```
+
+For more details, see
+[Publish a draft record](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#publish-a-draft-record).
+
+### Edit a published record
+
+Create an editable draft from a published record by sending a `POST` request to the
+draft creation link returned for the published record.
+
+This works as in InvenioRDM. The metadata schema of the new draft stays tied to the
+record model.
+
+Example:
+
+```json
+{
+  "links": {
+    "self": "https://example.org/api/models/abcde-12345",
+    "draft": "https://example.org/api/models/abcde-12345/draft"
+  }
+}
+```
+
+Then send:
+
+```
+POST https://example.org/api/models/abcde-12345/draft
+```
+
+For more details, see
+[Edit a published record](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#edit-a-published-record-create-a-draft-record-from-a-published-record).
+
+### Delete or discard a draft
+
+Delete a draft by sending a `DELETE` request to the draft URL in `links.self`. Do not
+construct the URL yourself.
+
+This works as in InvenioRDM.
+
+Example:
+
+```json
+{
+  "links": {
+    "self": "https://example.org/api/models/abcde-12345/draft"
+  }
+}
+```
+
+Then send:
+
+```
+DELETE https://example.org/api/models/abcde-12345/draft
+```
+
+For more details, see
+[Delete/discard a draft record](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#deletediscard-a-draft-record).
+
+### Get a record
+
+Get a published record by sending `GET /api/records/{id}`.
+
+This works as in InvenioRDM. The main difference is that `metadata` may follow a
+repository-specific schema instead of the standard RDM schema.
+
+Example:
+
+```json
+{
+  "id": "abcde-12345",
+  "links": {
+    "self": "https://example.org/api/mymodel/abcde-12345"
+  },
+  "metadata": {
+    "title": "Published example record"
+  }
+}
+```
+
+For more details, see
+[Get a record](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#get-a-record).
+
+### Search records
+
+Search published records with `GET /api/records`.
+
+This works as in InvenioRDM. The main difference is that search results contain records
+whose `metadata` may use different schemas depending on the model.
+
+Example:
+
+```json
+{
+  "hits": {
+    "hits": [
+      {
+        "id": "abcde-12345",
+        "metadata": {
+          "title": "Published example record"
+        }
+      }
+    ]
+  }
+}
+```
+
+For more details, see
+[Search records](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#search-records).
+
+### Create a new version
+
+Create a new version draft by sending a `POST` request to the URL in `links.versions`
+returned for the record.
+
+This works as in InvenioRDM. The new draft keeps the same model, so its `metadata`
+continues to use that model's schema.
+
+Example:
+
+```json
+{
+  "links": {
+    "self": "https://example.org/api/models/abcde-12345",
+    "versions": "https://example.org/api/models/abcde-12345/versions"
+  }
+}
+```
+
+Then send:
+
+```
+POST https://example.org/api/models/abcde-12345/versions
+```
+
+For more details, see
+[Create a new version](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#create-a-new-version).
+
+### Get all versions
+
+List all versions by sending a `GET` request to the URL in `links.versions` returned
+for the record.
+
+This works as in InvenioRDM.
+
+Example:
+
+```json
+{
+  "links": {
+    "versions": "https://example.org/api/models/abcde-12345/versions"
+  }
+}
+```
+
+Then a request to that URL returns:
+
+```json
+{
+  "hits": {
+    "hits": [
+      {
+        "id": "abcde-12345"
+      }
+    ]
+  }
+}
+```
+
+For more details, see
+[Get all versions](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#get-all-versions).
+
+### Get latest version
+
+Get the latest version by sending a `GET` request to the latest-version link returned
+for the record, typically `links.latest`.
+
+This works as in InvenioRDM. The returned record still uses the metadata schema of its
+model.
+
+Example:
+
+```json
+{
+  "links": {
+    "latest": "https://example.org/api/models/abcde-12345/versions/latest"
+  }
+}
+```
+
+Then a request to that URL returns:
+
+```json
+{
+  "id": "abcde-12345",
+  "metadata": {
+    "title": "Latest published example record"
+  }
+}
+```
+
+For more details, see
+[Get latest version](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#get-latest-version).
+
+## File manipulation
+
+As with record operations, use the file URLs returned by the API. After you fetch a
+draft or published record, use links such as `links.files`, and then follow the file
+entry links returned by that endpoint.
+
+### List draft files
+
+List files attached to a draft by sending a `GET` request to the URL in
+`links.files`.
+
+This works as in InvenioRDM. The main difference is only in how you obtained the draft:
+the draft itself may use a repository-specific metadata schema.
+
+Example:
+
+```json
+{
+  "links": {
+    "files": "https://example.org/api/mymodel/abcde-12345/draft/files"
+  }
+}
+```
+
+Then send:
+
+```
+GET https://example.org/api/mymodel/abcde-12345/draft/files
+```
+
+For more details, see
+[List a draft's files](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#list-a-drafts-files).
+
+### Start draft file upload
+
+Start one or more draft file uploads by sending a `POST` request to the URL in
+`draft.links.files`.
+
+Example:
+
+```json
+{
+  "links": {
+    "files": "https://example.org/api/mymodel/abcde-12345/draft/files"
+  }
+}
+```
+
+Then send:
+
+```
+POST https://example.org/api/mymodel/abcde-12345/draft/files
+
+[
+  {"key": "article.pdf"},
+  {"key": "data.zip"}
+]
+```
+
+The response contains per-file links such as `content`, `self`, and `commit`. Use
+those returned links for the next steps.
+
+For more details, see
+[Start draft file upload(s)](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#start-draft-file-uploads).
+
+### Upload draft file content
+
+Upload file content by sending a `PUT` request to the file's returned `links.content`
+URL.
+
+Example:
+
+```json
+{
+  "key": "article.pdf",
+  "links": {
+    "content": "https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf/content"
+  }
+}
+```
+
+Then send:
+
+```
+PUT https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf/content
+Content-Type: application/octet-stream
+
+<file binary data>
+```
+
+For more details, see
+[Upload a draft file's content](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#upload-a-draft-files-content).
+
+### Complete a draft file upload
+
+Complete the upload by sending a `POST` request to the file's returned `links.commit`
+URL.
+
+Example:
+
+```json
+{
+  "key": "article.pdf",
+  "links": {
+    "commit": "https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf/commit"
+  }
+}
+```
+
+Then send:
+
+```
+POST https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf/commit
+```
+
+For more details, see
+[Complete a draft file upload](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#complete-a-draft-file-upload).
+
+<Callout>
+    CESNET invenio only allows small files (up to 50MB mostly) to be stored using this mechanism. 
+    To store larger files, you need to use a multipart upload mechanism described below.
+</Callout>
+
+### Get draft file metadata
+
+Get metadata for one draft file by sending a `GET` request to the file's returned
+`links.self` URL.
+
+Example:
+
+```json
+{
+  "key": "article.pdf",
+  "links": {
+    "self": "https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf"
+  }
+}
+```
+
+Then send:
+
+```
+GET https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf
+```
+
+For more details, see
+[Get a draft file's metadata](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#get-a-draft-files-metadata).
+
+### Download a draft file
+
+Download a draft file by sending a `GET` request to the file's returned
+`links.content` URL.
+
+Example:
+
+```json
+{
+  "key": "article.pdf",
+  "links": {
+    "content": "https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf/content"
+  }
+}
+```
+
+Then send:
+
+```
+GET https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf/content
+```
+
+For more details, see
+[Download a draft file](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#download-a-draft-file).
+
+### Delete a draft file
+
+Delete a draft file by sending a `DELETE` request to the file's returned `links.self`
+URL.
+
+Example:
+
+```json
+{
+  "key": "article.pdf",
+  "links": {
+    "self": "https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf"
+  }
+}
+```
+
+Then send:
+
+```
+DELETE https://example.org/api/mymodel/abcde-12345/draft/files/article.pdf
+```
+
+For more details, see
+[Delete a draft file](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#delete-a-draft-file).
+
+### List published record files
+
+List files of a published record by sending a `GET` request to `links.files`.
+
+Example:
+
+```json
+{
+  "links": {
+    "files": "https://example.org/api/mymodel/abcde-12345/files"
+  }
+}
+```
+
+Then send:
+
+```
+GET https://example.org/api/mymodel/abcde-12345/files
+```
+
+For more details, see
+[List a record's files](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#list-a-records-files).
+
+### Get published file metadata
+
+Get metadata for a published file by sending a `GET` request to the file's returned
+`links.self` URL.
+
+Example:
+
+```json
+{
+  "key": "article.pdf",
+  "links": {
+    "self": "https://example.org/api/mymodel/abcde-12345/files/article.pdf"
+  }
+}
+```
+
+Then send:
+
+```
+GET https://example.org/api/mymodel/abcde-12345/files/article.pdf
+```
+
+For more details, see
+[Get a record file's metadata](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#get-a-record-files-metadata).
+
+### Download a published file
+
+Download a published file by sending a `GET` request to the file's returned
+`links.content` URL.
+
+Example:
+
+```json
+{
+  "key": "article.pdf",
+  "links": {
+    "content": "https://example.org/api/mymodel/abcde-12345/files/article.pdf/content"
+  }
+}
+```
+
+Then send:
+
+```
+GET https://example.org/api/mymodel/abcde-12345/files/article.pdf/content
+```
+
+For more details, see
+[Download a record file](https://inveniordm.docs.cern.ch/reference/rest_api_drafts_records/#download-a-record-file).
