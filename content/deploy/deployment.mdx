@@ -1,72 +1,166 @@
 # Deployment to NRP Kubernetes Infrastructure
 
+## What this guide is about
+
+This guide explains how to deploy an Invenio-based repository to the Kubernetes
+infrastructure used in the National Repository Platform (NRP), with a focus on the
+deployment process used at CESNET.
+
+If you are new to deployment, the most important thing to know is this:
+
+1. You prepare a deployable version of your repository in GitHub.
+2. You select that version in the CESNET GitLab deployment project.
+3. GitLab builds the container image and deploys it to Kubernetes.
+4. You check logs and basic application health after deployment.
+
+If your repository is not a CESNET Invenio, some details may differ, but the
+overall process will be similar.
+
 ## Terminology
 
-As we will be talking about code repositories (such as github, gitlab, etc.), and
-NRP repository instances (the actual running instances of the dataset repository),
-we will be using the following terms:
+This document uses a few terms that are easy to confuse, so here is what they mean:
 
-* Source code repository - github, gitlab. Will be abbreviated as "github repository"/"gitlab repository"
-* NRP repository - NRP implementation/instance for storing datasets, as running in k8s
-* NRP repository source code - the source code of the NRP repository stored in github/gitlab
+- **Source code repository**  
+  The GitHub or GitLab repository that contains your application source code.
 
-## Introduction
+- **NRP repository**  
+  The running application instance deployed in Kubernetes.
 
-NRP-funded repositories typically run inside the Kubernetes cluster provided by CESNET,
-the Academy of Sciences, or other partners within the National Repository Platform.
+- **NRP repository source code**  
+  The code of your repository application stored in the source code repository.
 
-The following documentation describes the process at CESNET. The details might be
-slightly different if you decide to deploy elsewhere. Note that the text below also
-describes the deployment of an Invenio-based implementation.
+- **Deployment project**  
+  A GitLab project created by CESNET DevOps that contains the deployment
+  configuration for your repository.
 
-## Base Image
+## How deployment works at a high level
 
-The base image on which the NRP repository is built is provided by CESNET and is based
-on the Python 3.14 Debian package. The current version can always be found in
-[GitHub oarepo-images source code repository](https://github.com/oarepo/oarepo-images/blob/main/docker/).
+The deployed application runs as a container image in Kubernetes.
 
-## Building the Image of NRP Repository
+That image is built in layers:
 
-The NRP repository image is built on top of the base image. The NRP repository source code is typically
-stored in a GitHub source code repository. The Dockerfile used to build the image is not contained
-within the repository source code, as we want to be able to upgrade the two independently.
+1. CESNET provides a **base image** for Invenio repositories.
+2. Your repository code is added on top of that base image.
+3. The resulting application image is deployed to the target environment.
 
-For that reason, you can find the Dockerfile [in the oarepo-deployment source code repository](https://github.com/oarepo/oarepo-deployment/tree/rdm-14/docker/production).
+This setup allows CESNET to maintain the shared infrastructure layer while your team
+maintains the repository application itself.
 
-To build the image, you will need to have access to CESNET's gitlab. We use it because
-of it excellent integration with the Kubernetes cluster. CESNET's deployment team will
-create a `deployment project` for your NRP repository. The `deployment project` is a 
-project in gitlab repository containing all the configuration needed to build / deploy 
-your NRP repository.
+## Base image
 
-## Deploying a new instance on test
+The base image used for NRP repositories is provided by CESNET and is currently based
+on Python 3.14 on Debian.
 
-Deployment of a new codebase on test has the following steps:
+You can find the current base image definition in the
+[`oarepo-images` repository](https://github.com/oarepo/oarepo-images/blob/main/docker/).
 
-1. Create a deployment github release
-2. Run the pipeline to deploy the release
+## Where the deployment Dockerfile lives
 
-### Create a deployment github release
+Your repository source code is usually stored in GitHub, but the production
+`Dockerfile` is not kept directly in the repository source code.
 
-The first step is marking your source code to be ready for the deployment. To do so, open your
-github repository, click on releases and then "Draft a new release". The tag of the release
-must look like `deployment/<version>`, for example `deployment/1.0.0a2` or `deployment/1.0.0-feature-blah`.
-The tag must be unique within the history of your source code repository. When this step
-is finished, you will see a created release in your github.
+This is intentional: the deployment image definition and the application code can then
+be updated independently.
 
-#### Initial data
+The production Dockerfile can be found in the
+[`oarepo-deployment` repository](https://github.com/oarepo/oarepo-deployment/tree/rdm-14/docker/production).
 
-Each repository should have a `scripts/release.sh` script which will be called on deployment.
-You can add your own code there to set up any initial data you might need. Test repository
-is always created from scratch and this script called.
+## Access you need
 
-If there is an `scripts/update.sh`, that script will be called to update an existing repository.
+To deploy through CESNET infrastructure, you need access to the CESNET GitLab
+instance.
 
-### Run the pipeline to deploy test
+CESNET DevOps will create a **deployment project** for your repository. This GitLab
+project contains the configuration needed to build and deploy your application.
 
-Log in to the CESNET gitlab server and navigate to the reployment project. In the `code`
-section, navigate to `deployment/invenio/invenio-values.yaml` and set the tag in the image
-section:
+If you do not yet have access, contact CESNET support before continuing.
+
+## Before your first deployment
+
+Before deploying, make sure the following are ready:
+
+- your repository source code is in GitHub
+- CESNET DevOps has created the deployment project
+- you can access the deployment project in CESNET GitLab
+- your repository contains the deployment scripts described below
+- you know which version you want to deploy
+
+## Deployment scripts
+
+Your repository should contain the following scripts:
+
+- `scripts/release.sh`
+- optionally `scripts/update.sh`
+
+### `scripts/release.sh`
+
+This script is intended for deployment-time initialization.
+
+Use it to prepare any initial data your repository needs, for example:
+
+- initial records
+- vocabularies
+- configuration-related setup
+- one-time repository initialization tasks
+
+When deploying to the **test** environment, the repository is created from scratch, so
+`scripts/release.sh` is always executed.
+
+### `scripts/update.sh`
+
+If present, this script is used when updating an existing repository instance.
+
+Use it for upgrade actions that need to happen when a repository already exists, for
+example:
+
+- schema or data migrations
+- updating controlled vocabularies
+- repository upgrade tasks between versions
+
+## Deploying a new version to the test environment
+
+For most day-to-day work, you will first deploy to the **test** environment.
+
+The process has two main steps:
+
+1. create a deployment release in GitHub
+2. run the deployment pipeline in CESNET GitLab
+
+## Step 1: Create a deployment release in GitHub
+
+Start by marking the source code version that should be deployed.
+
+In your GitHub repository:
+
+1. open **Releases**
+2. click **Draft a new release**
+3. create a tag in the format `deployment/<version>`
+
+Examples:
+
+- `deployment/1.0.0a2`
+- `deployment/1.0.0-feature-blah`
+
+### Tag naming rules
+
+- The tag must start with `deployment/`
+- The tag must be unique in the repository history
+- The `<version>` part should clearly identify what you are deploying
+
+After the release is created, that version is ready to be referenced from the
+deployment project.
+
+## Step 2: Select the version in the deployment project
+
+Log in to CESNET GitLab and open your repository's deployment project.
+
+In the project, go to:
+
+`deployment/invenio/invenio-values.yaml`
+
+Find the `image` section and set the image tag to the version you want to deploy.
+
+Example:
 
 ```
 image:
@@ -75,32 +169,202 @@ image:
   tag: 1.0.0-feature-blah
 ```
 
-Save this change and run the pipeline (green arrow at the top of the code window). This
-will build the image and deploy it to k8s.
+In practice, this means you are telling the deployment pipeline which repository
+version should be built and deployed.
 
-### Check the logs
+### Important note about the tag value
 
-In gitlab, navigate to the `Operate/environments` menu, select the test environment.
-There, you can re-start any of the containers as well as have a look at logs.
+The GitHub release tag uses the form:
 
-**Note:** The logs are rotated, if you re-start a container, the previous logs will
-be lost.
+`deployment/1.0.0-feature-blah`
 
-In addition, devops also created a GlitchTip account for you. GlitchTip is a server
-that receives all error messages from the repository and notifies you if something
-goes wrong.
+But in `invenio-values.yaml`, the image tag is set to just:
 
-### Deploy to the stage / production server
+`1.0.0-feature-blah`
 
-Please notify our devops about your wish to deploy to a stage / production server
-at support@cesnet.cz. In case of stage server, the devops will copy the database
-from production server, run the update script (if present) and set up s3 account
-in a way that data from the production server are readonly and a space is allocated
-for new records - so you will not be able to modify files of existing records but
-you'll be able to create new records with files.
+In other words, the `deployment/` prefix is not included in the image tag value.
 
-For production servers, there are two cases:
+## Step 2.5: Temporary step
 
-1. No migration required - devops will run the rolling update to upgrade the server without any outage. upgrade script is not called
-2. Migration required - the database of the server is at first backed up, the upgrade script called and repository access is restored. Please note that
-this kind of upgrade means a couple of minutes of outage.
+The image build is temporarily in github.com/oarepo/oarepo-deployment. This step
+will be removed in the near future.
+
+## Step 3: Run the deployment pipeline
+
+After updating `invenio-values.yaml`, save the change and run the pipeline in GitLab.
+
+You can usually do this from the project interface using the green run button near the
+top of the page.
+
+The pipeline will then:
+
+1. build the application image
+2. push it to the container registry
+3. deploy it to Kubernetes
+
+## Step 4: Verify the deployment
+
+After the pipeline finishes, do not assume everything is working immediately. Always
+check the deployed application.
+
+At minimum, verify that:
+
+- the application starts successfully
+- the web interface loads
+- background workers are running
+- search works
+- records can be viewed
+- file upload and download work, if applicable
+- no obvious errors appear in the logs
+
+## Viewing logs in GitLab
+
+To inspect logs in GitLab:
+
+1. open **Operate**
+2. open **Environments**
+3. select the **test** environment
+
+There you can usually:
+
+- inspect logs for running containers
+- restart containers if needed
+
+### Log retention note
+
+Logs are rotated. If you restart a container, older logs may no longer be available.
+
+Because of that, it is a good idea to inspect and save relevant error information before
+restarting anything.
+
+## Error monitoring with GlitchTip
+
+CESNET DevOps also provides access to **GlitchTip**.
+
+GlitchTip collects application errors and notifies you when something goes wrong. It is
+useful for catching issues that may not be obvious from a quick UI check.
+
+After deployment, review GlitchTip for any new errors related to:
+
+- application startup
+- background tasks
+- API failures
+- broken pages
+- permission problems
+- storage issues
+
+GlitchTip will also notify you if there are any problems in stage/production deployments.
+
+## Deploying to stage or production
+
+Deployment to **stage** or **production** is handled with help from CESNET DevOps.
+
+If you want to deploy to either environment, contact:
+
+[support@cesnet.cz](mailto:support@cesnet.cz)
+
+It is a good idea to include:
+
+- the repository name
+- the version you want to deploy
+- whether this is a stage or production deployment
+- whether the release includes a migration or special upgrade steps
+- any expected downtime or risks you are aware of
+- contact phone for case of problems
+
+Note that CESNET devops might contact you/require your presence via zoom
+if needed.
+
+## Stage environment
+
+The **stage** environment is used to test a production-like deployment before going
+live.
+
+For stage deployments, DevOps will typically:
+
+- copy the production database
+- run the upgrade script, if present
+- configure S3 storage so that production data is available in read-only mode
+- allocate separate space for newly created records
+
+### What this means in practice
+
+In stage:
+
+- you can test the application against production-like data
+- you cannot modify files belonging to existing production records
+- you can create new records and upload files for those new records
+
+This makes stage useful for realistic testing without risking production data.
+
+## Production environment
+
+Production deployments fall into two categories.
+
+### 1. No migration required
+
+If the new version does not require database or repository migration, DevOps can perform
+a **rolling update**.
+
+In this case:
+
+- the application is upgraded without expected downtime
+- the upgrade script is not called
+
+This is the simplest and safest production deployment scenario.
+
+### 2. Migration required
+
+If the new version requires a migration, DevOps will perform a more careful deployment.
+
+Typically, this means:
+
+1. backing up the production database
+2. running the required update steps
+3. restoring repository access after the update is complete
+
+In this case, a short outage of several minutes should be expected.
+
+## Recommended deployment checklist
+
+If you are new to the process, use this checklist every time.
+
+### Before deployment
+
+- confirm the code to deploy is merged and ready
+- confirm the release tag is correct
+- confirm deployment scripts are present and up to date
+- confirm the target environment is correct
+- confirm whether the release requires migration
+
+### After deployment to test
+
+- open the repository UI
+- sign in, if authentication is enabled
+- create or edit a test record if appropriate
+- check search and record detail pages
+- test file upload and download
+- inspect logs
+- inspect GlitchTip
+
+### Before asking for production deployment
+
+- confirm the test deployment works as expected
+- confirm any upgrade or migration steps are understood
+- confirm the version to be deployed
+- communicate any risks to DevOps
+- always deploy to stage first
+
+## Summary
+
+The deployment workflow is:
+
+1. create a GitHub release tagged as `deployment/<version>`
+2. update `deployment/invenio/invenio-values.yaml` in the CESNET GitLab deployment project
+3. set the image tag to the version being deployed
+4. run the GitLab pipeline
+5. check logs and GlitchTip
+6. contact DevOps for stage or production deployment
+
+If you are unsure at any point, start with the test environment first and verify the
+deployment there before requesting a stage or production rollout.
