@@ -1,0 +1,1826 @@
+### Install NRP Command-Line Tool
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library
+
+Installs the 'nrp-cmd' package, which includes the NRP Python client library and a CLI application for interactive use.
+
+```bash
+pip install nrp-cmd
+```
+
+--------------------------------
+
+### Verify Prerequisites for CESNET Invenio Repository
+
+Source: https://nrp-cz.github.io/docs/installation
+
+This snippet demonstrates how to verify the installation of all necessary prerequisites for the CESNET Invenio repository. It includes commands to check versions of uname, Python, Node.js, pnpm, Docker, Docker Compose, Git, uv, and Bash. Ensure all listed tools are installed and meet the version requirements.
+
+```shell
+❯ uname -a
+Darwin MacBookPro.localdomain 25.0.0 Darwin Kernel Version 25.0.0
+
+❯ python --version
+Python 3.13.2
+
+❯ node --version
+v20.9.0
+
+❯ pnpm --version
+10.19.0
+
+❯ docker run hello-world
+Hello from Docker!
+
+❯ docker-compose --version
+Docker Compose version v2.39.2
+
+❯ git --version
+git version 2.50.1
+
+❯ uv --version
+uv 0.8.18
+
+❯ bash --version
+5.3.3
+```
+
+--------------------------------
+
+### NRP Commandline Tool Examples
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Demonstrates common operations using the NRP commandline tool, including adding repositories, creating and publishing records with files and metadata, and performing bulk record operations like scanning, downloading, and updating.
+
+```bash
+# add a repository, will ask for token
+nrp-cmd add repository https://data.narodni-repozitar.cz/ catchall --default
+
+# create a new record and upload file to it. Store the record url to variable rec
+nrp-cmd create record --community brno \
+        '{"title": "My Record"}' \
+        /tmp/myfile.txt '{"title":"My file"}' --set rec
+
+# or with metadata in file
+nrp-cmd create record --community brno \
+        metadata.json \
+        /tmp/myfile.txt /tmp/myfile-metadata.json --set rec
+
+# publish the record
+nrp-cmd publish record @rec
+
+# get all records with publisher being 'myorg'
+nrp-cmd scan records "metadata.publisher:myorg" --set ids
+
+# download them together with files to the current directory as a backup
+nrp-cmd download record @ids
+
+# After carefully inspecting them, 
+# change the publisher to 'myorg2' inside all the records
+nrp-cmd update record @ids --path metadata.publisher myorg2
+```
+
+--------------------------------
+
+### Install Repository Dependencies
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+Installs all required Python and NPM dependencies for the repository. It also collects and builds frontend assets. This command can take a significant amount of time on the first run.
+
+```bash
+#!/bin/bash
+
+# Install backend and frontend dependencies
+./run.sh install
+```
+
+--------------------------------
+
+### Download and Run OARepo Repository Installer
+
+Source: https://nrp-cz.github.io/docs/installation/create_instance
+
+Downloads the repository installer script from the OARepo GitHub repository and executes it to scaffold a new project directory. The installer prompts for repository details such as name, description, and language configuration.
+
+```bash
+curl -o repository_installer.sh https://raw.githubusercontent.com/oarepo/oarepo/refs/heads/main/tools/repository_installer.sh
+bash repository_installer.sh instruments
+```
+
+--------------------------------
+
+### Initialize i18next Configuration
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Setup script for i18next in a React environment, including language detection and resource initialization.
+
+```javascript
+import i18n from "i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import { translations } from "./messages";
+import { initReactI18next } from "react-i18next";
+ 
+const options = {
+  fallbackLng: "en",
+  returnEmptyString: false,
+  debug: process.env.NODE_ENV === "development",
+  resources: translations,
+  keySeparator: false,
+  nsSeparator: false,
+  detection: {
+    order: ["htmlTag"],
+    caches: [],
+  },
+  react: {
+    transKeepBasicHtmlNodesFor: [],
+  },
+};
+ 
+const i18next = i18n.createInstance();
+i18next.use(LanguageDetector).use(initReactI18next).init(options);
+ 
+export { i18next };
+```
+
+--------------------------------
+
+### Jinja Page Composition Example
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/templating
+
+A comprehensive example demonstrating how Jinja's inheritance, includes, and macros can be combined to construct a complete page, integrating reusable components and extending base layouts.
+
+```jinja
+{# records/detail.html #}
+{% extends "invenio_theme/page.html" %}
+ 
+{% from "macros/records.html" import record_card, metadata_table %}
+ 
+{% block page_content %}
+  {% include "components/breadcrumbs.html" %}
+  <div class="ui container">
+    {{ record_card(record, show_metadata=true) }}
+  </div>
+{% endblock %}
+```
+
+--------------------------------
+
+### Complete Workflow Examples
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_requests
+
+End-to-end examples showing how to programmatically request publication or metadata edits for records, including checking for applicable request types.
+
+```python
+async def publish_with_approval(record):
+    request_types = await client.requests.applicable_requests(record)
+    # Logic to create and submit request
+    request = await client.requests.create(publish_type, payload={}, submit=True)
+    return request
+```
+
+--------------------------------
+
+### List requests on a record
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Commands and example output for listing and inspecting requests associated with a specific record.
+
+```bash
+nrp-cmd list requests <pid>
+```
+
+```yaml
+documents_publish_draft:
+  type_id: documents_publish_draft
+  links:
+    actions:
+      create: https://127.0.0.1:5000/api/docs/b465x-wz855/draft/requests/documents_publish_draft
+  requests:
+  - id: 0c224d67-f8a1-4a51-bf15-a75bfd53ceb2
+    created: '2024-03-16T16:36:42.538694+00:00'
+    updated: '2024-03-16T16:36:42.545675+00:00'
+    links:
+      actions:
+        submit: https://127.0.0.1:5000/api/requests/0c224d67-f8a1-4a51-bf15-a75bfd53ceb2/actions/submit
+      self: https://127.0.0.1:5000/api/requests/extended/0c224d67-f8a1-4a51-bf15-a75bfd53ceb2
+      comments: https://127.0.0.1:5000/api/requests/extended/0c224d67-f8a1-4a51-bf15-a75bfd53ceb2/comments
+      timeline: https://127.0.0.1:5000/api/requests/extended/0c224d67-f8a1-4a51-bf15-a75bfd53ceb2/timeline
+    revision_id: 2
+    type: documents_publish_draft
+    title: ''
+    number: '2'
+    status: created
+    is_closed: false
+    is_open: false
+    expires_at: null
+    is_expired: false
+    created_by:
+      user: '1'
+    receiver:
+      group: curator
+    topic:
+      documents_draft: b465x-wz855
+```
+
+--------------------------------
+
+### Install NRP Commandline Tool with pip and virtualenv
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Instructions for installing the NRP commandline tool using Python's pip and a virtual environment. It includes steps to create the environment, activate it, and install the package.
+
+```bash
+python3 -m venv nrp-cmd
+source nrp-cmd/bin/activate
+pip install nrp-cmd
+```
+
+--------------------------------
+
+### Configure Redux Store and Slices with Redux Toolkit
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/js_assets/react/state_management
+
+Demonstrates the setup of a Redux store and a feature slice using Redux Toolkit. It includes an example of how to dispatch actions and select state within a functional React component.
+
+```javascript
+import { configureStore, createSlice } from "@reduxjs/toolkit";
+import { Provider, useSelector, useDispatch } from "react-redux";
+
+// Create a slice
+const searchSlice = createSlice({
+  name: "search",
+  initialState: { query: "", results: [] },
+  reducers: {
+    setQuery: (state, action) => {
+      state.query = action.payload;
+    },
+  },
+});
+
+// Configure store
+const store = configureStore({
+  reducer: {
+    search: searchSlice.reducer,
+  },
+});
+
+// Use in components
+export const SearchComponent = () => {
+  const query = useSelector((state) => state.search.query);
+  const dispatch = useDispatch();
+
+  return (
+    <input
+      value={query}
+      onChange={(e) => dispatch(searchSlice.actions.setQuery(e.target.value))}
+    />
+  );
+};
+```
+
+--------------------------------
+
+### Create a Record using Synchronous Python Client
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library
+
+Demonstrates how to use the synchronous NRP Python client to connect to a repository and create a new research data record. Requires the 'nrp-cmd' library to be installed.
+
+```python
+from nrp_cmd.sync_client import get_sync_client
+
+# Connect to a repository
+client = get_sync_client("https://your-repository.org")
+
+# Create a new record
+record = client.records.create({
+    "metadata": {
+        "title": "My Research Data",
+        "creators": [{"name": "John Doe"}],
+        "resource_type": {"id": "dataset"}
+    }
+})
+
+print(f"Created record: {record.id}")
+```
+
+--------------------------------
+
+### Complete Request Lifecycle Example
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/sync_library_requests
+
+Illustrates the complete lifecycle of a request, from creating a draft record to submitting a publish request and monitoring its status. This example requires appropriate permissions to execute.
+
+```python
+def complete_request_lifecycle():
+    """Demonstrate complete request lifecycle."""
+    # 1. Create draft record
+    draft = client.records.create({
+        "metadata": {
+            "title": "Request Lifecycle Demo",
+            "creators": [{"person_or_org": {"name": "Demo User"}}],
+            "resource_type": {"id": "dataset"}
+        }
+    })
+    print(f"✓ Created draft: {draft.id}")
+    
+    # 2. Check applicable requests
+    request_types = client.requests.applicable_requests(draft)
+    print(f"✓ Available request types: {len(request_types.hits)}")
+    
+    # 3. Create publish request
+    publish_type = next(
+        rt for rt in request_types.hits 
+        if rt.type_id == "publish_draft"
+    )
+    request = client.requests.create(
+        publish_type,
+        payload={"message": "Ready for publication"}
+    )
+    print(f"✓ Created request: {request.id} (status: {request.status})")
+    
+    # 4. Submit request
+    submitted = client.requests.submit(request)
+    print(f"✓ Submitted request (status: {submitted.status})")
+    
+    # 5. List requests for this record
+    record_requests = client.requests.all(topic=draft)
+    print(f"✓ Record has {len(record_requests.hits.hits)} request(s)")
+    
+    # 6. Curator accepts (if you have permission)
+    # accepted = client.requests.accept(submitted)
+    # print(f"✓ Accepted request (status: {accepted.status})")
+    
+    return request
+ 
+# Run the demo
+request = complete_request_lifecycle()
+```
+
+--------------------------------
+
+### Run the Repository
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+Starts the repository, including background services like the database and search engine, as well as background tasks. The repository is operational once pending tasks are processed.
+
+```bash
+#!/bin/bash
+
+# Start the repository and its services
+./run.sh run
+```
+
+--------------------------------
+
+### Set Up Services and Database
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+Performs the initial setup for the database and other required services. The '-N' option skips adding demo data. If containers are destroyed, '.invenio.private' may need adjustment.
+
+```bash
+#!/bin/bash
+
+# Set up services and database, skipping demo data
+./run.sh services setup -N
+```
+
+--------------------------------
+
+### Create Bash Alias for NRP Commandline Tool
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Provides examples of how to create a bash alias for the `nrp-cmd` tool in `.bashrc` or `.zshrc` files for easier access. It shows aliases for both a direct path and using `uvx`.
+
+```bash
+alias nrp-cmd="<path-to-nrp-cmd>/bin/nrp-cmd"
+# or
+alias nrp-cmd="uvx nrp-cmd"
+```
+
+--------------------------------
+
+### Import i18next Instance in React
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Example of importing the configured i18next instance into a React component using the defined webpack alias.
+
+```javascript
+import i18next from "@translations/my_module/i18next";
+```
+
+--------------------------------
+
+### Create Records with Various Configurations
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Demonstrates different methods for creating records, including basic metadata, community-scoped creation, workflow integration, model specification, and cloning from existing records.
+
+```python
+# Basic Record Creation
+record = await client.records.create({
+    "metadata": {
+        "title": "My Research Data",
+        "creators": [{"person_or_org": {"type": "personal", "family_name": "Doe", "given_name": "John"}}],
+        "resource_type": {"id": "dataset"},
+        "publication_date": "2024-01-15"
+    }
+})
+
+# Create in a Community
+record = await client.records.create(
+    {"metadata": {"title": "Community Research", "creators": [{"person_or_org": {"name": "Jane Smith"}}], "resource_type": {"id": "publication"}}},
+    community="my-community-slug"
+)
+
+# Create with Workflow
+record = await client.records.create(
+    {"metadata": {"title": "Workflow Test", "creators": [{"person_or_org": {"name": "Test User"}}], "resource_type": {"id": "dataset"}}},
+    community="my-community",
+    workflow="review"
+)
+
+# Create with Specific Model
+datasets_client = client.records.with_model("datasets")
+record = await datasets_client.create({
+    "metadata": {"title": "Dataset Record", "creators": [{"person_or_org": {"name": "Researcher"}}]}
+})
+
+# Create Without Files
+record = await client.records.create(
+    {"metadata": {"title": "Metadata Only", "creators": [{"person_or_org": {"name": "Author"}}], "resource_type": {"id": "other"}}},
+    files_enabled=False
+)
+
+# Create from Existing Data
+existing = await client.records.read("abc-123")
+new_record = await client.records.create({
+    "metadata": existing.metadata
+})
+```
+
+--------------------------------
+
+### Define Unextractable Strings in JinjaX
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Example of a jinjax_messages.jinja file used to collect strings that automated Babel extractors cannot detect.
+
+```jinja
+{{ _("Dataset") }}
+{{ _("Add new item") }}
+{{ _("Advanced search") }}
+```
+
+--------------------------------
+
+### Compile Translation Files
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Command to compile .po translation files into .mo files for runtime usage.
+
+```bash
+./run.sh cli translations compile
+```
+
+--------------------------------
+
+### Clone and Navigate Repository
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+Clones a Git repository to the local machine and changes the directory to the repository's root. This is the initial step before running any setup or build commands.
+
+```bash
+#!/bin/bash
+
+# Clone the repository
+git clone <repository-url>
+
+# Navigate into the repository directory
+cd <repository-name>
+```
+
+--------------------------------
+
+### Watch Frontend Assets
+
+Source: https://nrp-cz.github.io/docs/customize/model_ui/tutorial
+
+Starts a watcher process to automatically rebuild frontend assets upon file changes. This is essential for seeing JavaScript modifications in real-time.
+
+```bash
+./run.sh cli assets watch
+
+```
+
+--------------------------------
+
+### Initialize Async Records Client
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Establishes a connection to the NRP repository using the asynchronous client library to access the records interface.
+
+```python
+from nrp_cmd.async_client import get_async_client
+
+client = await get_async_client("https://your-repository.org")
+records_client = client.records
+```
+
+--------------------------------
+
+### Check Repository Requirements
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+Verifies that all necessary system prerequisites for the repository are installed and correctly configured. It checks versions of Python, Pipenv, Docker, Node, NPM, ImageMagick, and Git.
+
+```bash
+#!/bin/bash
+
+# Check all prerequisites for the repository
+./run.sh cli check-requirements -d
+```
+
+--------------------------------
+
+### Get Async Client
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library
+
+Gets an asynchronous client for a repository.
+
+```APIDOC
+## Get Async Client
+
+### Description
+Gets an asynchronous client for a repository.
+
+### Method
+GET
+
+### Endpoint
+`/`
+
+### Parameters
+#### Query Parameters
+- **repository** (string) - Required - The name of the repository.
+- **refresh** (boolean) - Optional - Whether to refresh the client.
+- **config** (object) - Optional - Configuration for the client.
+
+### Response
+#### Success Response (200)
+- **client** (AsyncClient) - The asynchronous client instance.
+
+#### Response Example
+```json
+{
+  "client": "<async_client_instance>"
+}
+```
+```
+
+--------------------------------
+
+### Manage Translation Catalogs via NPM Scripts
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Configuration for package.json scripts to automate the extraction, compilation, and initialization of translation catalogs.
+
+```json
+{
+  "scripts": {
+    "extract_messages": "i18next-scanner --config i18next-scanner.config.js '../../js/**/**/*.{js,jsx}' '!../../js/**/node_modules/**'",
+    "postextract_messages": "node ./scripts/postExtractMessages.js",
+    "compile_catalog": "node ./scripts/compileCatalog.js",
+    "init_catalog": "node ./scripts/initCatalog"
+  }
+}
+```
+
+```bash
+cd ui/mymodule/translations/my_module
+npm run extract_messages
+npm run init_catalog
+```
+
+--------------------------------
+
+### Implement Localizable Strings in Python
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+How to import and use gettext utilities to mark strings for translation within Python code.
+
+```python
+from flask_babel import gettext as _
+# or
+from flask_babel import lazy_gettext as _
+
+title = _("Datasets")
+description = _("Create, publish, and manage datasets.")
+```
+
+--------------------------------
+
+### Create and Publish Draft Record
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+This snippet demonstrates how to create a draft record with specified metadata and then publish it. It uses the `client.records.create` method to initialize the draft and `client.records.publish` to make it live. The output is the URL of the published record.
+
+```python
+draft = await client.records.create({
+    "metadata": {
+        "title": "Ready to Publish",
+        "creators": [{"person_or_org": {"name": "Author"}}],
+        "resource_type": {"id": "dataset"}
+    }
+})
+
+# Publish the draft
+published = await client.records.publish(draft)
+print(f"Published URL: {published.links.self_html}")
+```
+
+--------------------------------
+
+### GET /records/{id}
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Retrieves a record by its ID or URL. Supports reading draft or published versions and applying model-specific filters.
+
+```APIDOC
+## GET /records/{id}
+
+### Description
+Reads a specific record from the repository. Can be used to fetch draft or published versions.
+
+### Method
+GET
+
+### Endpoint
+/records/{id}
+
+### Parameters
+#### Path Parameters
+- **id** (string) - Required - The unique identifier or full URL of the record.
+
+#### Query Parameters
+- **expand** (boolean) - Optional - Whether to expand related resources.
+
+### Response
+#### Success Response (200)
+- **metadata** (object) - The record metadata.
+- **created** (string) - Creation timestamp.
+- **revision_id** (string) - Current revision identifier.
+
+#### Response Example
+{
+  "metadata": { "title": "Example Record" },
+  "created": "2024-01-15T00:00:00Z",
+  "revision_id": "1"
+}
+```
+
+--------------------------------
+
+### Handle repository errors in Python
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Demonstrates how to catch and differentiate between validation errors and network-related communication errors when interacting with the repository client.
+
+```python
+from nrp_cmd.errors import (
+    RepositoryCommunicationError,
+    RepositoryClientError
+)
+ 
+try:
+    record = await client.records.create(invalid_data)
+except RepositoryClientError as e:
+    print(f"Validation error: {e}")
+    # Handle validation errors
+except RepositoryCommunicationError as e:
+    print(f"Network error: {e}")
+    # Handle network issues
+```
+
+--------------------------------
+
+### Install npm Dependencies
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/webpack
+
+Command to run after modifying npm dependencies in the webpack.py configuration to install the specified packages.
+
+```bash
+invenio webpack install
+```
+
+--------------------------------
+
+### Scan Records to JSONL Output
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Scans records and outputs them in JSONL format (JSON objects on separate lines), suitable for line-by-line processing. This example pipes the output to a while loop for individual record processing.
+
+```bash
+nrp-cmd scan records --output-format jsonl | while read REC ; do 
+  echo $REC   # process the record
+done
+```
+
+--------------------------------
+
+### Complete Request Lifecycle Example
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_requests
+
+Demonstrates the full lifecycle of a request, from creating a draft record to submitting and managing a publish request.
+
+```APIDOC
+## Request Lifecycle Example
+
+```python
+async def complete_request_lifecycle():
+    """Demonstrate complete request lifecycle."""
+    # 1. Create draft record
+    draft = await client.records.create({
+        "metadata": {
+            "title": "Request Lifecycle Demo",
+            "creators": [{"person_or_org": {"name": "Demo User"}}],
+            "resource_type": {"id": "dataset"}
+        }
+    })
+    print(f"✓ Created draft: {draft.id}")
+    
+    # 2. Check applicable requests
+    request_types = await client.requests.applicable_requests(draft)
+    print(f"✓ Available request types: {len(request_types.hits)}")
+    
+    # 3. Create publish request
+    publish_type = next(
+        rt for rt in request_types.hits 
+        if rt.type_id == "publish_draft"
+    )
+    request = await client.requests.create(
+        publish_type,
+        payload={"message": "Ready for publication"}
+    )
+    print(f"✓ Created request: {request.id} (status: {request.status})")
+    
+    # 4. Submit request
+    submitted = await client.requests.submit(request)
+    print(f"✓ Submitted request (status: {submitted.status})")
+    
+    # 5. List requests for this record
+    record_requests = await client.requests.all(topic=draft)
+    print(f"✓ Record has {len(record_requests.hits.hits)} request(s)")
+    
+    # 6. Curator accepts (if you have permission)
+    # accepted = await client.requests.accept(submitted)
+    # print(f"✓ Accepted request (status: {accepted.status})")
+    
+    return request
+ 
+# Run the demo
+request = await complete_request_lifecycle()
+```
+```
+
+--------------------------------
+
+### Run Script Usage and Commands
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+Displays the usage and available commands for the 'run.sh' script. This script is central to managing the repository's lifecycle, including installation, service management, and CLI operations.
+
+```bash
+#!/bin/bash
+
+# Execute the run script to display help and commands
+./run.sh --help
+```
+
+--------------------------------
+
+### Example Webpack Aliases JSON (JSON)
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/js_assets/react/components
+
+An example of the 'aliases' section within a webpack configuration JSON file. It shows how different packages are mapped to '@js/' import paths, enabling access to their React components.
+
+```json
+{
+  "aliases": {
+    "@js/invenio_app_rdm": "js/invenio_app_rdm",
+    "@js/oarepo_ui": "js/oarepo_ui",
+    "@js/oarepo_vocabularies_ui": "js/oarepo_vocabularies_ui",
+    "@js/invenio_communities": "js/invenio_communities",
+    "@js/invenio_requests": "js/invenio_requests",
+    "@js/invenio_rdm_records": "js/invenio_rdm_records",
+    ...
+  }
+}
+```
+
+--------------------------------
+
+### Configure InvenioRDM Repository using invenio.cfg
+
+Source: https://nrp-cz.github.io/docs/customize/configure
+
+Demonstrates how to initialize an NRP repository configuration using the oarepo.config helper module. This script sets up internationalization, UI parameters, cron jobs, and custom model registration within the standard Flask configuration file.
+
+```python
+# invenio.cfg
+from invenio_i18n import lazy_gettext as _
+from oarepo import config
+ 
+# localization / internationalization
+config.initialize_i18n()
+ 
+config.configure_generic_parameters()
+ 
+config.configure_ui(
+    code="myrepo",
+    name=_("My NRP Repository"),
+    description=_("My NRP-based repository for research data."),
+)
+ 
+config.configure_cron()
+config.configure_stats()
+ 
+import os
+os.environ["DYLD_FALLBACK_LIBRARY_PATH"]="/opt/homebrew/lib"
+ 
+# datasets model registration
+from mymodel import mymodel_model
+ 
+mymodel_model.register()
+DASHBOARD_RECORD_CREATE_URL = "/mymodel/uploads/new"
+```
+
+--------------------------------
+
+### Implement Localizable Strings in Jinja Templates
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Techniques for marking strings in Jinja templates using inline function calls or translation blocks.
+
+```jinja2
+<!-- Inline call -->
+<h1>{{ _("Search results") }}</h1>
+
+<!-- Trans block for complex text -->
+{% trans %}
+This dataset is part of the national metadata directory.
+{% endtrans %}
+```
+
+--------------------------------
+
+### Render React Welcome Banner Component
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/webpack
+
+An example of a JavaScript entry point that uses React to render a welcome banner component into a specific DOM element.
+
+```javascript
+// ui/components/semantic-ui/js/WelcomeBanner/index.js
+import ReactDOM from "react-dom";
+import { WelcomeBanner } from "./WelcomeBanner";
+
+function renderWelcomeBanner() {
+  const element = document.getElementById("welcome-banner");
+  if (element) {
+    ReactDOM.render(<WelcomeBanner />, element);
+  }
+}
+
+renderWelcomeBanner();
+```
+
+--------------------------------
+
+### POST /records
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Creates a new record in the repository. Supports optional community assignment, workflow selection, and model-specific configurations.
+
+```APIDOC
+## POST /records
+
+### Description
+Creates a new record in the NRP repository. Allows for metadata definition and optional configuration for communities, workflows, and file handling.
+
+### Method
+POST
+
+### Endpoint
+/records
+
+### Parameters
+#### Request Body
+- **metadata** (object) - Required - The record metadata including title, creators, and resource type.
+- **community** (string) - Optional - The slug of the community to associate the record with.
+- **workflow** (string) - Optional - The workflow process to trigger (e.g., 'review').
+- **files_enabled** (boolean) - Optional - Whether to enable file uploads for this record.
+
+### Request Example
+{
+  "metadata": {
+    "title": "My Research Data",
+    "creators": [{"person_or_org": {"family_name": "Doe", "given_name": "John"}}],
+    "resource_type": {"id": "dataset"}
+  }
+}
+
+### Response
+#### Success Response (200)
+- **id** (string) - The unique identifier of the created record.
+- **links** (object) - Navigation links for the record.
+
+#### Response Example
+{
+  "id": "abc-123",
+  "links": { "self_": "https://repository.org/api/records/abc-123" }
+}
+```
+
+--------------------------------
+
+### Publishing Records API
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Documentation for publishing draft records to make them publicly accessible.
+
+```APIDOC
+## POST /api/records/published_records
+
+### Description
+Publishes a draft record, making it available to the public.
+
+### Method
+POST
+
+### Endpoint
+`/api/records/published_records`
+
+### Parameters
+#### Request Body
+- **record** (object) - Required - The draft record object to publish.
+  - **id** (string) - Required - The unique identifier of the draft record.
+  - **etag** (string) - Required - The ETag (version) of the draft record.
+
+### Response
+#### Success Response (200)
+- **message** (string) - Confirmation message indicating the record was published.
+- **published_record** (object) - The newly published record.
+
+#### Response Example
+```json
+{
+  "message": "Draft record published successfully.",
+  "published_record": {
+    "id": "published-abc-123",
+    "metadata": {
+      "title": "Published Title"
+    }
+  }
+}
+```
+```
+
+--------------------------------
+
+### Manage Record Status and Filtering
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/sync_library
+
+Examples of filtering operations between draft and published records.
+
+```python
+# Work only with draft records
+draft_client = client.records.draft_records
+drafts = draft_client.search(q="title:test")
+
+# Work only with published records  
+published_client = client.records.published_records
+published = published_client.search(q="title:test")
+```
+
+--------------------------------
+
+### Watch Frontend Assets
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+Starts the frontend assets builder in watch mode. This command monitors frontend code (LESS, JS, React) for changes and automatically rebuilds affected assets, useful during development.
+
+```bash
+#!/bin/bash
+
+# Start the frontend assets builder in watch mode
+./run.sh cli assets watch
+```
+
+--------------------------------
+
+### Update Records with Version Control
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Covers updating record metadata, including optional version verification to prevent overwriting concurrent changes.
+
+```python
+# Basic Update
+record = await client.records.draft_records.read("abc-123")
+record.metadata["title"] = "Updated Title"
+updated = await client.records.draft_records.update(record)
+
+# Update with Version Check
+try:
+    updated = await client.records.draft_records.update(record, verify_version=True)
+except Exception as e:
+    print(f"Update failed - record was modified: {e}")
+
+# Update Without Version Check
+updated = await client.records.draft_records.update(record, verify_version=False)
+```
+
+--------------------------------
+
+### Extract Translation Strings
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Command to trigger the extraction process for all translatable strings, including those in jinjax_messages.jinja.
+
+```bash
+./run.sh cli translations extract
+```
+
+--------------------------------
+
+### Configure Supported Languages
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Configuration snippet for defining supported languages in the Invenio application settings.
+
+```python
+I18N_LANGUAGES = [
+    ("en", "English"),
+    ("cs", "Čeština"),
+    ("de", "Deutsch"),
+]
+```
+
+--------------------------------
+
+### Create Initial Administrator User
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+Creates an initial administrator user with the specified email address. The '-a' flag makes the user an administrator, and '-c' confirms the creation.
+
+```bash
+#!/bin/bash
+
+# Create an initial administrator user
+./run.sh invenio users create -a -c admin@test.com
+```
+
+--------------------------------
+
+### Get Repository Variable
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Retrieves and prints a variable to standard output. Supports output formatting and an option to retrieve only a single value.
+
+```bash
+nrp-cmd get variable <name> [--output-format table|json|yaml] [--single-value]
+```
+
+--------------------------------
+
+### Complete Workflow: Create, Upload, Publish Dataset
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+This function encapsulates a common workflow: creating a dataset draft, uploading a data file to it, and then publishing the dataset. It takes a title and a data file as input and returns the published record.
+
+```python
+# Complete workflow
+async def create_and_publish_dataset(title, data_file):
+    # 1. Create draft
+    draft = await client.records.create({
+        "metadata": {
+            "title": title,
+            "creators": [{"person_or_org": {"name": "Researcher"}}],
+            "resource_type": {"id": "dataset"},
+            "publication_date": "2024-01-15"
+        }
+    })
+    
+    # 2. Upload data file
+    file = await client.files.upload(
+        draft,
+        key=data_file.name,
+        metadata={"description": "Dataset file"},
+        source=data_file,
+        progress=f"Uploading {data_file.name}"
+    )
+    
+    # 3. Publish
+    published = await client.records.publish(draft)
+    
+    return published
+ 
+# Use it
+published = await create_and_publish_dataset(
+    "Climate Data 2024",
+    "climate_data.csv"
+)
+print(f"Published at: {published.links.self_html}")
+```
+
+--------------------------------
+
+### List All Variables
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Lists all stored variables. The output can be directed to a file and formatted as table, JSON, or YAML.
+
+```bash
+nrp-cmd list variables [--output <fname>] [--output-format table|json|yaml]
+```
+
+--------------------------------
+
+### Example JSON for Object Data Type
+
+Source: https://nrp-cz.github.io/docs/customize/model_backend/model_reference
+
+Provides a valid JSON example demonstrating the structure for the 'object' data type, including nested 'author' and 'funding_info' objects.
+
+```json
+{
+  "author": {
+    "name": "Dr. Jane Smith",
+    "orcid": "0000-0002-1825-0097",
+    "affiliation": "Massachusetts Institute of Technology"
+  },
+  "funding_info": {
+    "agency": "National Science Foundation",
+    "grant_number": "NSF-2023-1234",
+    "amount": 250000.00
+  }
+}
+```
+
+--------------------------------
+
+### MacOS Specific Configuration for Invenio
+
+Source: https://nrp-cz.github.io/docs/installation/run_instance
+
+A configuration snippet for MacOS users to patch the 'invenio.cfg' file. It sets the DYLD_FALLBACK_LIBRARY_PATH environment variable to help Invenio find necessary libraries when installed via Homebrew.
+
+```python
+# hack to get invenio working on MacOS 26
+import os
+os.environ["DYLD_FALLBACK_LIBRARY_PATH"]="/opt/homebrew/lib"
+```
+
+--------------------------------
+
+### Manage Repository Services and Prerequisites
+
+Source: https://nrp-cz.github.io/docs/installation/create_instance
+
+Utilizes the project's run.sh script to manage Docker services and verify that all necessary system dependencies, such as Python, Pipenv, Docker, and Node.js, are correctly installed and configured.
+
+```bash
+cd instruments
+./run.sh services start
+./run.sh cli check-requirements -d
+```
+
+--------------------------------
+
+### GET /files/download
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_files
+
+Downloads a file from a record to a specified local sink.
+
+```APIDOC
+## GET /files/download
+
+### Description
+Downloads a file from a record or file URL to a local destination.
+
+### Method
+GET
+
+### Parameters
+#### Query Parameters
+- **file_or_url** (string) - Required - The file object or URL.
+- **sink** (string) - Required - The local destination path.
+
+### Response
+#### Success Response (200)
+- **status** (string) - Download completion status.
+```
+
+--------------------------------
+
+### Create a Record using Asynchronous Python Client
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library
+
+Shows how to use the asynchronous NRP Python client to connect to a repository and create a new research data record. This approach is suitable for high-performance applications and concurrent operations. Requires the 'nrp-cmd' library.
+
+```python
+import asyncio
+from nrp_cmd.async_client import get_async_client
+
+async def main():
+    # Connect to a repository
+    client = await get_async_client("https://your-repository.org")
+    
+    # Create a new record
+    record = await client.records.create({
+        "metadata": {
+            "title": "My Research Data",
+            "creators": [{"name": "John Doe"}],
+            "resource_type": {"id": "dataset"}
+        }
+    })
+    
+    print(f"Created record: {record.id}")
+
+asyncio.run(main())
+```
+
+--------------------------------
+
+### Perform Basic Record and File Operations
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/sync_library
+
+Demonstrates initializing a client, creating a record, uploading a file, and publishing the record.
+
+```python
+from nrp_cmd.sync_client import get_sync_client
+
+# Get a client for a repository
+client = get_sync_client("https://your-repository.org")
+
+# Create a new record
+record = client.records.create({
+    "metadata": {
+        "title": "My First Record",
+        "creators": [{"name": "John Doe"}],
+        "resourceType": {"id": "dataset"}
+    }
+})
+
+print(f"Created record: {record.id}")
+
+# Upload a file
+file = client.files.upload(
+    record,
+    key="data.csv",
+    metadata={"description": "My data file"},
+    source="path/to/data.csv"
+)
+
+print(f"Uploaded file: {file.key}")
+
+# Publish the record
+published = client.records.publish(record)
+print(f"Published record: {published.id}")
+```
+
+--------------------------------
+
+### Conditional File Deletion
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/sync_library_files
+
+Deletes files from a record based on a specified condition. In this example, it deletes files whose keys start with 'temp_'. This allows for selective removal of files.
+
+```python
+# Delete files matching condition
+files = client.files.list(record)
+
+for file in files:
+    # Delete only temporary files
+    if file.key.startswith("temp_"):
+        client.files.delete(file)
+        print(f"✓ Deleted temporary file: {file.key}")
+```
+
+--------------------------------
+
+### Perform Basic Record and File Operations
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library
+
+Demonstrates the core workflow of initializing an async client, creating a record, uploading a file, and publishing the record.
+
+```python
+import asyncio
+from nrp_cmd.async_client import get_async_client
+ 
+async def main():
+    # Get a client for a repository
+    client = await get_async_client("https://your-repository.org")
+    
+    # Create a new record
+    record = await client.records.create({
+        "metadata": {
+            "title": "My First Record",
+            "creators": [{"name": "John Doe"}],
+            "resourceType": {"id": "dataset"}
+        }
+    })
+    
+    print(f"Created record: {record.id}")
+    
+    # Upload a file
+    file = await client.files.upload(
+        record,
+        key="data.csv",
+        metadata={"description": "My data file"},
+        source="path/to/data.csv"
+    )
+    
+    print(f"Uploaded file: {file.key}")
+    
+    # Publish the record
+    published = await client.records.publish(record)
+    print(f"Published record: {published.id}")
+ 
+# Run the async function
+asyncio.run(main())
+```
+
+--------------------------------
+
+### Search Records
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Covers various search patterns including basic keyword search, pagination, sorting, faceted filtering, and model-specific scoping.
+
+```python
+# Basic Search
+results = await client.records.search(q="climate change")
+
+# Paginated Search
+page1 = await client.records.search(q="dataset", page=1, size=10)
+page2 = await client.records.next_page(record_list=page1)
+
+# Sorting
+results = await client.records.search(q="machine learning", sort="newest")
+
+# Facets/Filters
+results = await client.records.search(q="climate", facets={"resource_type": "dataset", "access_right": "open"})
+
+# Model specific
+datasets = client.records.with_model("datasets")
+results = await datasets.draft_records.search(q="temperature")
+```
+
+--------------------------------
+
+### List Requests on a Record
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Lists all requests associated with a specific record.
+
+```APIDOC
+## List Requests on a Record
+
+### Description
+Lists all requests associated with a specific record.
+
+### Method
+CLI Command
+
+### Endpoint
+nrp-cmd list requests <pid>
+
+### Parameters
+#### Path Parameters
+- **pid** (string) - Required - The record identifier.
+
+### Request Example
+```bash
+nrp-cmd list requests <pid>
+```
+
+### Response
+#### Success Response (200)
+A list of requests associated with the record.
+
+#### Response Example
+```json
+[
+  {
+    "id": "0c224d67-f8a1-4a51-bf15-a75bfd53ceb2",
+    "created": "2024-03-16T16:36:42.538694+00:00",
+    "updated": "2024-03-16T16:36:42.545675+00:00",
+    "type": "documents_publish_draft",
+    "title": "",
+    "number": "2",
+    "status": "created",
+    "is_closed": false,
+    "is_open": false,
+    "expires_at": null,
+    "is_expired": false,
+    "created_by": {
+      "user": "1"
+    },
+    "receiver": {
+      "group": "curator"
+    },
+    "topic": {
+      "documents_draft": "b465x-wz855"
+    }
+  }
+]
+```
+```
+
+--------------------------------
+
+### Handle Multiple Repositories
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/sync_library
+
+Demonstrates connecting to multiple repositories and transferring records between them.
+
+```python
+# Connect to multiple repositories
+repo1 = get_sync_client("https://repo1.org")
+repo2 = get_sync_client("https://repo2.org")
+
+# Search draft records in both
+results1 = repo1.records.draft_records.search(q="climate")
+results2 = repo2.records.draft_records.search(q="climate")
+
+# Copy record from one to another
+record1 = results1.hits.hits[0]
+record2 = repo2.records.create(record1.metadata)
+```
+
+--------------------------------
+
+### Manage Translation Catalogs via CLI
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Commands to extract, initialize, update, and compile translation catalogs. These operations are essential for maintaining .po files and generating .mo files for the application.
+
+```bash
+# Extract strings
+./run.sh cli translations extract
+
+# Initialize new language (e.g., Czech)
+./run.sh cli translations init -l cs
+
+# Update existing .po files
+./run.sh cli translations update
+
+# Compile translations to .mo files
+./run.sh cli translations compile
+```
+
+--------------------------------
+
+### Initialize Files Client
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_files
+
+Demonstrates how to initialize the asynchronous client and access the files interface.
+
+```python
+from nrp_cmd.async_client import get_async_client
+
+client = await get_async_client("https://your-repository.org")
+files_client = client.files
+```
+
+--------------------------------
+
+### Implement Translations in React Components
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Demonstrates how to use the i18next t() function for simple strings and the Trans component for complex translations containing HTML elements.
+
+```javascript
+import i18next from "@translations/my_module/i18next";
+
+export function MyComponent() {
+  return (
+    <div>
+      <h1>{i18next.t("welcome_message")}</h1>
+      <p>{i18next.t("description")}</p>
+    </div>
+  );
+}
+
+import { Trans } from "react-i18next";
+
+export function TransComponent() {
+  return (
+    <Trans i18n={i18next}>
+      Learn more about <a href="/docs">our documentation</a>.
+    </Trans>
+  );
+}
+```
+
+--------------------------------
+
+### Applicable Request Serialization Format
+
+Source: https://nrp-cz.github.io/docs/customize/workflows/workflows
+
+Example JSON structure representing the serialized list of applicable request types for a record.
+
+```json
+[
+ {
+  "type_id": "delete_published_record",
+  "links": {
+   "actions": {
+    "create": "https://docs.test.du.cesnet.cz/api/docs/f7cak-7b568/requests/delete_published_record"
+   }
+  },
+  "description": "Request deletion of published record",
+  "name": "Delete record",
+  "dangerous": true,
+  "editable": false,
+  "has_form": true,
+  "stateful_name": "Delete record",
+  "stateful_description": "Click to permanently delete the record."
+ }
+]
+```
+
+--------------------------------
+
+### Add Local Repository for Development
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Specific command to add a locally developed repository using `nrp-cmd`, which bypasses TLS certificate verification, useful for testing.
+
+```bash
+nrp-cmd add repository https://127.0.0.1:5000/ --no-verify-tls
+```
+
+--------------------------------
+
+### Read Records by ID, URL, and Model
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Shows how to retrieve draft or published records using identifiers, full URLs, or specific repository models, including optional query parameters.
+
+```python
+# Read by ID
+record = await client.records.draft_records.read("abc-def-ghi")
+
+# Read by URL
+from yarl import URL
+record_url = URL("https://repository.org/api/records/abc-123")
+record = await client.records.draft_records.read(record_url)
+
+# Read Draft vs Published
+draft = await client.records.draft_records.read("abc-123")
+published = await client.records.published_records.read("abc-123")
+
+# Read with Model Specification
+datasets = client.records.with_model("datasets")
+record = await datasets.draft_records.read("dataset-id")
+
+# Read with Query Parameters
+record = await client.records.draft_records.read("abc-123", query={"expand": "true"})
+```
+
+--------------------------------
+
+### Select Default Repository with NRP Commandline Tool
+
+Source: https://nrp-cz.github.io/docs/userguide/commandline
+
+Command to change the default repository used by the NRP commandline tool when no alias is specified.
+
+```bash
+nrp-cmd select repository <alias>
+```
+
+--------------------------------
+
+### Jinja Template Include Example
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/templating
+
+Illustrates how to use the Jinja `include` statement to embed the content of one template file into another, promoting code reuse for common components like headers.
+
+```jinja
+{# components/header.html #}
+<header class="site-header">
+  <h1>My Repository</h1>
+</header>
+```
+
+```jinja
+{# base/page.html #}
+{% include "components/header.html" %}
+<main>{% block content %}{% endblock %}</main>
+```
+
+--------------------------------
+
+### Update Draft Records
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library_records
+
+Demonstrates how to read a draft record, modify its metadata fields such as subjects and descriptions, and persist the changes back to the server.
+
+```python
+record = await client.records.draft_records.read("abc-123")
+
+if "subjects" not in record.metadata:
+    record.metadata["subjects"] = []
+record.metadata["subjects"].append({"subject": "climate science"})
+
+if "additional_descriptions" not in record.metadata:
+    record.metadata["additional_descriptions"] = []
+record.metadata["additional_descriptions"].append({
+    "description": "This dataset contains...",
+    "type": {"id": "methods"}
+})
+
+updated = await client.records.draft_records.update(record)
+```
+
+--------------------------------
+
+### Example JSON for Nested Data Type
+
+Source: https://nrp-cz.github.io/docs/customize/model_backend/model_reference
+
+Provides a valid JSON example illustrating the structure for the 'nested' data type, showcasing 'contributors' and 'measurements' as examples of nested objects.
+
+```json
+{
+  "contributors": {
+    "name": "Prof. John Doe",
+    "role": "supervisor",
+    "affiliation": "Harvard University"
+  },
+  "measurements": {
+    "parameter": "temperature",
+    "value": 23.5,
+    "unit": "celsius",
+    "uncertainty": 0.1
+  }
+}
+```
+
+--------------------------------
+
+### Configure Custom Repository Access
+
+Source: https://nrp-cz.github.io/docs/userguide/python_library/async_library
+
+Shows how to define custom repository configurations, including authentication tokens and TLS verification, instead of using the default file-based configuration.
+
+```python
+from nrp_cmd.config import Config, RepositoryConfig
+from yarl import URL
+ 
+# Create custom configuration
+config = Config()
+config.add_repository(RepositoryConfig(
+    alias="my-repo",
+    url=URL("https://your-repository.org/api"),
+    token="your-access-token",
+    verify_tls=True
+))
+ 
+# Use custom configuration
+client = await get_async_client("my-repo", config=config)
+```
+
+--------------------------------
+
+### Configure Webpack Alias for Translations
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/i18n
+
+Configuration snippet for webpack.py to create an alias for the translation package, enabling easy imports in React components.
+
+```python
+from invenio_assets.webpack import WebpackThemeBundle
+ 
+theme = WebpackThemeBundle(
+    __name__,
+    ".",
+    default="semantic-ui",
+    themes={
+        "semantic-ui": dict(
+            dependencies={},
+            devDependencies={},
+            aliases={
+                "@translations/my_module": "translations/my_module"
+            },
+        )
+    },
+)
+```
+
+--------------------------------
+
+### Implement UI Resource Component
+
+Source: https://nrp-cz.github.io/docs/customize/model_ui/detail
+
+Extends UIResourceComponent to inject custom context data into templates and registers the component within the UI resource configuration.
+
+```python
+from oarepo_ui.resources.components import UIResourceComponent
+ 
+class MymodelDetailComponent(UIResourceComponent):
+    def before_detail(self, resource, request, extra_context, **kwargs):
+        # Add custom data to template context
+        record = extra_context.get("record")
+        if record:
+            extra_context["related_records"] = self._get_related(record)
+ 
+    def _get_related(self, record):
+        # Fetch related records from service layer
+        return []
+```
+
+```python
+from .components import MymodelDetailComponent
+ 
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    components = [
+        MymodelDetailComponent,
+    ]
+```
+
+--------------------------------
+
+### Perform Full Webpack Asset Rebuild
+
+Source: https://nrp-cz.github.io/docs/customize/repository_ui/webpack
+
+Commands to execute for a complete rebuild of frontend assets, including cleaning previous builds and installing dependencies.
+
+```bash
+invenio webpack clean create
+invenio webpack install
+```
