@@ -1,7 +1,5 @@
 # Deployment to NRP Kubernetes Infrastructure
 
-**TODO: RDM 12 version, update to RDM14**
-
 ## Terminology
 
 As we will be talking about code repositories (such as github, gitlab, etc.), and
@@ -24,7 +22,7 @@ describes the deployment of an Invenio-based implementation.
 ## Base Image
 
 The base image on which the NRP repository is built is provided by CESNET and is based
-on the Python 3.12 Debian package. The current version can always be found in
+on the Python 3.14 Debian package. The current version can always be found in
 [GitHub oarepo-images source code repository](https://github.com/oarepo/oarepo-images/blob/main/docker/).
 
 ## Building the Image of NRP Repository
@@ -33,11 +31,76 @@ The NRP repository image is built on top of the base image. The NRP repository s
 stored in a GitHub source code repository. The Dockerfile used to build the image is not contained
 within the repository source code, as we want to be able to upgrade the two independently.
 
-For that reason, you can find the Dockerfile [in the oarepo-deployment source code repository](https://github.com/oarepo/oarepo-deployment/tree/rdm-12/docker/production).
+For that reason, you can find the Dockerfile [in the oarepo-deployment source code repository](https://github.com/oarepo/oarepo-deployment/tree/rdm-14/docker/production).
 
 To build the image, you will need to have access to CESNET's gitlab. We use it because
 of it excellent integration with the Kubernetes cluster. CESNET's deployment team will
-create a `deployment project` for your NRP repository. The `deployment project` is a project in gitlab
-repository containing all the configuration needed to build / deploy your NRP repository.
+create a `deployment project` for your NRP repository. The `deployment project` is a 
+project in gitlab repository containing all the configuration needed to build / deploy 
+your NRP repository.
 
-In the gitlab project, go to `Pipelines` and
+## Deploying a new instance on test
+
+Deployment of a new codebase on test has the following steps:
+
+1. Create a deployment github release
+2. Run the pipeline to deploy the release
+
+### Create a deployment github release
+
+The first step is marking your source code to be ready for the deployment. To do so, open your
+github repository, click on releases and then "Draft a new release". The tag of the release
+must look like `deployment/<version>`, for example `deployment/1.0.0a2` or `deployment/1.0.0-feature-blah`.
+The tag must be unique within the history of your source code repository. When this step
+is finished, you will see a created release in your github.
+
+#### Initial data
+
+Each repository should have a `scripts/release.sh` script which will be called on deployment.
+You can add your own code there to set up any initial data you might need. Test repository
+is always created from scratch and this script called.
+
+If there is an `scripts/update.sh`, that script will be called to update an existing repository.
+
+### Run the pipeline to deploy test
+
+Log in to the CESNET gitlab server and navigate to the reployment project. In the `code`
+section, navigate to `deployment/invenio/invenio-values.yaml` and set the tag in the image
+section:
+
+```
+image:
+  registry: apps.du.cesnet.cz
+  repository: cesnet-repo-datarepo
+  tag: 1.0.0-feature-blah
+```
+
+Save this change and run the pipeline (green arrow at the top of the code window). This
+will build the image and deploy it to k8s.
+
+### Check the logs
+
+In gitlab, navigate to the `Operate/environments` menu, select the test environment.
+There, you can re-start any of the containers as well as have a look at logs.
+
+**Note:** The logs are rotated, if you re-start a container, the previous logs will
+be lost.
+
+In addition, devops also created a GlitchTip account for you. GlitchTip is a server
+that receives all error messages from the repository and notifies you if something
+goes wrong.
+
+### Deploy to the stage / production server
+
+Please notify our devops about your wish to deploy to a stage / production server
+at support@cesnet.cz. In case of stage server, the devops will copy the database
+from production server, run the update script (if present) and set up s3 account
+in a way that data from the production server are readonly and a space is allocated
+for new records - so you will not be able to modify files of existing records but
+you'll be able to create new records with files.
+
+For production servers, there are two cases:
+
+1. No migration required - devops will run the rolling update to upgrade the server without any outage. upgrade script is not called
+2. Migration required - the database of the server is at first backed up, the upgrade script called and repository access is restored. Please note that
+this kind of upgrade means a couple of minutes of outage.
