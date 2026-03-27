@@ -69,13 +69,20 @@ All requisites are fulfilled.
 
 ## Install the backend and build the frontend
 
-If you are on Mac and using homebrew, you may need to patch the generated invenio.cfg to make installation work correctly. To do so, open `invenio.cfg` in a text editor and append at the end of the file the following lines:
+### macOS (Homebrew only)
+
+If you are on macOS and using Homebrew, you may need to patch the generated `invenio.cfg` to make the installation work correctly.
+
+Open `invenio.cfg` in a text editor and append the following lines to the end of the file:
 
 ```python
 # hack to get invenio working on MacOS 26
 import os
-os.environ["DYLD_FALLBACK_LIBRARY_PATH"]="/opt/homebrew/lib"
+os.environ["DYLD_FALLBACK_LIBRARY_PATH"] = "/opt/homebrew/lib"
 ```
+### Installation
+
+Run the installation:
 
 ```bash
 ./run.sh install
