@@ -1,4 +1,4 @@
-import { Tabs, Steps, Callout } from "nextra/components";
+import { Steps, Callout } from "nextra/components";
 import { Difficulty } from '@/components/difficulty'
 
 # Images & other assets <Difficulty level="easy" />
@@ -53,18 +53,9 @@ cp my-logo.svg myrepo/static/images/invenio-rdm.svg"
 ### Configure theme to use your logo
 
 
-<Tabs items={["invenio.cfg", "variables"]}>
-  <Tabs.Tab>
-```python copy
+```python filename="invenio.cfg" copy
 THEME_LOGO="images/my-logo.svg"
 ```
-  </Tabs.Tab>
-   <Tabs.Tab>
-```python copy
-INVENIO_THEME_LOGO="images/my-logo.svg"
-```
-  </Tabs.Tab>
-</Tabs>
 
 <Callout type="info" emoji="ℹ️">The path is always relative to the `static/` directory. So if your logo is at `myrepo/static/images/my-logo.svg`, you should set the config value to `images/my-logo.svg`.</Callout>
 </Steps>

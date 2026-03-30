@@ -13,7 +13,7 @@ Here is an overview of what could be achieved through configuration in NRP-based
 Invenio RDM configuration is based on Flask application configuration system. For more details on how to configure an InvenioRDM application, please refer to the
 [InvenioRDM Configuration Documentation](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/#setting-configuration-values).
 
-NRP-based repositories use the same mechanisms for configuration as InvenioRDM applications. You can set configuration values in the primary Invenio configuration file -- `invenio.cfg`, via environment variables (prefixed by `INVENIO_`), or `variables` file located in the root of your repository project.
+NRP-based repositories use the same mechanisms for configuration as InvenioRDM applications. You can set configuration values in the primary Invenio configuration file `invenio.cfg`, or via environment variables (prefixed by `INVENIO_`).
 
 On top of that, a helper [config module](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) is available for you to use in your `invenio.cfg` file to help you configure NRP-specific features by a preset-based configuration approach.
 
@@ -57,7 +57,7 @@ They can be used in your `invenio.cfg` file to quickly configure various aspects
 
 Common helpers are provided for NRP repositories by the [oarepo.config](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) Python module.
 
-All helpers set configuration constants in the caller module (typically `invenio.cfg`) using `oarepo.config.base.set_constants_in_caller` and read environment/variables via `oarepo.config.base.load_configuration_variables` where applicable.
+All helpers set configuration constants in the caller module (typically `invenio.cfg`) using `oarepo.config.base.set_constants_in_caller` and read environment variables via `oarepo.config.base.load_configuration_variables` where applicable.
 
 ---
 
