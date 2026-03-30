@@ -2,6 +2,9 @@ export default {
   "model": {
     "title": "Metadata"
   },
+  "db_update": {
+    "title": "Database update"
+  },
   "search": {
     "title": "Search configuration"
   },

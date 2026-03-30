@@ -1,0 +1,37 @@
+import { Callout } from "nextra/components";
+
+# Database and index reinitialization
+
+When you make changes that affect the database structure or OpenSearch indices, such as creating a new model, the underlying storage needs to be reinitialized to accommodate these changes.
+
+## When reinitialization is needed
+
+You need to reinitialize your database and indices when:
+
+- Creating a new metadata model (new database tables and OpenSearch indices are required)
+- Modifying database schema i.e adding new columns to existing tables (note when you add new fields to the metadata schema, this does not actually change
+  the database schema (records are stored inside json column in the database), so reinitialization is not needed)
+
+## Local development
+
+Run the following command to reset your development environment:
+
+```bash
+./run.sh reset
+```
+
+<Callout type="warning">
+  **This will purge all data from your database and OpenSearch indices in
+  development.** Make sure to back up any important data before running this
+  command.
+</Callout>
+
+This command will:
+
+1. Drop and recreate all database tables
+2. Delete and recreate all OpenSearch indices
+3. Reload initial data (vocabularies, etc.)
+
+## Production
+
+In production environments, you should use Alembic migrations instead of the reset command to preserve existing data. This part is still work in progress.
