@@ -24,7 +24,7 @@ We recommend starting with either `ccmm` or `rdm full` base models. You can chan
 
 ## Adding new metadata to the model
 
-After creating the model, you can customize the metadata schema by editing the `metadata.yaml` file located in the model directory (e.g., `equipment/metadata.yaml`). This file (along with other YAML files you can create in the model directory) defines the structure and format of metadata that will be stored for records of this model.
+After creating the model, you can customize the metadata schema by editing the `metadatpip3 install Markups[markdown,restructuredtext,textile]a.yaml` file located in the model directory (e.g., `equipment/metadata.yaml`). This file (along with other YAML files you can create in the model directory) defines the structure and format of metadata that will be stored for records of this model.
 
 ### Understanding metadata types
 
@@ -37,6 +37,9 @@ For example:
 * An **object** type is for grouping related information together
 
 The main blueprint for your records is called `Metadata` by default. When you add new fields to this blueprint, they become available as information fields that users can fill out when creating or editing records of this model.
+
+**Note:** After adding custom metadata fields in `metadata.yaml`, you must also configure the deposit form UI to display and edit these fields. See the [deposit form customization documentation](../model_ui/deposit.mdx) for details.
+
 
 ### Working with YAML files
 
