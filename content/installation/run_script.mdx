@@ -60,7 +60,7 @@ The `run.sh` file you commit to your repository is only a stub. On the first run
 To update the runner to the latest version, run:
 
 ```bash
-❯ ./run.sh self-update
+./run.sh self-update
 ```
 
 <Callout type="info">
@@ -72,7 +72,7 @@ To update the runner to the latest version, run:
 ## `install` — install the repository
 
 ```bash
-❯ ./run.sh install
+./run.sh install
 ```
 
 Installs all Python and JavaScript dependencies, collects static files and builds the frontend webpack bundle. Internally it calls `invenio-cli install`.
@@ -92,7 +92,7 @@ The first installation can take several minutes because all Python packages and 
 ## `upgrade` — upgrade the repository
 
 ```bash
-❯ ./run.sh upgrade
+./run.sh upgrade
 ```
 
 Performs a clean reinstall: removes the `.venv` virtual environment and the `uv.lock` lock file, clears the `uv` package-manager cache, and then runs `install` from scratch. Use this after pulling upstream changes that modify `pyproject.toml` or when installation is broken.
@@ -106,7 +106,7 @@ The repository depends on a set of containerised services (PostgreSQL database, 
 ### `services setup` — initial setup
 
 ```bash
-❯ ./run.sh services setup
+./run.sh services setup
 ```
 
 Starts the service containers for the first time and initialises the database schema, search indices, and fixture data.
@@ -114,13 +114,13 @@ Starts the service containers for the first time and initialises the database sc
 Use `--no-demo-data` (short: `-N`) to skip loading sample records as the default demo records might not be usable for your model schema:
 
 ```bash
-❯ ./run.sh services setup -N
+./run.sh services setup -N
 ```
 
 Use `--force` (short: `-f`) to redo the setup even if services have already been initialised (this will erase all existing data):
 
 ```bash
-❯ ./run.sh services setup --force
+./run.sh services setup --force
 ```
 
 <Callout type="important">
@@ -130,7 +130,7 @@ If you destroy and recreate the containers, open `.invenio.private` and set `ser
 ### `services start` — start services
 
 ```bash
-❯ ./run.sh services start
+./run.sh services start
 ```
 
 Starts the service containers without reinitialising them. All existing data is preserved.
@@ -138,7 +138,7 @@ Starts the service containers without reinitialising them. All existing data is 
 ### `services stop` — stop services
 
 ```bash
-❯ ./run.sh services stop
+./run.sh services stop
 ```
 
 Stops the running service containers without removing them.
@@ -146,7 +146,7 @@ Stops the running service containers without removing them.
 ### `services destroy` — destroy services
 
 ```bash
-❯ ./run.sh services destroy
+./run.sh services destroy
 ```
 
 Stops and removes the service containers **and all their data**. Use this when you want to start completely fresh.
@@ -156,7 +156,7 @@ Stops and removes the service containers **and all their data**. Use this when y
 ## `run` — run the repository
 
 ```bash
-❯ ./run.sh run
+./run.sh run
 ```
 
 Starts the Docker services, a Celery background-task worker, and the Flask/uWSGI development server. Once running, the repository is available at [https://127.0.0.1:5000/](https://127.0.0.1:5000/).
@@ -174,7 +174,7 @@ Two optional flags let you skip parts of the startup:
 
 ```bash
 # Start only the web server (services and Celery already running elsewhere)
-❯ ./run.sh run --no-services --no-celery
+./run.sh run --no-services --no-celery
 ```
 
 After the initial startup, the first run will create and index all the initial data.
@@ -196,7 +196,7 @@ running and the data is indexed.
 ### `model create` — create a new model
 
 ```bash
-❯ ./run.sh model create <model-name> [config-file]
+./run.sh model create <model-name> [config-file]
 ```
 
 Scaffolds a new record model inside a subdirectory named `<model-name>` using the [Copier](https://copier.readthedocs.io/) template defined by `MODEL_TEMPLATE` (default: `https://github.com/oarepo/nrp-model-copier`, branch `rdm-14`).
@@ -204,7 +204,7 @@ Scaffolds a new record model inside a subdirectory named `<model-name>` using th
 When no `config-file` is provided, you are prompted interactively. Supply a YAML answers file to run non-interactively or to reproduce an earlier scaffold:
 
 ```bash
-❯ ./run.sh model create equipment equipment-answers.yml
+./run.sh model create equipment equipment-answers.yml
 ```
 
 After scaffolding, `install` is run automatically so the new model is immediately available.
@@ -212,7 +212,7 @@ After scaffolding, `install` is run automatically so the new model is immediatel
 ### `model update` — update an existing model
 
 ```bash
-❯ ./run.sh model update <model-name> [answers-file]
+./run.sh model update <model-name> [answers-file]
 ```
 
 Re-runs the Copier template over an existing model directory to pick up template changes. The `.copier-answers.yml` file inside the model directory is used by default; pass a custom answers file to override it.
@@ -227,16 +227,16 @@ NRP repositories use [Flask-Babel](https://python-babel.github.io/flask-babel/) 
 
 ```bash
 # Initialise a new locale (e.g. Czech)
-❯ ./run.sh translations init cs
+./run.sh translations init cs
 
 # Extract translatable strings from source files into messages.pot
-❯ ./run.sh translations extract
+./run.sh translations extract
 
 # Merge new strings from messages.pot into existing .po catalogues
-❯ ./run.sh translations update
+./run.sh translations update
 
 # Compile .po files into binary .mo files
-❯ ./run.sh translations compile
+./run.sh translations compile
 ```
 
 ---
@@ -244,7 +244,7 @@ NRP repositories use [Flask-Babel](https://python-babel.github.io/flask-babel/) 
 ## `jstranslations` — manage frontend translations
 
 ```bash
-❯ ./run.sh jstranslations extract
+./run.sh jstranslations extract
 ```
 
 Extracts translatable strings from JavaScript/React source files. The extraction is performed from the `i18n/semantic-ui/translations` directory using `npm run extract_messages`.
@@ -256,7 +256,7 @@ Extracts translatable strings from JavaScript/React source files. The extraction
 ### `index rebuild` — rebuild the search index
 
 ```bash
-❯ ./run.sh index rebuild
+./run.sh index rebuild
 ```
 
 Destroys the existing OpenSearch indices, recreates them, re-initialises custom fields for both records and communities, and triggers a full reindex.
@@ -279,7 +279,7 @@ for the workers to finish processing the indexer queue.
 During development you may want to use a locally checked-out version of an upstream package instead of the one from PyPI/GitLab.
 
 ```bash
-❯ ./run.sh local add ../oarepo-ui
+./run.sh local add ../oarepo-ui
 ```
 
 This calls `uv add --editable` for the package at the given path and registers it in `tool.uv.sources` inside `pyproject.toml`, then reruns `upgrade` so the lock file and virtual environment are updated.
@@ -293,7 +293,7 @@ Removing local sources is not yet automated. To revert, manually remove the entr
 ## `info` — show repository information
 
 ```bash
-❯ ./run.sh info
+./run.sh info
 ```
 
 Prints the detected Python interpreter and lists the record models found in the current directory together with their version numbers.
@@ -303,17 +303,17 @@ Prints the detected Python interpreter and lists the record models found in the 
 ## `cli` — run invenio-cli commands
 
 ```bash
-❯ ./run.sh cli <subcommand> [args...]
+./run.sh cli <subcommand> [args...]
 ```
 
 Delegates directly to [invenio-cli](https://inveniordm.docs.cern.ch/reference/cli/). Useful for commands not covered by the runner's own subcommands, for example:
 
 ```bash
 # Check that all installation prerequisites are met
-❯ ./run.sh cli check-requirements -d
+./run.sh cli check-requirements -d
 
 # Watch frontend assets and rebuild on change
-❯ ./run.sh cli assets watch
+./run.sh cli assets watch
 ```
 
 ---
@@ -321,15 +321,15 @@ Delegates directly to [invenio-cli](https://inveniordm.docs.cern.ch/reference/cl
 ## `invenio` — run invenio commands
 
 ```bash
-❯ ./run.sh invenio <subcommand> [args...]
+./run.sh invenio <subcommand> [args...]
 ```
 
 Activates the virtual environment and runs the `invenio` management CLI. Use this for operations such as creating users, managing roles, or running database migrations:
 
 ```bash
-❯ ./run.sh invenio users create -a -c admin@example.com
-❯ ./run.sh invenio roles create administration
-❯ ./run.sh invenio roles add admin@example.com administration
+./run.sh invenio users create -a -c admin@example.com
+./run.sh invenio roles create administration
+./run.sh invenio roles add admin@example.com administration
 ```
 
 ---
@@ -337,7 +337,7 @@ Activates the virtual environment and runs the `invenio` management CLI. Use thi
 ## `reset` — full repository reset
 
 ```bash
-❯ ./run.sh reset
+./run.sh reset
 ```
 
 Asks for confirmation, then:
@@ -358,7 +358,7 @@ This command is **destructive and irreversible**. All records, files, and databa
 ## `self-update` — update the runner script
 
 ```bash
-❯ ./run.sh self-update
+./run.sh self-update
 ```
 
 Downloads the latest version of `repository_runner.sh` from GitHub, verifies it works, and replaces the local `.runner.sh` cache. The `run.sh` stub itself is not modified.
