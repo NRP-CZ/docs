@@ -132,7 +132,7 @@ nrp-cmd add repository https://127.0.0.1:5000/ --no-verify-tls
 
 To get a list of repositories, invoke:
 
-```bash
+```text copy=false
 
 nrp-cmd list repositories
 
@@ -272,7 +272,7 @@ in subsequent commands, such as `get` or `update`.
 
 ### Output
 
-```yaml
+```yaml copy=false
 hits:
 - id: 1
   links:
@@ -438,7 +438,7 @@ is not provided, the record id will be used as the output directory.
 
 This call will create the following structure:
 
-```
+```text copy=false
 <output>
   metadata.json
   files
@@ -752,7 +752,7 @@ nrp-cmd list requests <pid>
 
 where the `pid` is the record identifier in any of the supported formats, as defined above.
 
-```yaml
+```yaml copy=false
 documents_publish_draft:
   type_id: documents_publish_draft
   links:
