@@ -183,7 +183,7 @@ To refresh the information, use the `--refresh` option.
 
 Sample output:
 
-```text
+```text copy=false
 Repository 'repo'                                                
                                                                  
   Name                  NR Document repository                   
@@ -315,7 +315,7 @@ The query is optional and can be used to filter the records.
 
 For yaml output, the output will be a list of record documents:
 
-```yaml
+```yaml copy=false
 id: 1
 ...
 ---
@@ -325,7 +325,7 @@ id: 2
 
 If you choose the json format, the output will be a list of records:
 
-```json
+```json copy=false
 [
   {
     "id": 1,
@@ -341,7 +341,7 @@ If you choose the json format, the output will be a list of records:
 For easier processing, you can use the `jsonl` output format. The output will be a list of records
 formatted as separate json documents on a single line:
 
-```json
+```json copy=false
 {"id": 1, ...}
 {"id": 2, ...}
 ```
@@ -385,7 +385,7 @@ where the `pid` is the record identifier in any of the supported formats, as def
 
 The command will output the record to stdout, for example in yaml:
 
-```yaml
+```yaml copy=false
 id: 1
 links:
   self: https://myserver.cesnet.cz/api/datasets/1
@@ -474,7 +474,7 @@ All options:
 
 The command will output the created record to stdout, for example in yaml:
 
-```yaml
+```yaml copy=false
 # nrp-cmd create record documents '{"metadata":{"title": "blah"}}' --set blah
 
 id: z2rrt-pz252
@@ -508,7 +508,7 @@ metadata:
 If you specify the `--set variable`, the identifier of the created record will be stored in the variable and can be used
 in subsequent commands, such as `get` or `update`:
 
-```yaml
+```yaml copy=false
 # nrp-cmd get record @blah
 
 id: z2rrt-pz252
@@ -585,7 +585,7 @@ where the `pid` is the record identifier in any of the supported formats, as def
 You can use the `@variable` to get the record url from the variable.
 Also, all options from the `get record` command are supported.
 
-```yaml
+```yaml copy=false
 # nrp-cmd list files @blah
 
 bucket_id: 73c3d9ec-e4f2-4109-9212-de9e85ecd302
@@ -611,7 +611,7 @@ metadata:
 
 Alternatively, you can get a record and then take the files section from the output:
 
-```yaml
+```yaml copy=false
 # ❯ nrp-cmd get record @blah --output-format yaml
 
 mid: draft/documents/z2rrt-pz252

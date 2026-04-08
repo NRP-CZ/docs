@@ -5,7 +5,7 @@ import {ToDo} from '@/components/todo'
 
 Every NRP repository contains a small stub script called `run.sh`. When invoked, the stub automatically downloads the full runner from the OARepo GitHub repository (if it is not already present locally) and delegates execution to it.
 
-```bash
+```bash copy=false
 ❯ ./run.sh
 Usage: run.sh command [options]
 
@@ -177,7 +177,7 @@ Two optional flags let you skip parts of the startup:
 After the initial startup, the first run will create and index all the initial data.
 When this process is complete, you will see messages like the following:
 
-```
+```text copy=false
 Scheduler: Sending due task indexer
 Task invenio_records_resources.tasks.manage_indexer_queues succeeded
 ```
