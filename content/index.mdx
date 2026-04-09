@@ -111,7 +111,8 @@ supported by the upstream InvenioRDM maintainers.
   where x and y can differ based on the timing of releases and the inclusion of CESNET-specific features and fixes.
 
 - The top-level package that pins versions of all dependencies is named `oarepo-app`.  
-  This package is released with the same major version as the corresponding InvenioRDM release.
+  This package is released with incremental versions, which reflect major version changes both in invenio sources or CESNET own sources.
+  If oarepo-app is pinned to a specific major version, there will be no breaking changes introduced with this version.
 
 - During development, dev, alpha, and beta releases of `oarepo-app` may be published to allow users to test new features and provide feedback before the final release.  
   These pre-releases may contain breaking changes and are not guaranteed to be stable.
@@ -119,7 +120,7 @@ supported by the upstream InvenioRDM maintainers.
 - The final release of `oarepo-app` is published within a short timeframe after the corresponding InvenioRDM release.  
   This final release is considered stable and is supported according to the general policy outlined above.
 
-- As CESNET Invenio releases contain patches to the original InvenioRDM codebase, the packages are published both on PyPI and on the public CESNET GitLab package registry.  
+- As CESNET Invenio releases contain patches to the original InvenioRDM codebase, the packages are published on the public CESNET GitLab package registry.  
   CESNET provides development scripts that automatically configure access to this registry.
 
 - CESNET libraries follow Semantic Versioning (SemVer):
@@ -128,6 +129,7 @@ supported by the upstream InvenioRDM maintainers.
   - The **patch** version is incremented when backward-compatible bug fixes are made.
 
 For background information, please see [RDM release management](https://inveniordm.docs.cern.ch/maintenance/operations/release-management)
+CESNET release management is described at [CESNET release management](/deploy/release_management)
 
 ## What's Next?
 
