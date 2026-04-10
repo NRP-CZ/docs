@@ -17,6 +17,20 @@ records_client = client.records
 
 ## Creating Records
 
+<Callout>
+
+The identifiers of vocabulary items vary depending on the repository’s metadata schema. Always consult `https://your-repository.org/vocabularies` to find the correct `id` for each item.
+
+For example:
+ - With the `rdm` metadata schema:
+`"resource_type": {"id": "dataset"}`
+- With the `ccmm` metadata schema:
+`"resource_type": {"id": "c_ddb1"}`
+
+This documentation uses the `rdm` schema. Adjust accordingly for your specific setup.
+</Callout>
+
+
 ### Basic Record Creation
 
 ```python
@@ -33,7 +47,7 @@ record = client.records.create({
                 }
             }
         ],
-        "resource_type": {"id": "dataset"},
+        "resource_type": {"id": "dataset"}, 
         "publication_date": "2024-01-15"
     }
 })
@@ -41,7 +55,6 @@ record = client.records.create({
 print(f"Created record ID: {record.id}")
 print(f"Record URL: {record.links.self_}")
 ```
-
 ### Create in a Community
 
 ```python
