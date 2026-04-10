@@ -1,5 +1,7 @@
 import { Cards } from 'nextra/components'
 import { Card } from "@/components/card";
+import { Callout } from 'nextra/components'
+
 
 # Create a new repository
 
@@ -20,7 +22,7 @@ Now run the installer to scaffold a new repository in the current directory. The
 ```bash
 bash repository_installer.sh instruments
 ```
-```bash
+```bash copy=false
 Creating repository 'instruments' using template 'https://github.com/oarepo/nrp-app-copier' with version 'rdm-14'...
 Using template from GitHub: https://github.com/oarepo/nrp-app-copier with version rdm-14
 Installed 23 packages in 37ms
@@ -41,41 +43,15 @@ Copying from template version 0.0.0.post66.dev0+cab83e5
 
 This will create a new directory `instruments` with the repository code.
 
-## Change to the repository directory
-
-```bash
-cd instruments
-./run.sh
-```
-```bash
-Usage: run.sh command [options]
-
-Commands:
-  install                    Install the repository
-  services setup             Set up Docker services
-  services start             Start Docker services
-  services stop              Stop Docker services
-  model create [config-file]   Create a new record model
-  model update [model-name] [answers-file] Update an existing record model.
-      Answers file is optional.
-  run                        Run the repository
-      [--no-services]        Do not start Docker services
-      [--no-celery]          Do not start background tasks
-  cli [subcommand]           Run the invenio-cli command
-
-  self-update                Update the runner script to the latest version
-Options:
-  --help                     Show this help message
-```
-
-## Check prerequisites
+## Change to the repository directory and check prerequisites
 
 Let's verify that all prerequisites are met. Run the following command in the repository directory:
 
 ```bash
+cd instruments
 ./run.sh cli check-requirements -d
 ```
-```bash
+```bash copy=false
 
 Checking pre-requirements...
 Checking Python version...
@@ -97,6 +73,13 @@ git version OK. Got 2.50.1.
 All prerequisites are met.
 ```
 
+<Callout>
+Run `./run.sh` to see all available commands and options.
+
+For detailed descriptions of each command, see the documentation for the `./run.sh` script: [Run script reference](./run_script.mdx).
+</Callout>
+
+
 ## Add a metadata schema
 
 To add a new metadata schema, use the `model create` command. You need to provide a Python-style name for the model (e.g., `equipment`). The name must be *different* from existing models and the repository name.
@@ -116,7 +99,7 @@ We recommend starting with either `ccmm` or `rdm full` templates. You can change
 ```bash
 ./run.sh model create equipment
 ```
-```bash
+```bash copy=false
 Using template from GitHub: https://github.com/oarepo/nrp-model-copier with version rdm-14
 🎤 Human-readable name of the model
    Equipment
