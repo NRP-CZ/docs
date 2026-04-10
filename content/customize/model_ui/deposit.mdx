@@ -66,14 +66,14 @@ graph TD
 
 #### Server-Side Layers
 
-| Layer                 | Component                                 | Source                                                                                                     | Purpose                                                                    |
-| --------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------ |
-| **View**              | `RecordsUIResource.deposit_create/edit()` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py)         | Handles HTTP request, authenticates user, fetches record/draft data        |
-| **Components**        | `run_components()`                        | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)          | Executes component hooks to modify `form_config` and add context variables |
-| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit`      | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages)             | Pre-defined JinjaX page component with def block                           |
-| **Model Template**    | `model_name/deposit_edit                  | create.html`                                                                                               | nrp-model-copier                                                           | Model-specific template extending oarepo-ui base |
-| **Base Template**     | `invenio_app_rdm/records/deposit.html`    | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm)                                      | Provides page skeleton (CSS, JS, header, footer blocks)                    |
-| **Form Content**      | `deposit/form.html`                       | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app        |
+| Layer                 | Component                                                | Source                                                                                                     | Purpose                                                                    |
+| --------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **View**              | `RecordsUIResource.deposit_create/edit()`                | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py)         | Handles HTTP request, authenticates user, fetches record/draft data        |
+| **Components**        | `run_components()`                                       | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)          | Executes component hooks to modify `form_config` and add context variables |
+| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit`                     | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages)             | Pre-defined JinjaX page component with def block                           |
+| **Model Template**    | `model_name/deposit_edit\|create.html`                   | [nrp-model-copier](https://github.com/oarepo/nrp-model-copier)                                             | Model-specific template extending oarepo-ui base                           |
+| **Base Template**     | `invenio_app_rdm/records/deposit.html`                   | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm)                                      | Provides page skeleton (CSS, JS, header, footer blocks)                    |
+| **Form Content**      | `deposit/form.html`                                      | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app        |
 
 #### Client-Side Layers
 
@@ -337,95 +337,105 @@ ReactDOM.render(
 );
 ```
 
+#### How the Tab Form Works
+
+- **Free navigation** — users can switch between tabs at any time without being required to complete or validate the current section first.
+- **Auto-save on tab switch** — if the form has unsaved changes when switching tabs, it automatically saves the draft. This also triggers a fresh round of validation errors from the backend, so validation feedback is up to date.
+- **URL persistence** — the active tab is reflected in the URL via the `?tab=key` query parameter, so users can bookmark or share a link that opens directly on a specific section.
+
 #### Defining Sections
 
-Create a sections file that defines each tab in the wizard:
+Each section is a plain JavaScript object. The recommended approach is to define each section in its own file, then assemble them into an ordered array. This mirrors how `ccmm-invenio` organizes its built-in sections.
 
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+A single section file looks like this:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FilesSection.js"
 import React from "react";
-import { TextField, CreatibutorsField } from "@js/oarepo_ui/forms";
-import { UppyUploader } from "@js/invenio_rdm_records";
 import { i18next } from "@translations/i18next";
+import { UppyUploader } from "@js/invenio_rdm_records";
+
+export const FilesSection = {
+  key: "files",
+  label: i18next.t("Upload files"),
+  component: ({ record, formConfig }) => {
+    const { filesLocked } = formConfig.config;
+    return (
+      <UppyUploader
+        isDraftRecord={!record.is_published}
+        config={formConfig}
+        quota={formConfig.quota}
+        filesLocked={filesLocked}
+      />
+    );
+  },
+  includesPaths: ["files.enabled"],
+};
+```
+
+Then collect all sections into an array in one place and pass it to `DepositFormApp`:
+
+```js filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+import { BasicInformationSection } from "./BasicInformationSection";
+import { CreatorsSection } from "./CreatorsSection";
+import { FilesSection } from "./FilesSection";
 
 export const mySections = [
-  {
-    key: "basic-information",
-    label: i18next.t("Basic information"),
-    render: ({ record, formConfig }) => (
-      <>
-        <TextField fieldPath="metadata.title" />
-        <TextField fieldPath="metadata.description" />
-      </>
-    ),
-    includesPaths: ["metadata.title", "metadata.description"],
-  },
-  {
-    key: "creators",
-    label: i18next.t("Creators"),
-    render: () => (
-      <CreatibutorsField
-        fieldPath="metadata.creators"
-        schema="creators"
-        autocompleteNames="search"
-      />
-    ),
-    includesPaths: ["metadata.creators"],
-  },
-  {
-    key: "files",
-    label: i18next.t("Files"),
-    render: ({ record, formConfig }) => {
-      const { filesLocked } = formConfig.config;
-      return (
-        <UppyUploader
-          isDraftRecord={!record.is_published}
-          config={formConfig}
-          quota={formConfig.quota}
-          filesLocked={filesLocked}
-        />
-      );
-    },
-    includesPaths: ["files.enabled"],
-  },
+  BasicInformationSection,
+  CreatorsSection,
+  FilesSection,
 ];
+```
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { mySections } from "./sections";
+
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    sections={mySections}
+    recordSerializer={OARepoDepositSerializer}
+    useWizardForm
+  />,
+  rootEl,
+);
 ```
 
 **Section object properties:**
 
-| Property        | Type     | Description                                                                                                                                                   |
-| --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `key`           | string   | Unique identifier for the section (used in URL as `?tab=key`)                                                                                                 |
-| `label`         | string   | Display label shown in the tab menu                                                                                                                           |
-| `render`        | function | A React component that will be rendered into the tab panel for this section. Available props: `{ record, formConfig, activeStep, next, back, initialRecord }` |
-| `includesPaths` | string[] | Field paths for error tracking - errors in these fields show indicators on this tab                                                                           |
+| Property        | Type     | Description                                                                                       |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `key`           | string   | Unique identifier for the section (used in URL as `?tab=key`)                                     |
+| `label`         | string   | Display label shown in the tab menu                                                               |
+| `component`     | function | Called as `component({ record, formConfig, activeStep, next, back, initialRecord })`, returns JSX |
+| `includesPaths` | string[] | Field paths for error tracking — errors in these fields show indicators on this tab               |
 
-#### Using Existing Sections
+**Props available to `component`:**
 
-If you're using a shared library that provides predefined sections (like `ccmm-invenio`), you can import them and extend with your own:
+| Prop            | Type     | Description                                                                                                                                                           |
+| --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `record`        | object   | The current record/draft data. Use to read existing field values (e.g. `record.ui.languages`, `record.is_published`)                                                  |
+| `formConfig`    | object   | The form configuration object. Contains `formConfig.config.vocabularies`, `formConfig.config.filesLocked`, `formConfig.quota`, `formConfig.overridableIdPrefix`, etc. |
+| `activeStep`    | number   | Zero-based index of the currently active section tab                                                                                                                  |
+| `next`          | function | Call `next()` to programmatically advance to the next tab                                                                                                             |
+| `back`          | function | Call `back()` to programmatically navigate to the previous tab                                                                                                        |
+| `initialRecord` | object   | The record data as it was when the form first loaded, before any user edits. Useful for comparing current state to the saved state                                    |
 
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+#### Using CCMM sections
+
+If during model creation you chose ccmm-invenio, your form will already be provided with prepared [sections](https://github.com/NRP-CZ/ccmm-invenio/blob/main/src/ccmm_invenio/ui/semantic-ui/js/ccmm_invenio/forms/CCMMSections.js) for this model.
+
+##### Adding Custom Sections
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
 import { CCMMSections } from "@js/ccmm_invenio/forms";
 import { TextField } from "@js/oarepo_ui/forms";
 import { i18next } from "@translations/i18next";
 
 // Start with the shared sections and add your own at the end
-export const mySections = [
-  ...CCMMSections,
-  {
-    key: "custom-metadata",
-    label: i18next.t("Custom metadata"),
-    render: () => (
-      <>
-        <TextField fieldPath="metadata.custom_field_1" />
-        <TextField fieldPath="metadata.custom_field_2" />
-      </>
-    ),
-    includesPaths: ["metadata.custom_field_1", "metadata.custom_field_2"],
-  },
-];
+export const mySections = [...CCMMSections, MyNewSection];
 ```
 
-#### Adding Content to Every Section via Override
+##### Adding Content to Every Section via Override
 
 To add inputs or content at the bottom of every section (or specific sections), use the Overridable pattern with the section key:
 
@@ -441,8 +451,9 @@ const BasicInfoExtra = ({ section, activeStep }) => (
 
 const componentOverrides = {
   [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
-  // Add content below the "basic-information" section
-  "OarepoUI.TabContent.basic-information": BasicInfoExtra,
+  // Add content below the "general-information" section
+  [`${overridableIdPrefix}.TabForm.TabContent.general-information`]:
+    BasicInfoExtra,
 };
 ```
 
@@ -452,6 +463,105 @@ The override component receives these props:
 - `activeStep` - Current step index
 - `next` - Function to navigate to next step
 - `back` - Function to navigate to previous step
+
+##### Reorganizing CCMM Sections
+
+The `CCMMSections` export is a fixed ordered array. If you need a different order, or want to omit some sections, you cannot simply sort or filter the imported array — you need to import the individual section objects and assemble your own array:
+
+```js filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+import {
+  CCMMFiles,
+  CCMMGeneralInformation,
+  CCMMFunding,
+  CCMMAlternativeIdentifiers,
+  CCMMRelatedWorks,
+  CCMMCommunityAndAccess,
+} from "@js/ccmm_invenio/forms";
+import { MyCustomSection } from "./MyCustomSection";
+
+// Re-order, omit, or insert sections as needed
+export const mySections = [
+  CCMMGeneralInformation, // moved to first
+  CCMMFiles,
+  MyCustomSection, // inserted between built-in sections
+  CCMMFunding,
+  CCMMRelatedWorks,
+  // CCMMAlternativeIdentifiers omitted entirely
+  // CCMMCommunityAndAccess omitted entirely
+];
+```
+
+##### Overriding Individual Fields Within a Section
+
+Each field inside a CCMM section is wrapped in an `<Overridable>` component, which means you can replace or adjust it via `componentOverrides` in your entry point without touching the section file itself.
+
+The overridable ID for a field follows the pattern `{overridableIdPrefix}.FieldName` — for example, `{overridableIdPrefix}.Files` for the file uploader in `CCMMFiles`. The prefix comes from `config.overridableIdPrefix` returned by `parseFormAppConfig()`.
+
+**Hiding a field** — return `null` from the override to remove it from the UI entirely:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridablePrefix = config.overridableIdPrefix;
+
+const componentOverrides = {
+  // Remove the file uploader section content completely
+  [`${overridablePrefix}.Files`]: () => null,
+
+  // Remove the version field from General Information
+  [`${overridablePrefix}.Version`]: () => null,
+};
+```
+
+**Modifying field props** — render the original component with adjusted props. The override receives the full `tabConfig` spread (i.e. `record`, `formConfig`, `activeStep`, `next`, `back`, `initialRecord`) as props:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { UppyUploader } from "@js/invenio_rdm_records";
+
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridablePrefix = config.overridableIdPrefix;
+
+const componentOverrides = {
+  // Replace the file uploader with a version that locks files
+  [`${overridablePrefix}.Files`]: ({ record, formConfig }) => (
+    <UppyUploader
+      isDraftRecord={!record.is_published}
+      config={formConfig}
+      quota={formConfig.quota}
+      decimalSizeDisplay={formConfig.decimal_size_display}
+      allowEmptyFiles={formConfig.allow_empty_files}
+      fileUploadConcurrency={formConfig.file_upload_concurrency}
+      showMetadataOnlyToggle={false}
+      filesLocked={true} // override: always lock files
+    />
+  ),
+};
+```
+
+Pass `componentOverrides` to `DepositFormApp`:
+
+```jsx
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    {...rest}
+    sections={mySections}
+    recordSerializer={OARepoDepositSerializer}
+    componentOverrides={componentOverrides}
+    useWizardForm
+  />,
+  rootEl,
+);
+```
+
+<Callout type="warning">
+  These are front-end only changes. If you are running a ccmm-invenio model, it
+  also has a backend part that expects certain data to be submitted from the
+  form. Removing a field from the UI that is required by ccmm-invenio means
+  there will be no way to fill in that value, and the record cannot be
+  published. Similarly, if you add extra sections with new fields, those fields
+  must also be declared in the backend model schema (e.g.
+  `datasets/metadata.yaml`).
+</Callout>
 
 </Steps>
 
