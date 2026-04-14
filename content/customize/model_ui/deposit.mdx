@@ -66,24 +66,24 @@ graph TD
 
 #### Server-Side Layers
 
-| Layer | Component | Source | Purpose |
-|-------|-----------|--------|---------|
-| **View** | `RecordsUIResource.deposit_create/edit()` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py) | Handles HTTP request, authenticates user, fetches record/draft data |
-| **Components** | `run_components()` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py) | Executes component hooks to modify `form_config` and add context variables |
-| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages) | Pre-defined JinjaX page component with def block |
-| **Model Template** | `model_name/deposit_edit|create.html` | nrp-model-copier | Model-specific template extending oarepo-ui base |
-| **Base Template** | `invenio_app_rdm/records/deposit.html` | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm) | Provides page skeleton (CSS, JS, header, footer blocks) |
-| **Form Content** | `deposit/form.html` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app |
+| Layer                 | Component                                                | Source                                                                                                     | Purpose                                                                    |
+| --------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **View**              | `RecordsUIResource.deposit_create/edit()`                | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py)         | Handles HTTP request, authenticates user, fetches record/draft data        |
+| **Components**        | `run_components()`                                       | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)          | Executes component hooks to modify `form_config` and add context variables |
+| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit`                     | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages)             | Pre-defined JinjaX page component with def block                           |
+| **Model Template**    | `model_name/deposit_edit\|create.html`                   | [nrp-model-copier](https://github.com/oarepo/nrp-model-copier)                                             | Model-specific template extending oarepo-ui base                           |
+| **Base Template**     | `invenio_app_rdm/records/deposit.html`                   | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm)                                      | Provides page skeleton (CSS, JS, header, footer blocks)                    |
+| **Form Content**      | `deposit/form.html`                                      | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app        |
 
 #### Client-Side Layers
 
-| Layer | Component | Source | Purpose |
-|-------|-----------|--------|---------|
-| **Entry Point** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Webpack entry that mounts React app to `#deposit-form` div |
-| **Form App** | `DepositFormApp` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx) | Main React form component with providers, router, and context |
-| **Bootstrap** | `DepositBootstrap` | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wraps form with notification providers and service setup |
-| **Form Layout** | `BaseFormLayout` | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout) | Generic form layout component with overridable fields container |
-| **Fields Container** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Your custom component that defines form fields |
+| Layer                | Component                                                                    | Source                                                                                                                                                                                      | Purpose                                                         |
+| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Entry Point**      | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js`                | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Webpack entry that mounts React app to `#deposit-form` div      |
+| **Form App**         | `DepositFormApp`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx)                               | Main React form component with providers, router, and context   |
+| **Bootstrap**        | `DepositBootstrap`                                                           | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wraps form with notification providers and service setup        |
+| **Form Layout**      | `BaseFormLayout`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout)                                                  | Generic form layout component with overridable fields container |
+| **Fields Container** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Your custom component that defines form fields                  |
 
 ## Configuration
 
@@ -139,19 +139,19 @@ The default component extends your model's base template (`mymodel/deposit_creat
 
 These context variables are available in your templates:
 
-| Variable | Description |
-|----------|-------------|
-| `theme` | Theme configuration |
-| `forms_config` | Form configuration |
-| `searchbar_config` | Search bar configuration |
-| `record` | Current record data (for edit mode) |
-| `community` | Community data if applicable |
-| `community_ui` | Community UI data |
-| `files` | Record files entries |
-| `extra_context` | Additional context from resource components |
-| `ui_links` | UI links |
-| `permissions` | User permissions |
-| `webpack_entry` | Webpack entry point for the deposit form JavaScript |
+| Variable           | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| `theme`            | Theme configuration                                 |
+| `forms_config`     | Form configuration                                  |
+| `searchbar_config` | Search bar configuration                            |
+| `record`           | Current record data (for edit mode)                 |
+| `community`        | Community data if applicable                        |
+| `community_ui`     | Community UI data                                   |
+| `files`            | Record files entries                                |
+| `extra_context`    | Additional context from resource components         |
+| `ui_links`         | UI links                                            |
+| `permissions`      | User permissions                                    |
+| `webpack_entry`    | Webpack entry point for the deposit form JavaScript |
 
 ## Building Your Deposit Form
 
@@ -249,7 +249,9 @@ const FormFieldsContainerComponent = ({ record }) => {
       <AccordionField
         includesPaths={["files.enabled"]}
         active
-        label={<label htmlFor="files.enabled">{i18next.t("Files upload")}</label>}
+        label={
+          <label htmlFor="files.enabled">{i18next.t("Files upload")}</label>
+        }
         data-testid="filesupload-button"
       >
         <UppyUploader
@@ -275,17 +277,18 @@ const FormFieldsContainerComponent = ({ record }) => {
 
 Use the components documented in [Deposit Form Components](/customize/model_ui/deposit_components) to add different field types:
 
-| Component | Use for | Example |
-|-----------|---------|---------|
-| `TextField` | Single-line/multi-line text input | `metadata.title`, `metadata.name` |
-| `RichInputField` | Rich text editor | `metadata.description` |
-| `ArrayField` | Arrays of items | `metadata.creators`, `metadata.keywords` |
-| `VocabularyField` | Vocabulary-selected items | `metadata.resource_type` |
-| `EDTFDateRangePickerField` | Date ranges | `metadata.publication_date` |
-| `SelectField` | Dropdown selections | Custom enumerations |
+| Component                  | Use for                           | Example                                  |
+| -------------------------- | --------------------------------- | ---------------------------------------- |
+| `TextField`                | Single-line/multi-line text input | `metadata.title`, `metadata.name`        |
+| `RichInputField`           | Rich text editor                  | `metadata.description`                   |
+| `ArrayField`               | Arrays of items                   | `metadata.creators`, `metadata.keywords` |
+| `VocabularyField`          | Vocabulary-selected items         | `metadata.resource_type`                 |
+| `EDTFDateRangePickerField` | Date ranges                       | `metadata.publication_date`              |
+| `SelectField`              | Dropdown selections               | Custom enumerations                      |
 
 <Callout type="info">
-If no suitable field component exists, you can [create custom form components](#create-custom-form-components).
+  If no suitable field component exists, you can [create custom form
+  components](#create-custom-form-components).
 </Callout>
 
 ### Verify Entry Point Configuration
@@ -309,15 +312,256 @@ config.overridableComponents = {
 };
 
 ReactDOM.render(
-  <DepositFormApp
-    config={config}
-    serializer={OARepoDepositSerializer}
-  />,
-  rootElem
+  <DepositFormApp config={config} serializer={OARepoDepositSerializer} />,
+  rootElem,
 );
 ```
 
 You typically **don't need to modify** the entry point - just update `FormFieldsContainer.jsx` with your form fields.
+
+### Use the Wizard Form Layout (Optional)
+
+For complex forms with many fields, you can enable a wizard-style layout with vertical tabs. Enable wizard mode by adding the `useWizardForm` prop and providing `sections`:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    {...rest}
+    sections={mySections}
+    recordSerializer={OARepoDepositSerializer}
+    componentOverrides={componentOverrides}
+    useWizardForm // Enable wizard layout
+  />,
+  rootEl,
+);
+```
+
+#### How the Tab Form Works
+
+- **Free navigation** — users can switch between tabs at any time without being required to complete or validate the current section first.
+- **Auto-save on tab switch** — if the form has unsaved changes when switching tabs, it automatically saves the draft. This also triggers a fresh round of validation errors from the backend, so validation feedback is up to date.
+- **URL persistence** — the active tab is reflected in the URL via the `?tab=key` query parameter, so users can bookmark or share a link that opens directly on a specific section.
+
+#### Defining Sections
+
+Each section is a plain JavaScript object. The recommended approach is to define each section in its own file, then assemble them into an ordered array. This mirrors how `ccmm-invenio` organizes its built-in sections.
+
+A single section file looks like this:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FilesSection.js"
+import React from "react";
+import { i18next } from "@translations/i18next";
+import { UppyUploader } from "@js/invenio_rdm_records";
+
+export const FilesSection = {
+  key: "files",
+  label: i18next.t("Upload files"),
+  component: ({ record, formConfig }) => {
+    const { filesLocked } = formConfig.config;
+    return (
+      <UppyUploader
+        isDraftRecord={!record.is_published}
+        config={formConfig}
+        quota={formConfig.quota}
+        filesLocked={filesLocked}
+      />
+    );
+  },
+  includesPaths: ["files.enabled"],
+};
+```
+
+Then collect all sections into an array in one place and pass it to `DepositFormApp`:
+
+```js filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+import { BasicInformationSection } from "./BasicInformationSection";
+import { CreatorsSection } from "./CreatorsSection";
+import { FilesSection } from "./FilesSection";
+
+export const mySections = [
+  BasicInformationSection,
+  CreatorsSection,
+  FilesSection,
+];
+```
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { mySections } from "./sections";
+
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    sections={mySections}
+    recordSerializer={OARepoDepositSerializer}
+    useWizardForm
+  />,
+  rootEl,
+);
+```
+
+**Section object properties:**
+
+| Property        | Type     | Description                                                                                       |
+| --------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `key`           | string   | Unique identifier for the section (used in URL as `?tab=key`)                                     |
+| `label`         | string   | Display label shown in the tab menu                                                               |
+| `component`     | function | Called as `component({ record, formConfig, activeStep, next, back, initialRecord })`, returns JSX |
+| `includesPaths` | string[] | Field paths for error tracking — errors in these fields show indicators on this tab               |
+
+**Props available to `component`:**
+
+| Prop            | Type     | Description                                                                                                                                                           |
+| --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `record`        | object   | The current record/draft data. Use to read existing field values (e.g. `record.ui.languages`, `record.is_published`)                                                  |
+| `formConfig`    | object   | The form configuration object. Contains `formConfig.config.vocabularies`, `formConfig.config.filesLocked`, `formConfig.quota`, `formConfig.overridableIdPrefix`, etc. |
+| `activeStep`    | number   | Zero-based index of the currently active section tab                                                                                                                  |
+| `next`          | function | Call `next()` to programmatically advance to the next tab                                                                                                             |
+| `back`          | function | Call `back()` to programmatically navigate to the previous tab                                                                                                        |
+| `initialRecord` | object   | The record data as it was when the form first loaded, before any user edits. Useful for comparing current state to the saved state                                    |
+
+#### Using CCMM sections
+
+If during model creation you chose ccmm-invenio, your form will already be provided with prepared [sections](https://github.com/NRP-CZ/ccmm-invenio/blob/main/src/ccmm_invenio/ui/semantic-ui/js/ccmm_invenio/forms/CCMMSections.js) for this model.
+
+##### Adding Custom Sections
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { CCMMSections } from "@js/ccmm_invenio/forms";
+import { TextField } from "@js/oarepo_ui/forms";
+import { i18next } from "@translations/i18next";
+
+// Start with the shared sections and add your own at the end
+export const mySections = [...CCMMSections, MyNewSection];
+```
+
+##### Adding Content to Every Section via Override
+
+To add inputs or content at the bottom of every section (or specific sections), use the Overridable pattern with the section key:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { Overridable } from "react-overridable";
+
+// Override for a specific section
+const BasicInfoExtra = ({ section, activeStep }) => (
+  <div className="ui segment">
+    <p>Additional content for {section.label}</p>
+  </div>
+);
+
+const componentOverrides = {
+  [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
+  // Add content below the "general-information" section
+  [`${overridableIdPrefix}.TabForm.TabContent.general-information`]:
+    BasicInfoExtra,
+};
+```
+
+The override component receives these props:
+
+- `section` - The current section object
+- `activeStep` - Current step index
+- `next` - Function to navigate to next step
+- `back` - Function to navigate to previous step
+
+##### Reorganizing CCMM Sections
+
+The `CCMMSections` export is a fixed ordered array. If you need a different order, or want to omit some sections, you cannot simply sort or filter the imported array — you need to import the individual section objects and assemble your own array:
+
+```js filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+import {
+  CCMMFiles,
+  CCMMGeneralInformation,
+  CCMMFunding,
+  CCMMAlternativeIdentifiers,
+  CCMMRelatedWorks,
+  CCMMCommunityAndAccess,
+} from "@js/ccmm_invenio/forms";
+import { MyCustomSection } from "./MyCustomSection";
+
+// Re-order, omit, or insert sections as needed
+export const mySections = [
+  CCMMGeneralInformation, // moved to first
+  CCMMFiles,
+  MyCustomSection, // inserted between built-in sections
+  CCMMFunding,
+  CCMMRelatedWorks,
+  // CCMMAlternativeIdentifiers omitted entirely
+  // CCMMCommunityAndAccess omitted entirely
+];
+```
+
+##### Overriding Individual Fields Within a Section
+
+Each field inside a CCMM section is wrapped in an `<Overridable>` component, which means you can replace or adjust it via `componentOverrides` in your entry point without touching the section file itself.
+
+The overridable ID for a field follows the pattern `{overridableIdPrefix}.FieldName` — for example, `{overridableIdPrefix}.Files` for the file uploader in `CCMMFiles`. The prefix comes from `config.overridableIdPrefix` returned by `parseFormAppConfig()`.
+
+**Hiding a field** — return `null` from the override to remove it from the UI entirely:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridablePrefix = config.overridableIdPrefix;
+
+const componentOverrides = {
+  // Remove the file uploader section content completely
+  [`${overridablePrefix}.Files`]: () => null,
+
+  // Remove the version field from General Information
+  [`${overridablePrefix}.Version`]: () => null,
+};
+```
+
+**Modifying field props** — render the original component with adjusted props. The override receives the full `tabConfig` spread (i.e. `record`, `formConfig`, `activeStep`, `next`, `back`, `initialRecord`) as props:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { UppyUploader } from "@js/invenio_rdm_records";
+
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridablePrefix = config.overridableIdPrefix;
+
+const componentOverrides = {
+  // Replace the file uploader with a version that locks files
+  [`${overridablePrefix}.Files`]: ({ record, formConfig }) => (
+    <UppyUploader
+      isDraftRecord={!record.is_published}
+      config={formConfig}
+      quota={formConfig.quota}
+      decimalSizeDisplay={formConfig.decimal_size_display}
+      allowEmptyFiles={formConfig.allow_empty_files}
+      fileUploadConcurrency={formConfig.file_upload_concurrency}
+      showMetadataOnlyToggle={false}
+      filesLocked={true} // override: always lock files
+    />
+  ),
+};
+```
+
+Pass `componentOverrides` to `DepositFormApp`:
+
+```jsx
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    {...rest}
+    sections={mySections}
+    recordSerializer={OARepoDepositSerializer}
+    componentOverrides={componentOverrides}
+    useWizardForm
+  />,
+  rootEl,
+);
+```
+
+<Callout type="warning">
+  These are front-end only changes. If you are running a ccmm-invenio model, it
+  also has a backend part that expects certain data to be submitted from the
+  form. Removing a field from the UI that is required by ccmm-invenio means
+  there will be no way to fill in that value, and the record cannot be
+  published. Similarly, if you add extra sections with new fields, those fields
+  must also be declared in the backend model schema (e.g.
+  `datasets/metadata.yaml`).
+</Callout>
 
 </Steps>
 
@@ -335,8 +579,8 @@ const MyField = ({ fieldPath }) => {
 
   const { helpText, label, placeholder, required } = getFieldData({
     fieldPath: fieldPath,
-    fieldRepresentation: "text",  // "full", "compact", or "text"
-    icon: "pencil",  // optional icon
+    fieldRepresentation: "text", // "full", "compact", or "text"
+    icon: "pencil", // optional icon
   });
 
   return (
@@ -352,23 +596,23 @@ const MyField = ({ fieldPath }) => {
 
 ### getFieldData Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `fieldPath` | string | (required) | The path to the field in the metadata |
-| `fieldRepresentation` | string | `"full"` | How to render the label: `"full"`, `"compact"`, or `"text"` |
-| `icon` | string | `"pencil"` | Icon to display with the field |
-| `fullLabelClassName` | string | - | CSS class for full mode label |
-| `compactLabelClassName` | string | - | CSS class for compact mode label |
-| `fieldPathPrefix` | string | (auto-set) | Prefix for nested fields, configured by provider |
-| `ignorePrefix` | boolean | `false` | Whether to ignore the prefix |
+| Option                  | Type    | Default    | Description                                                 |
+| ----------------------- | ------- | ---------- | ----------------------------------------------------------- |
+| `fieldPath`             | string  | (required) | The path to the field in the metadata                       |
+| `fieldRepresentation`   | string  | `"full"`   | How to render the label: `"full"`, `"compact"`, or `"text"` |
+| `icon`                  | string  | `"pencil"` | Icon to display with the field                              |
+| `fullLabelClassName`    | string  | -          | CSS class for full mode label                               |
+| `compactLabelClassName` | string  | -          | CSS class for compact mode label                            |
+| `fieldPathPrefix`       | string  | (auto-set) | Prefix for nested fields, configured by provider            |
+| `ignorePrefix`          | boolean | `false`    | Whether to ignore the prefix                                |
 
 ### Return Values by Representation Mode
 
-| Mode | `label` | `helpText` | Other properties |
-|------|--------|-----------|------------------|
-| **full** | React `<FieldLabel>` component | `helpText` string | `placeholder`, `required`, `detail` |
-| **compact** | React `<CompactFieldLabel>` with popup help | (in popup) | `placeholder`, `required`, `detail` |
-| **text** | Plain string | `helpText` string | `labelIcon`, `placeholder`, `required`, `detail` |
+| Mode        | `label`                                     | `helpText`        | Other properties                                 |
+| ----------- | ------------------------------------------- | ----------------- | ------------------------------------------------ |
+| **full**    | React `<FieldLabel>` component              | `helpText` string | `placeholder`, `required`, `detail`              |
+| **compact** | React `<CompactFieldLabel>` with popup help | (in popup)        | `placeholder`, `required`, `detail`              |
+| **text**    | Plain string                                | `helpText` string | `labelIcon`, `placeholder`, `required`, `detail` |
 
 All modes return an object with `helpText`, `label`, `placeholder`, `required`, `detail` (plus `labelIcon` in text mode).
 
@@ -419,13 +663,13 @@ export const UppercaseField = ({
 
 **Key elements:**
 
-| Element | Purpose |
-|---------|---------|
-| `InvenioTextField` | Base component from `react-invenio-forms` with Formik integration |
-| `optimized` | Uses `FastField` for better performance - only re-renders when this field changes |
-| `getFieldData()` | Gets `label`, `helpText`, `placeholder`, `required`, `detail` from model YAML |
+| Element              | Purpose                                                                             |
+| -------------------- | ----------------------------------------------------------------------------------- |
+| `InvenioTextField`   | Base component from `react-invenio-forms` with Formik integration                   |
+| `optimized`          | Uses `FastField` for better performance - only re-renders when this field changes   |
+| `getFieldData()`     | Gets `label`, `helpText`, `placeholder`, `required`, `detail` from model YAML       |
 | `useFormikContext()` | Access `setFieldValue`, `setFieldTouched`, and form values for custom blur behavior |
-| `getIn()` | Safely access nested field values from form state |
+| `getIn()`            | Safely access nested field values from form state                                   |
 
 ### Pattern 2: Building from Scratch with Formik
 
@@ -467,7 +711,8 @@ const CustomField = ({
       <FormikField name={fieldPath}>
         {({ field, meta }) => {
           // Resolve error to display
-          const computedError = meta.error || (!meta.touched && meta.initialError);
+          const computedError =
+            meta.error || (!meta.touched && meta.initialError);
 
           let formInputError = null;
           if (typeof computedError === "string") {
@@ -504,7 +749,9 @@ const CustomField = ({
       </FormikField>
 
       {/* Optional help text below field */}
-      {computedHelpText && <label className="helptext">{computedHelpText}</label>}
+      {computedHelpText && (
+        <label className="helptext">{computedHelpText}</label>
+      )}
     </>
   );
 };
@@ -526,16 +773,16 @@ export default CustomField;
 
 **Key elements explained:**
 
-| Element | Purpose |
-|---------|---------|
+| Element               | Purpose                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `FastField` / `Field` | Formik component for form state. Use `FastField` (optimized mode) for better performance - only re-renders when this specific field changes |
-| `optimized` prop | When `true`, uses `FastField`. Set to `false` only if your field depends on other form values |
-| `getFieldData()` | Retrieves `label`, `helpText`, `placeholder`, `required`, `detail` from your model's YAML schema definition |
-| `field` prop | Spread Formik's field props (`value`, `onChange`, `onBlur`, `name`) onto input |
-| `meta` prop | Access `touched`, `error`, `initialError` for validation display |
-| `computedError` | Combines Formik error with optional external error prop |
-| Error handling | Supports both string errors and structured objects with `severity`/`message`/`description` |
-| Props override | `label`, `helpText`, `required`, `placeholder` props override values from `getFieldData()` |
+| `optimized` prop      | When `true`, uses `FastField`. Set to `false` only if your field depends on other form values                                               |
+| `getFieldData()`      | Retrieves `label`, `helpText`, `placeholder`, `required`, `detail` from your model's YAML schema definition                                 |
+| `field` prop          | Spread Formik's field props (`value`, `onChange`, `onBlur`, `name`) onto input                                                              |
+| `meta` prop           | Access `touched`, `error`, `initialError` for validation display                                                                            |
+| `computedError`       | Combines Formik error with optional external error prop                                                                                     |
+| Error handling        | Supports both string errors and structured objects with `severity`/`message`/`description`                                                  |
+| Props override        | `label`, `helpText`, `required`, `placeholder` props override values from `getFieldData()`                                                  |
 
 ### Using Custom Fields
 
@@ -557,7 +804,10 @@ const FormFieldsContainerComponent = ({ record }) => {
           label="Custom Field Label"
         />
         {/* Field that automatically converts input to uppercase */}
-        <UppercaseField fieldPath="metadata.code" fieldRepresentation="compact" />
+        <UppercaseField
+          fieldPath="metadata.code"
+          fieldRepresentation="compact"
+        />
       </AccordionField>
     </React.Fragment>
   );
@@ -605,7 +855,8 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
 ```
 
 <Callout type="info">
-Note the dot notation: `mymodel.DepositCreate` refers to the JinjaX component at `mymodel/DepositCreate.jinja`.
+  Note the dot notation: `mymodel.DepositCreate` refers to the JinjaX component
+  at `mymodel/DepositCreate.jinja`.
 </Callout>
 
 <Callout type="warning">
@@ -628,7 +879,8 @@ Create `ui/mymodel/templates/semantic-ui/mymodel/deposit_create/javascript.html`
 ```
 
 <Callout type="info">
-The base template automatically includes this file if it exists at `{model_name}/deposit_create/javascript.html`.
+  The base template automatically includes this file if it exists at `
+  {model_name}/deposit_create/javascript.html`.
 </Callout>
 
 ## Optional: Resource Components
@@ -668,16 +920,10 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
   >
     Define fields in your model YAML
   </Card>
-  <Card
-    title="Record landing page"
-    href="/customize/model_ui/detail"
-  >
+  <Card title="Record landing page" href="/customize/model_ui/detail">
     Record detail customization
   </Card>
-  <Card
-    title="Formik documentation"
-    href="https://formik.org/docs/overview"
-  >
+  <Card title="Formik documentation" href="https://formik.org/docs/overview">
     Form state management library
   </Card>
   <Card
