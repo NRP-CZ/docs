@@ -189,6 +189,37 @@ After updating `invenio-forks.yaml`, re-run the workflow.
 
 ### 2) Release `oarepo-*` packages
 
+OARepo packages must declare version-ranged dependencies for both:
+- other `oarepo-*` packages they use
+- Invenio packages referenced in source imports or tests
+
+Dependencies used only in tests must be placed in the `tests` optional dependency group in `pyproject.toml`. For example:
+
+```toml
+[project]
+name = "oarepo-vocabularies"
+version = "4.0.0"
+
+dependencies = [
+    "oarepo[rdm,tests]>=14,<15",
+    "oarepo-runtime>=3.0.0,<4.0.0",
+    "oarepo-ui>=8.0.0,<9.0.0",
+
+    # invenio dependencies referenced from sources
+    "invenio-search>=3.0.0,<4.0.0",
+    "invenio-vocabularies>=11.0.0,<12.0.0",
+]
+[project.optional-dependencies]
+tests = [
+    # extra invenio dependencies referenced from tests
+    "invenio-app>=3.0.0,<4.0.0",
+]
+```
+
+Use [resolve_invenio.sh](https://github.com/oarepo/oarepo/blob/main/tools/resolve_invenio.sh)
+to get a list of Invenio packages and recommended version ranges for dependency declarations.
+Whenever you add a new import, run this tool to check whether a new dependency is required.
+
 #### patch release (`vX.Y.Z`)
 
 Use this for bug fixes and chores.
@@ -216,21 +247,23 @@ Use this for backward-compatible new features.
 
 Use this for backward-incompatible changes or release-train dependency propagation.
 
-1. **TODO:** Open [oarepo-app actions](https://github.com/oarepo/oarepo-app/actions) and run the dependency checker.
-2. Provide:
-   - target `oarepo` version
-   - versions of changed `oarepo-*` packages
-3. Use the generated dependency graph to identify all packages that require a major bump.
-4. Create PRs for all affected packages:
+1. Create a PR with the change. Inside the PR, set package version to `X.0.0` (where X is incremented)
+2. **TODO:** Open [oarepo-app actions](https://github.com/oarepo/oarepo-app/actions) and run the dependency checker.
+3. Provide:
+   - target `oarepo` version (empty means the latest version)
+   - list of `oarepo-*` packages (the checker will suppose that major version of these packages will be changed,
+     that is the PR of the change IS NOT MERGED yet)
+4. Use the generated dependency graph to identify all packages that require a major bump.
+5. Create PRs for all affected packages:
    - set package version to `X.0.0`
    - update dependency constraints in `pyproject.toml` to new major ranges where needed
-5. Run the testrig with all related PRs:
+6. Run the testrig with all related PRs:
 
 ```bash
 uvx run \
-  --from https://github.com/oarepo/invenio-testrig@master invenio-testrig \
+  --from git+https://github.com/oarepo/invenio-testrig@master invenio-testrig \
   github \
-  --config https://github.com/oarepo/oarepo/blob/main/tools/testrig.conf \
+  --config-file https://github.com/oarepo/oarepo/blob/main/tools/testrig.yaml \
   <pr1> <pr2> ...
 ```
 
