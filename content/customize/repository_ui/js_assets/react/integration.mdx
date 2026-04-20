@@ -127,10 +127,11 @@ theme = WebpackThemeBundle(
 
 Include the bundled JavaScript in your Jinja template:
 
-```jinja filename="ui/components/templates/home.jinja"{4}
+```jinja filename="ui/components/templates/home.jinja"{5}
 <div id="welcome-banner" data-user='{{ user | tojson }}'></div>
 
 {%- block javascript %}
+{{ super() }}
 {{ webpack['welcome_banner.js'] }}
 {%- endblock %}
 ```
