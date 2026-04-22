@@ -1,5 +1,5 @@
-import { Callout } from 'nextra/components'
-import {ToDo} from '@/components/todo'
+import { Callout } from "nextra/components";
+import { ToDo } from "@/components/todo";
 
 # The `./run.sh` script
 
@@ -64,7 +64,8 @@ To update the runner to the latest version, run:
 ```
 
 <Callout type="info">
-`.runner.sh` is intentionally excluded from version control. Only `run.sh` (the stub) should be committed.
+  `.runner.sh` is intentionally excluded from version control. Only `run.sh`
+  (the stub) should be committed.
 </Callout>
 
 ---
@@ -84,7 +85,8 @@ This step needs to be repeated whenever you:
 - change Jinja2 templates or LESS/CSS/JS assets.
 
 <Callout type="info">
-The first installation can take several minutes because all Python packages and Node modules need to be downloaded and compiled.
+  The first installation can take several minutes because all Python packages
+  and Node modules need to be downloaded and compiled.
 </Callout>
 
 ---
@@ -124,7 +126,8 @@ Use `--force` (short: `-f`) to redo the setup even if services have already been
 ```
 
 <Callout type="important">
-If you destroy and recreate the containers, open `.invenio.private` and set `services_setup=False` before running `./run.sh services setup` again.
+  If you destroy and recreate the containers, open `.invenio.private` and set
+  `services_setup=False` before running `./run.sh services setup` again.
 </Callout>
 
 ### `services start` — start services
@@ -162,15 +165,16 @@ Stops and removes the service containers **and all their data**. Use this when y
 Starts the Docker services, a Celery background-task worker, and the Flask/uWSGI development server. Once running, the repository is available at [https://127.0.0.1:5000/](https://127.0.0.1:5000/).
 
 <Callout type="warning">
-Use `127.0.0.1` rather than `localhost` in your browser. Due to Content Security Policy headers the two are not interchangeable.
+  Use `127.0.0.1` rather than `localhost` in your browser. Due to Content
+  Security Policy headers the two are not interchangeable.
 </Callout>
 
 Two optional flags let you skip parts of the startup:
 
-| Flag | Effect |
-|------|--------|
+| Flag            | Effect                                                                             |
+| --------------- | ---------------------------------------------------------------------------------- |
 | `--no-services` | Do not start the Docker service containers (useful when they are already running). |
-| `--no-celery` | Do not launch a Celery worker. Only the web server will be started. |
+| `--no-celery`   | Do not launch a Celery worker. Only the web server will be started.                |
 
 ```bash
 # Start only the web server (services and Celery already running elsewhere)
@@ -199,7 +203,7 @@ running and the data is indexed.
 ./run.sh model create <model-name> [config-file]
 ```
 
-Scaffolds a new record model inside a subdirectory named `<model-name>` using the [Copier](https://copier.readthedocs.io/) template defined by `MODEL_TEMPLATE` (default: `https://github.com/oarepo/nrp-model-copier`, branch `rdm-14`).
+Scaffolds a new record model inside a directory named `models/<model-name>` using the [Copier](https://copier.readthedocs.io/) template defined by `MODEL_TEMPLATE` (default: `https://github.com/oarepo/nrp-model-copier`, branch `rdm-14`).
 
 When no `config-file` is provided, you are prompted interactively. Supply a YAML answers file to run non-interactively or to reproduce an earlier scaffold:
 
@@ -262,14 +266,15 @@ Extracts translatable strings from JavaScript/React source files. The extraction
 Destroys the existing OpenSearch indices, recreates them, re-initialises custom fields for both records and communities, and triggers a full reindex.
 
 <Callout type="info">
-Use this command after making changes to the metadata schema, especially if you added new fields.
-Otherwise, the new fields won't be indexed and won't be searchable or sortable.
+  Use this command after making changes to the metadata schema, especially if
+  you added new fields. Otherwise, the new fields won't be indexed and won't be
+  searchable or sortable.
 </Callout>
 
 <Callout type="important">
-After running this command the actual re-indexing of existing records is performed
-asynchronously by Celery workers. Start the server with `./run.sh run` and wait
-for the workers to finish processing the indexer queue.
+  After running this command the actual re-indexing of existing records is
+  performed asynchronously by Celery workers. Start the server with `./run.sh
+  run` and wait for the workers to finish processing the indexer queue.
 </Callout>
 
 ---
@@ -285,7 +290,8 @@ During development you may want to use a locally checked-out version of an upstr
 This calls `uv add --editable` for the package at the given path and registers it in `tool.uv.sources` inside `pyproject.toml`, then reruns `upgrade` so the lock file and virtual environment are updated.
 
 <Callout type="info">
-Removing local sources is not yet automated. To revert, manually remove the entry from `pyproject.toml` and run `./run.sh upgrade`.
+  Removing local sources is not yet automated. To revert, manually remove the
+  entry from `pyproject.toml` and run `./run.sh upgrade`.
 </Callout>
 
 ---
@@ -350,7 +356,8 @@ Asks for confirmation, then:
 6. Creates the `administration` role and a demo user `user@demo.org` with password `123456` (override with the `DEMO_USER_PASSWORD` environment variable).
 
 <Callout type="warning">
-This command is **destructive and irreversible**. All records, files, and database content will be lost.
+  This command is **destructive and irreversible**. All records, files, and
+  database content will be lost.
 </Callout>
 
 ---
@@ -363,5 +370,5 @@ This command is **destructive and irreversible**. All records, files, and databa
 
 Downloads the latest version of `repository_runner.sh` from GitHub, verifies it works, and replaces the local `.runner.sh` cache. The `run.sh` stub itself is not modified.
 
-<ToDo/>
+<ToDo />
 Add commands for local UI development (like watching and recompiling assets).

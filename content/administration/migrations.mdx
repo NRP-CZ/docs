@@ -8,6 +8,67 @@ import {
 # Migrations & Updates
 
 <MigrationHeader
+  date="2026-04-15"
+  title="Models moved under models/ folder"
+  prHref="https://github.com/oarepo/nrp-model-copier/pull/34"
+  versionBadge="nrp-model-copier"
+/>
+
+The `model create` command now places the backend part of new models inside a `models/` folder
+(e.g. `models/datasets/`) instead of creating them as top-level directories (e.g. `datasets/`).
+This keeps the repository structure cleaner as the number of models grows.
+
+<Callout type="info">
+Existing repositories with models already at the top level will continue to work.
+However, for a consistent folder structure we recommend moving existing models into `models/` as well.
+</Callout>
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories with models created at the top level before 2026-04-15 | Newly created repositories |
+| Repositories adding new models alongside existing top-level models | Repositories with no models yet |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**Step 1 — New models are created automatically under `models/`**
+
+When you run `./run.sh model create <model_name>`, the model will now be placed in `models/<model_name>/`.
+No action is needed for new models.
+
+**Step 2 — Move existing top-level models into `models/`**
+
+```bash
+mv datasets models/
+```
+
+Repeat for every model that currently lives at the repository root.
+
+**Step 3 — Update `invenio.cfg`**
+
+Update the model import paths. For example, if you have a model called `datasets`:
+
+```python filename="invenio.cfg"
+# Before
+from datasets import datasets_model
+datasets_model.register()
+
+# After
+from models.datasets import datasets_model
+datasets_model.register()
+```
+
+**Step 4 — Update `pyproject.toml`**
+
+In the `module-name` section of `pyproject.toml`, remove the entry for the model folder you just moved
+(e.g. remove `datasets`). The model is now discovered from `models/` automatically.
+
+</MigrationSteps>
+
+<MigrationHeader
   date="2026-02-18"
   title="oarepo-ui v7.0+ Required Base Templates"
   prHref="https://github.com/oarepo/oarepo-ui/pull/409"
