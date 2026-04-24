@@ -409,6 +409,14 @@ ReactDOM.render(
 | `component`     | function | Called as `component({ record, formConfig, activeStep, next, back, initialRecord })`, returns JSX |
 | `includesPaths` | string[] | Field paths for error tracking — errors in these fields show indicators on this tab               |
 | `saveOnTabChange` | bool   | Forces a save when leaving this tab, even if the form is not dirty. Useful for sections like file upload or community selection that update Redux state rather than Formik state, so the form won't appear dirty despite having unsaved changes. |
+| Property          | Type     | Description                                                                                       |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------------- |
+| `key`             | string   | Unique identifier for the section (used in URL as `?tab=key`)                                     |
+| `label`           | string   | Display label shown in the tab menu                                                               |
+| `component`       | function | Called as `component({ record, formConfig, activeStep, next, back, initialRecord })`, returns JSX |
+| `includesPaths`   | string[] | Field paths for error tracking — errors in these fields show indicators on this tab               |
+| `sectionFilled`   | function | Custom function to compute how filled the section is. Receives `({ formikValues, reduxState, includesPaths })` and must return a number between 0 (empty) and 1 (fully filled). When omitted, the built-in generic function checks each path in `includesPaths` via Formik values |
+| `filledThreshold` | number   | Fraction (0–1) at which the section progress bar turns from orange to green. Defaults to `0.8`    |
 
 **Props available to `component`:**
 
@@ -563,6 +571,62 @@ ReactDOM.render(
   must also be declared in the backend model schema (e.g.
   `datasets/metadata.yaml`).
 </Callout>
+
+##### Section Filled Indicator
+
+Because the wizard form only validates against the server when saving (i.e. when switching tabs), validation errors are not immediately visible while the user is editing. To compensate, each tab displays a real-time **progress bar** that shows how much of the section has been filled in. This gives users continuous feedback on their progress without waiting for a save round-trip.
+
+By default, the indicator uses a generic function that iterates over the section's `includesPaths` and checks each path in Formik values. For each path that has a non-empty value, it counts it as filled and returns the ratio of filled paths to total paths (a number between 0 and 1).
+
+**Custom `sectionFilled` functions**
+
+Some data is not stored in Formik state — for example, **file uploads** are managed through Redux, and **community selection** may live outside Formik as well. For sections containing such fields, the generic function cannot detect whether they are filled, so you need to provide a custom `sectionFilled` function.
+
+The function signature is:
+
+```js
+sectionFilled({ formikValues, reduxState, includesPaths }) => number  // 0 to 1
+```
+
+For file upload sections, oarepo-ui provides a ready-made function:
+
+```js
+import { computeFilesSectionFilled } from "@js/oarepo_ui/forms";
+
+export const FilesSection = {
+  key: "files",
+  label: i18next.t("Upload files"),
+  component: ({ record, formConfig }) => { /* ... */ },
+  includesPaths: ["files.enabled"],
+  sectionFilled: computeFilesSectionFilled,
+};
+```
+
+`computeFilesSectionFilled` checks the Redux state for file entries and returns `1` if at least one file has been uploaded, `0` otherwise.
+
+**Adjusting the threshold**
+
+Each section can set a custom `filledThreshold` (default `0.8`). The bar displays in orange below this threshold and green at or above it:
+
+```js
+export const BasicInformationSection = {
+  key: "basic-info",
+  label: i18next.t("Basic information"),
+  component: BasicInfoComponent,
+  includesPaths: ["metadata.title", "metadata.description", "metadata.creators"],
+  filledThreshold: 0.6, // turn green at 60% instead of 80%
+};
+```
+
+**Disabling the indicator**
+
+If you want to hide the section filled indicator entirely, add the following to your site overrides:
+
+```less filename="assets/less/site/globals/site.overrides"
+.section-filled-bar {
+  display: none;
+}
+```
 
 </Steps>
 
