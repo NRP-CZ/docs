@@ -1222,25 +1222,34 @@ Data type for discriminated union types where a field can represent different ob
 | discriminator | Field name used to determine schema variant (defaults to "type") |
 | oneof | Array of schema variants with discriminator values |
 
+**Important:**
+
+All of the inner schemas must contain the same definition of the discriminator field, 
+see the example below.
+
 **Example:**
 
 ```yaml
 creator:
   type: polymorphic
-  discriminator: creator_type
+  discriminator: creator_type # name of the field that discriminates subschemas
   oneof:
-    - discriminator: person
+    - discriminator: person   # if the field has value "person", use this branch 
       type: object
       properties:
+        creator_type:    # note: creator_type must be defined in every schema
+          type: keyword
         name:
           type: fulltext+keyword
         orcid:
           type: keyword
         affiliation:
           type: fulltext+keyword
-    - discriminator: organization
+    - discriminator: organization   # if the field has value "organization", use this branch
       type: object
       properties:
+        creator_type:    # note: creator_type must be defined in every schema
+          type: keyword
         name:
           type: fulltext+keyword
         ror_id:
@@ -1255,6 +1264,8 @@ resource:
     - discriminator: dataset
       type: object
       properties:
+        resource_type:
+          type: keyword
         format:
           type: keyword
         size_bytes:
@@ -1262,6 +1273,8 @@ resource:
     - discriminator: publication
       type: object
       properties:
+        resource_type:
+          type: keyword
         journal:
           type: fulltext+keyword
         doi:
