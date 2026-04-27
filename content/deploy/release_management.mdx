@@ -1,0 +1,314 @@
+import { Callout } from 'nextra/components'
+
+# Release management
+
+This document explains how CESNET manages releases of Invenio- and OArepo-related packages, and what to do for each release type.
+
+## Package layers
+
+### `invenio-app-rdm`
+
+CESNET Invenio is built on InvenioRDM packages, with `invenio-app-rdm` as the root package.
+
+In the InvenioRDM ecosystem, dependencies follow **pinned major versions**.  
+For example, if `invenio-app-rdm` depends on `invenio-rdm-records`, the requirement looks like:
+
+`invenio-rdm-records>=12.3.0,<13.0.0`
+
+### CESNET patches to `invenio-*` packages
+
+CESNET patches `invenio-app-rdm` and other Invenio packages to add CESNET features (for example, multiple models and workflows).
+
+These patched packages keep the same package names (for example, `invenio-rdm-records`) but are published to the [CESNET pip registry](https://gitlab.cesnet.cz/703/public/pypi/-/packages?orderBy=created_at&sort=desc), not global PyPI.
+
+Patched versions use a suffix such as:
+
+`27.0.0+oarepo.3.3yojwri2nobgwy5x`
+
+Meaning:
+
+- base upstream version: `27.0.0`
+- CESNET patch number: `3`
+- trailing hash: identifies the exact CESNET patch set
+
+### `oarepo` package
+
+After patching, CESNET publishes `oarepo` to the CESNET pip registry.  
+This package contains fully pinned dependencies, so installing a specific `oarepo` version always produces the same dependency set (Invenio packages + CESNET patches).
+
+`oarepo` versioning tracks `invenio-app-rdm`. Example:
+
+`14.2.1b9.dev0+6.rdm.14.0.0b9.dev0`
+
+This means it is the 6th build based on `invenio-app-rdm==14.0.0b9.dev0`.
+
+Because CESNET changes can be backward-incompatible, these rules apply:
+
+- major version follows `invenio-app-rdm` major version
+- minor version increases when:
+  - CESNET introduces backward-incompatible changes (only during upstream development), or
+  - `invenio-app-rdm` increases its minor version
+- patch version increases when:
+  - upstream patch version increases, or
+  - CESNET patch content changes
+
+### `oarepo-*` packages
+
+Extra CESNET functionality (for example, multiple metadata schemas, vocabulary hierarchy, workflows) is delivered via `oarepo-*` packages.
+
+These packages follow semantic versioning:
+
+- major = backward-incompatible change
+- minor = new feature or larger backward-compatible change
+- patch = bugfix/chore
+
+If an `oarepo-*` package depends on a package whose **major** version changes, CESNET applies a release train and bumps the dependent package’s major version as well.
+
+For example, `oarepo-vocabularies` dependencies:
+
+```toml
+[project]
+name = "oarepo-vocabularies"
+version = "4.0.0"
+
+dependencies = [
+    "oarepo[rdm,tests]>=14,<15",
+    "oarepo-runtime>=3.0.0,<4.0.0",
+    "oarepo-ui>=8.0.0,<9.0.0",
+
+    # invenio dependencies
+    "invenio-search>=3.0.0,<4.0.0",
+    "invenio-vocabularies>=11.0.0,<12.0.0",
+]
+```
+
+If `invenio-vocabularies` moves from 11 to 12, `oarepo-vocabularies` moves from 4 to 5.  
+Likewise, if `oarepo-ui` moves from 8 to 9, `oarepo-vocabularies` major version also increases.
+
+### `oarepo-app` package
+
+`oarepo-app` combines:
+
+- `oarepo` (pinned Invenio stack)
+- CESNET extensions (`oarepo-*` packages)
+
+Its major version changes whenever the major version of any core `invenio-*` or `oarepo-*` dependency changes.
+
+`oarepo-app` has two variants:
+
+- **development**  
+  Pins only major versions of CESNET packages. Useful for active development because newer compatible versions are installed.
+- **production**  
+  Fully pins CESNET and Invenio packages. Intended for production repositories that prioritize stability.
+
+Repositories typically include both `oarepo` and `oarepo-app` as a consistency check:
+
+```toml
+[project]
+name = "datarepo"
+version = "1.0.0"
+dependencies = [
+    "oarepo[s3,rdm]>=14.0.0,<15.0.0",
+    "oarepo-app[development]>=1.0.0,<2.0.0",
+]
+requires-python = ">=3.14,<3.15"
+```
+
+`oarepo-app` provides an [extensive changelog](https://github.com/oarepo/oarepo-app/blob/rdm-14/CHANGELOG.md) covering Invenio and CESNET package changes since the previous `oarepo-app` release.  
+The link above points to `rdm-14`; switch branches for other InvenioRDM versions.
+
+## Compatibility matrix
+
+| `oarepo-app` version | `oarepo` version | `invenio-app-rdm` version | Suggested range                        |
+|----------------------|------------------|---------------------------|----------------------------------------|
+| 1.0.0                | 14.2.1b9.dev0    | 14.0.0b9.dev0             | `oarepo[s3,rdm]>=14.0.0,<15.0.0`       |
+|                      |                  |                           | `oarepo-app[production]>=1.0.0,<2.0.0` |
+|                      |                  |                           | `python>=3.14,<3.15`                   |
+
+## Release train reference (step-by-step)
+
+<Callout type="important">
+For `oarepo-*` PRs, always check whether the PR introduces a new dependency on InvenioRDM or another `oarepo-*` package.  
+If yes, treat it as a **major release**.
+</Callout>
+
+<Callout type="important">
+Always run the testrig with your PRs, even if the PR only includes patch-level changes.  
+It usually takes about 30 minutes, but it can prevent broken releases.
+</Callout>
+
+### 1) Release `oarepo` (base of the train)
+
+1. Open [invenio-integration-tests workflow](https://github.com/oarepo/invenio-integration-tests/actions/workflows/create_oarepo_release.yaml).
+2. Click **Run workflow**.
+3. Select the correct branch and Python version.
+4. Start the workflow.
+
+The workflow will:
+
+- download and patch Invenio packages with CESNET patches
+- run the testrig for patched packages
+- run API tests on a reference InvenioRDM repository
+- run smoke UI tests on a reference InvenioRDM repository
+- create and publish a new `oarepo` version
+
+#### Potential problem: patches cannot be applied to an Invenio package
+
+If patch application fails, follow this sequence:
+
+1. In the workflow output, identify the failing package (for example, `invenio-communities`).
+2. Clone the package repository:
+   `gh repo clone oarepo/invenio-communities`
+3. Check out the upstream tag used by the release:
+   `git checkout vX.Y.Z`
+4. Switch to the existing feature branch:
+   `git switch oarepo-feature-featurename`
+5. Create a new branch rebased for the new upstream tag:
+   `git switch -c oarepo-feature-featurename-from-X.Y.Z`
+6. Rebase onto the upstream tag:
+   `git rebase vX.Y.Z`
+7. Resolve conflicts, then commit and push the new branch.
+
+Next, update the feature branch reference in [`oarepo/invenio-integration-tests`](https://github.com/oarepo/invenio-integration-tests/blob/rdm-14/invenio-forks.yaml). Example:
+
+```yaml
+- name: invenio-communities
+  features:
+    # updated branch for newer upstream base
+    - name: oarepo-feature-disable-communities-ui-from-25.0.0
+      base: v25.0.0
+      invenio-version: ">=25.0.0"
+    # original branch kept for older base
+    - name: oarepo-feature-disable-communities-ui
+      base: v21.0.0
+      # added version constraint here so that it is not used for >=25.0.0
+      invenio-version: ">=21.0.0,<25.0.0"
+```
+
+After updating `invenio-forks.yaml`, re-run the workflow.
+
+### 2) Release `oarepo-*` packages
+
+OARepo packages must declare version-ranged dependencies for both:
+- other `oarepo-*` packages they use
+- Invenio packages referenced in source imports or tests
+
+Dependencies used only in tests must be placed in the `tests` optional dependency group in `pyproject.toml`. For example:
+
+```toml
+[project]
+name = "oarepo-vocabularies"
+version = "4.0.0"
+
+dependencies = [
+    "oarepo[rdm,tests]>=14,<15",
+    "oarepo-runtime>=3.0.0,<4.0.0",
+    "oarepo-ui>=8.0.0,<9.0.0",
+
+    # invenio dependencies referenced from sources
+    "invenio-search>=3.0.0,<4.0.0",
+    "invenio-vocabularies>=11.0.0,<12.0.0",
+]
+[project.optional-dependencies]
+tests = [
+    # extra invenio dependencies referenced from tests
+    "invenio-app>=3.0.0,<4.0.0",
+]
+```
+
+Use [resolve_invenio.sh](https://github.com/oarepo/oarepo/blob/main/tools/resolve_invenio.sh)
+to get a list of Invenio packages and recommended version ranges for dependency declarations.
+Whenever you add a new import, run this tool to check whether a new dependency is required.
+
+#### patch release (`vX.Y.Z`)
+
+Use this for bug fixes and chores.
+
+1. Create a PR with the change.
+2. Get approval and merge.
+3. Create a GitHub release with tag `vX.Y.Z`:
+   - keep `X.Y` unchanged
+   - increment `Z`
+4. The release is created by the person who approved and merged the PR.
+
+#### minor release (`vX.Y.0`)
+
+Use this for backward-compatible new features.
+
+1. Create a PR with the change.
+2. Get approval and merge.
+3. Create a GitHub release with tag `vX.Y.0`:
+   - keep `X` unchanged
+   - increment `Y`
+   - reset patch to `0`
+4. The release is created by the person who approved and merged the PR.
+
+#### major release (`vX.0.0`)
+
+Use this for backward-incompatible changes or release-train dependency propagation.
+
+1. Create a PR with the change. Inside the PR, set package version to `X.0.0` (where X is incremented)
+2. **TODO:** Open [oarepo-app actions](https://github.com/oarepo/oarepo-app/actions) and run the dependency checker.
+3. Provide:
+   - target `oarepo` version (empty means the latest version)
+   - list of `oarepo-*` packages (the checker will suppose that major version of these packages will be changed,
+     that is the PR of the change IS NOT MERGED yet)
+4. Use the generated dependency graph to identify all packages that require a major bump.
+5. Create PRs for all affected packages:
+   - set package version to `X.0.0`
+   - update dependency constraints in `pyproject.toml` to new major ranges where needed
+6. Run the testrig with all related PRs:
+
+```bash
+uvx run \
+  --from git+https://github.com/oarepo/invenio-testrig@master invenio-testrig \
+  github \
+  --config-file https://raw.githubusercontent.com/oarepo/oarepo/refs/heads/main/tools/testrig.yaml \
+  <pr1> <pr2> ...
+```
+
+6. Continue only if all testrig checks are green.
+7. Merge and release in dependency order:
+   - first merge a PR that has no pending bumped dependencies
+   - create GitHub release tag matching `pyproject.toml` (`vX.0.0`)
+   - rerun testrig with remaining PRs
+   - repeat until all affected packages are released
+
+### 3) Release `ccmm-invenio`
+
+**Warning:** CCMM does not follow semantic versioning at the XML serialization level, so `ccmm-invenio` cannot reliably follow semantic versioning either.  
+For example, `ccmm-invenio 1.1.x` maps to CCMM `1.1.y`, while CCMM `1.2.0` may still introduce backward-incompatible XML serialization changes.
+
+Because of this, `oarepo-app` version guardrails do not reliably detect compatibility changes for `ccmm-invenio`.
+
+When releasing `ccmm-invenio`:
+
+- prefer backward-compatible changes whenever possible
+- increment the **patch** version even for minor functional changes
+- do **not** increment major or minor versions in normal releases
+
+If a backward-incompatible change is necessary:
+
+1. Clearly describe the change and its impact in the pull request.
+2. Add `[breaking]` to the PR title.
+3. Communicate the change to the team before release.
+
+**Warning:** If `oarepo-app` is released after a breaking `ccmm-invenio` change, the break is not detected automatically.  
+You must manually increase the `oarepo-app` major version in the release branch.
+
+### 4) Release `oarepo-app` (final train aggregation)
+
+1. Open [oarepo-app create release branch workflow](https://github.com/oarepo/oarepo-app/actions/workflows/create_branch.yml).
+2. Run **create a release branch**.
+3. Review the generated release branch and PR:
+   - version is computed automatically
+   - major version is increased automatically if any major bumps are present
+4. Review the changelog in the release branch.
+5. Run testrig on the release PR.
+6. If checks pass, merge the PR.
+
+After merge, the release process starts automatically and publishes the new `oarepo-app` version to the CESNET pip registry.
+
+### 5) Update this file
+
+Finally, update the compatibility matrix in this file and merge PR with this change.
