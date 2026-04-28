@@ -402,19 +402,13 @@ ReactDOM.render(
 
 **Section object properties:**
 
-| Property        | Type     | Description                                                                                       |
-| --------------- | -------- | ------------------------------------------------------------------------------------------------- |
-| `key`           | string   | Unique identifier for the section (used in URL as `?tab=key`)                                     |
-| `label`         | string   | Display label shown in the tab menu                                                               |
-| `component`     | function | Called as `component({ record, formConfig, activeStep, next, back, initialRecord })`, returns JSX |
-| `includesPaths` | string[] | Field paths for error tracking — errors in these fields show indicators on this tab               |
-| `saveOnTabChange` | bool   | Forces a save when leaving this tab, even if the form is not dirty. Useful for sections like file upload or community selection that update Redux state rather than Formik state, so the form won't appear dirty despite having unsaved changes. |
 | Property          | Type     | Description                                                                                       |
 | ----------------- | -------- | ------------------------------------------------------------------------------------------------- |
 | `key`             | string   | Unique identifier for the section (used in URL as `?tab=key`)                                     |
 | `label`           | string   | Display label shown in the tab menu                                                               |
 | `component`       | function | Called as `component({ record, formConfig, activeStep, next, back, initialRecord })`, returns JSX |
 | `includesPaths`   | string[] | Field paths for error tracking — errors in these fields show indicators on this tab               |
+| `saveOnTabChange` | bool   | Forces a save when leaving this tab, even if the form is not dirty. Useful for sections like file upload or community selection that update Redux state rather than Formik state, so the form won't appear dirty despite having unsaved changes. |
 | `sectionCompletion`   | function | Custom function to compute how filled the section is. Receives `({ formikValues, reduxState, includesPaths })` and must return a number between 0 (empty) and 1 (fully filled). When omitted, the built-in generic function checks each path in `includesPaths` via Formik values |
 | `sectionCompletionThreshold` | number   | Fraction (0–1) at which the section progress bar turns from orange to green. Defaults to `0.8`    |
 
