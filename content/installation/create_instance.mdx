@@ -1,6 +1,5 @@
-import { Cards } from 'nextra/components'
+import { Cards, Callout } from 'nextra/components'
 import { Card } from "@/components/card";
-import { Callout } from 'nextra/components'
 
 
 # Create a new repository
@@ -118,6 +117,10 @@ Copying from template version 0.0.0.post56.dev0+fd459fc
  > Running task 1 of 2: ['register_to_pyproject.py', 'equipment']
  > Running task 2 of 2: ['register_to_invenio_cfg.py', 'equipment', 'equipment']
 ```
+
+<Callout type="warning">
+If you have already set up your services, after creating a new model you will need to [reinitialize the database and indices](/customize/model_backend/db_update).
+</Callout>
 
 ## Customize the metadata schema
 

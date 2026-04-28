@@ -1,3 +1,5 @@
+import { Callout } from "nextra/components";
+
 # Model schema customization
 
 This section describes how to customize metadata models in your NRP-based repository.
@@ -10,6 +12,10 @@ To add a new metadata schema, use the `model create` command. You need to provid
 ❯ ./run.sh model create equipment
 ...
 ```
+
+<Callout type="warning">
+If you have already set up your services, after creating a new model you will need to [reinitialize the database and indices](/customize/model_backend/db_update).
+</Callout>
 
 When creating a new model, you can base it on one of the following templates:
 
