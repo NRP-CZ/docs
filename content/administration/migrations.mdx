@@ -8,6 +8,77 @@ import {
 # Migrations & Updates
 
 <MigrationHeader
+  date="2026-05-11"
+  title="oarepo-app v2.2.0"
+  prHref="https://github.com/oarepo/oarepo-app/pull/21"
+  versionBadge="oarepo-app ≥ 2.2.0"
+/>
+
+This breaking change introduces oarepo-app library in the version 2.2.0. This release includes all invenio changes that were released before 2026-05-01,
+including introduction of ccmm vocabularies.
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories created before 2026-05-11 | Repositories created after 2026-05-11 |
+| **oarepo-app`<=`2.2.0 or not used at all** | --- |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**pyproject.toml update**
+
+1. Inside pyproject.toml, remove all `oarepo-*` dependencies and replace them with the new `oarepo-app` library.
+
+  **Before:**
+  ```toml
+  dependencies = [
+          "oarepo[s3,rdm]>=14.0.0,<14.1.9",
+          "oarepo-runtime>=2.0.0dev0,<3.0.0",
+          "oarepo-ui>=7.0.0dev0,<8.0.0",
+          ...
+  ]
+  ```
+
+  **After:**
+  ```toml
+  dependencies = [
+      "oarepo[s3,rdm]>=14.2.1b10.dev6,<15.0.0",
+      "oarepo-app[production]==2.2.0",  # <---- here
+  ]
+  ```
+
+2. Update the version of the `oarepo` library:
+  ```toml
+  dependencies = [
+      "oarepo[s3,rdm]>=14.2.1b10.dev6,<15.0.0",  # <---- here
+      "oarepo-app[production]==2.2.0",
+  ]
+  ```
+3. Make sure to use python 3.14 inside the `requires-python` section. 
+  ```toml
+  requires-python = ">=3.14,<3.15"
+  ```
+4. Remove the top-level `package.json` if it exists
+5. Run `./run.sh upgrade` to update the lock file.
+6. Run `./run.sh reset` to reset your local instance due to the ccmm vocabularies.
+7. If you have sample data, you'll need to modify them to use ccmm vocabularies. For example:
+    1. the id of the resource type `dataset` should change to `c_ddb1`
+    2. the `created` time reference should be changed to `Created` (first letter capitalized)
+    3. the `cc0-1.0` license should be changed to `CC0-1.0` (cc capitalized)
+
+<Callout type="warning">
+If you are already running a production instance, please contact us first.
+</Callout>
+
+Be sure that you have run the other migrations first.
+
+</MigrationSteps>
+
+
+<MigrationHeader
   date="2026-02-18"
   title="oarepo-ui v7.0+ Required Base Templates"
   prHref="https://github.com/oarepo/oarepo-ui/pull/409"
