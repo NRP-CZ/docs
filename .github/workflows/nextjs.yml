@@ -39,14 +39,14 @@ jobs:
             echo "Unable to determine package manager"
             exit 1
           fi
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: ${{ steps.detect-package-manager.outputs.manager }}
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Restore cache
