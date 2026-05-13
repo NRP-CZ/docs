@@ -354,7 +354,59 @@ config.configure_communities(
             name="reader",
             title=_("Reader"),
             description=_("Can read community records."),
-        ),
+         ),
     ]
+)
+
+```
+
+## `register_workflow`
+
+Register a workflow with its display name, permission policy, and request policy.  
+Workflows define how deposits are handled in the repository, including approval processes, permissions, and request types.
+
+_Defined in `oarepo/config/workflows.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **name** | `str` | — | Unique identifier for the workflow (e.g., `"default"`, `"individual"`). |
+| **title** | `str` | — | Translated display name for the workflow, shown in UI and metadata. |
+| **permissions_class** | `str` | — | Dotted import path to the permission policy class that defines who can perform actions in this workflow. |
+| **requests_class** | `str` | — | Dotted import path to the request policy class that defines what types of requests (review, deletion, versioning) are supported. |
+
+### Effect
+
+- Registers a new workflow in the `WORKFLOWS` dictionary in the caller's configuration.
+- Each workflow entry maps the `name` to a dictionary containing `title`, `permissions_class`, and `requests_class`.
+- Makes the workflow available for use in community or individual deposit configurations.
+- Supports different approval processes: community workflows with curator/owner approval, or simpler individual workflows.
+
+### Example
+
+```python
+from invenio_i18n import lazy_gettext as _
+from oarepo import config
+
+# Full workflow for community deposits:
+# requires approval from curators/owners before publishing
+# and supports review, versioning, and deletion requests.
+config.register_workflow(
+     "default",
+     _("Default workflow"),
+     "common.workflows.default.DefaultWorkflowPermissions",
+     "common.workflows.default.DefaultWorkflowRequests",
+)
+
+
+# Simple workflow for individual deposits:
+# fewer rules, no full approval process like in communities,
+# mostly basic permissions for creating and managing records.
+config.register_workflow(
+     "individual",
+     _("Individual deposition workflow"),
+     "common.workflows.individual.IndividualDepositionWorkflowPermissions",
+     "oarepo_workflows.requests.policy.WorkflowRequestPolicy",
 )
 ```
