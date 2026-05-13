@@ -8,6 +8,80 @@ import {
 # Migrations & Updates
 
 <MigrationHeader
+  date="2026-05-11"
+  title="oarepo-app v2.3.0"
+  prHref="https://github.com/oarepo/oarepo-app/pull/21"
+  versionBadge="oarepo-app ≥ 2.3.0"
+/>
+
+This breaking change introduces the `oarepo-app` library in version 2.3.0. This release includes all Invenio changes released before 2026-05-01, including the introduction of CCMM vocabularies.
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories created before 2026-05-11 | Repositories created after 2026-05-11 |
+| Repositories using `oarepo-app <= 2.3.0`, or not using `oarepo-app` at all | --- |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**Update `pyproject.toml`**
+
+1. In `pyproject.toml`, remove all `oarepo-*` dependencies and replace them with the new `oarepo-app` library. Do not remove the `oarepo[s3,rdm]` dependency.
+
+  **Before:**
+  ```toml
+  dependencies = [
+          "oarepo[s3,rdm]>=14.0.0,<14.1.9",
+          "oarepo-runtime>=2.0.0dev0,<3.0.0",
+          "oarepo-ui>=7.0.0dev0,<8.0.0",
+          ...
+  ]
+  ```
+
+  **After:**
+  ```toml
+  dependencies = [
+      "oarepo[s3,rdm]>=14.2.1b10.dev6,<15.0.0",
+      "oarepo-app[production]==2.3.0",  # <---- here
+  ]
+  ```
+
+2. Update the version of the `oarepo` library:
+  ```toml
+  dependencies = [
+      "oarepo[s3,rdm]>=14.2.1b10.dev6,<15.0.0",  # <---- here
+      "oarepo-app[production]==2.3.0",
+  ]
+  ```
+3. Make sure you use Python 3.14 in the `requires-python` section.
+  ```toml
+  requires-python = ">=3.14,<3.15"
+  ```
+4. Remove the top-level `package.json` if it exists.
+5. Run `./run.sh upgrade` to update the lock file.
+6. Run `./run.sh reset` to reset your local instance because of the CCMM vocabularies.
+7. If you have sample data, you will need to update it to use CCMM vocabularies. See your `https://127.0.0.1:5000/vocabularies` which values are permitted.
+
+   **For example:**
+    1. Change the resource type ID from `dataset` to `c_ddb1`.
+    2. Change the `created` time reference to `Created` (capitalized first letter).
+    3. Change the `cc0-1.0` license to `CC0-1.0` (capitalized `CC`).
+
+For inspiration, see [invenio-fzu PR #22](https://github.com/FZU-AV-CR/invenio-fzu/pull/22/changes?w=1)
+
+<Callout type="warning">
+If you are already running a production instance, please contact us first.
+</Callout>
+
+Make sure you have run the older migrations first.
+
+</MigrationSteps>
+
+
+<MigrationHeader
   date="2026-02-18"
   title="oarepo-ui v7.0+ Required Base Templates"
   prHref="https://github.com/oarepo/oarepo-ui/pull/409"
