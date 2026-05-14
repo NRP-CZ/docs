@@ -31,6 +31,11 @@ This breaking change introduces the `oarepo-app` library in version 2.3.0. This 
 
 1. In `pyproject.toml`, remove all `oarepo-*` dependencies and replace them with the new `oarepo-app` library. Do not remove the `oarepo[s3,rdm]` dependency.
 
+  Use the correct `oarepo-app` extras depending on whether the repository uses `ccmm-invenio`:
+
+  - repositories without `ccmm-invenio`: `oarepo-app[production]==2.3.0`
+  - repositories with `ccmm-invenio`: `oarepo-app[production,ccmm]==2.3.0`
+
   **Before:**
   ```toml
   dependencies = [
@@ -45,7 +50,9 @@ This breaking change introduces the `oarepo-app` library in version 2.3.0. This 
   ```toml
   dependencies = [
       "oarepo[s3,rdm]>=14.2.1b10.dev6,<15.0.0",
-      "oarepo-app[production]==2.3.0",  # <---- here
+      "oarepo-app[production]==2.3.0",
+      # or, for repositories using ccmm-invenio:
+      "oarepo-app[production,ccmm]==2.3.0",
   ]
   ```
 
@@ -53,7 +60,7 @@ This breaking change introduces the `oarepo-app` library in version 2.3.0. This 
   ```toml
   dependencies = [
       "oarepo[s3,rdm]>=14.2.1b10.dev6,<15.0.0",  # <---- here
-      "oarepo-app[production]==2.3.0",
+      "oarepo-app[production]==2.3.0",  # or "oarepo-app[production,ccmm]==2.3.0"
   ]
   ```
 3. Make sure you use Python 3.14 in the `requires-python` section.

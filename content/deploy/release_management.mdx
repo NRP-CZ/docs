@@ -101,6 +101,8 @@ Its major version changes whenever the major version of any core `invenio-*` or 
 - **production**  
   Fully pins CESNET and Invenio packages. Intended for production repositories that prioritize stability.
 
+Repositories using `ccmm-invenio` should include the `ccmm` extra in addition to the selected variant, for example `oarepo-app[production,ccmm]`.
+
 Repositories typically include both `oarepo` and `oarepo-app` as a consistency check:
 
 ```toml
