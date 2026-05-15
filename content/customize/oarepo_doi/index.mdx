@@ -1,0 +1,118 @@
+# OARepo DOI
+
+`oarepo-doi` adds community-specific DOI configuration to OARepo/InvenioRDM
+installations. It provides a DOI settings service and administration views, and
+extends the DataCite PID provider so DOI registration can use credentials
+configured for the record's default community or for a default fallback
+configuration.
+
+## Features
+
+- stores DataCite credentials per community
+- resolves DOI credentials from a record's default community
+- supports default DOI settings with `community_slug` set to `*`
+- falls back to the standard global DataCite configuration when no matching DOI settings exist
+- registers DOI settings in the Invenio administration interface
+- keeps DataCite passwords encrypted in the database
+
+## Installation
+
+The package is intended to be installed as part of an OARepo 14 based application.
+
+```bash
+pip install oarepo-doi
+```
+
+## DOI settings
+
+Each DOI settings record connects a community, or the default fallback, to
+DataCite credentials:
+
+| Field | Description |
+|-------|-------------|
+| `community_slug` | slug of the community using these DOI credentials, or `*` for default DOI settings |
+| `prefix` | DataCite DOI prefix |
+| `username` | DataCite username |
+| `password` | DataCite password, stored encrypted |
+
+Only one DOI settings record can exist for a given community slug. Only one
+default DOI settings record with `community_slug` set to `*` can exist.
+
+The service is registered under the `community-doi` service ID and uses the
+`doi-settings` search alias.
+
+## REST API
+
+The DOI settings resource is exposed under:
+
+```text
+/doi_settings
+/doi_settings/<id>
+```
+
+The resource supports reading, updating, and deleting DOI settings records.
+Search, create, update, and delete operations are protected by the DOI settings
+permission policy and are available to system processes and administration users.
+
+Example community-specific payload:
+
+```json
+{
+  "community_slug": "example-community",
+  "prefix": "10.12345",
+  "username": "datacite-user",
+  "password": "datacite-password"
+}
+```
+
+Default fallback settings use `*` as the community slug:
+
+```json
+{
+  "community_slug": "*",
+  "prefix": "10.12345",
+  "username": "datacite-user",
+  "password": "datacite-password"
+}
+```
+
+When a DOI settings record is created or updated, the referenced community must
+exist. If the community slug cannot be found, the service returns a bad request.
+The special `*` community slug is reserved for default DOI settings and does not
+need to match an existing community.
+
+## DataCite integration
+
+The package provides two record-aware DataCite classes:
+
+```text
+oarepo_doi.services.providers.client:DataCiteRecordAwareClient
+oarepo_doi.services.providers.provider:DataCiteRecordAwareProvider
+```
+
+The provider binds the current record to the DataCite client before DOI
+generation, registration, update, restore, and delete operations. The client then
+looks up DOI settings for the record's default community.
+
+When community DOI settings are found, DOI generation uses the community prefix
+and the DataCite API client is created from the community username, password, and
+prefix. When no settings exist for the record's default community, the client
+tries the default DOI settings record where `community_slug` is `*`. This default
+record also applies to records without a default community.
+
+If neither community-specific nor default DOI settings are found, the
+implementation falls back to the standard InvenioRDM DataCite client and global
+`DATACITE_*` configuration.
+
+## Configuration
+
+The DataCite client also respects the standard global DataCite configuration
+when no community-specific or `*` DOI settings are available:
+
+```python
+DATACITE_PREFIX = "10.12345"
+DATACITE_USERNAME = "user"
+DATACITE_PASSWORD = "password"
+DATACITE_FORMAT = "{prefix}/{id}"
+DATACITE_TEST_MODE = True
+```
