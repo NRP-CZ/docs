@@ -14,6 +14,7 @@ configuration.
 - falls back to the standard global DataCite configuration when no matching DOI settings exist
 - registers DOI settings in the Invenio administration interface
 - keeps DataCite passwords encrypted in the database
+- never displays or returns stored DataCite passwords through the UI or REST API
 
 ## Installation
 
@@ -37,6 +38,10 @@ DataCite credentials:
 
 Only one DOI settings record can exist for a given community slug. Only one
 default DOI settings record with `community_slug` set to `*` can exist.
+
+Stored passwords are write-only from the user and API perspective. They are
+accepted when DOI settings are created or updated, but the stored password value
+is never displayed in administration views and is never returned by the REST API.
 
 The service is registered under the `community-doi` service ID and uses the
 `doi-settings` search alias.
