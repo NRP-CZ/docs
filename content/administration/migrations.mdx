@@ -8,6 +8,47 @@ import {
 # Migrations & Updates
 
 <MigrationHeader
+  date="2026-05-15"
+  title="oarepo-app v4.0.0 CCMM extra"
+  versionBadge="oarepo-app ≥ 4.0.0"
+/>
+
+In `oarepo-app` v4.0.0, CCMM dependencies were moved to a separate optional dependency extra. Repositories that use CCMM must enable the `ccmm` extra explicitly.
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories using CCMM | Repositories not using CCMM |
+| Repositories upgrading to `oarepo-app >= 4.0.0` | Repositories using older `oarepo-app` versions |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**Update `pyproject.toml`**
+
+In `pyproject.toml`, update the `oarepo-app` dependency extra from `production` to `production,ccmm`.
+
+**Before:**
+```toml
+dependencies = [
+    "oarepo-app[production]==4.0.0",
+]
+```
+
+**After:**
+```toml
+dependencies = [
+    "oarepo-app[production,ccmm]==4.0.0",
+]
+```
+
+Run `./run.sh upgrade` to update the lock file.
+
+</MigrationSteps>
+
+<MigrationHeader
   date="2026-05-11"
   title="oarepo-app v2.3.0"
   prHref="https://github.com/oarepo/oarepo-app/pull/21"
