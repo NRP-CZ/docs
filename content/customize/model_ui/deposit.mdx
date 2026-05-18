@@ -566,6 +566,70 @@ ReactDOM.render(
 
 </Steps>
 
+## Form Metadata Summary
+
+`TabForm` exposes an overridable slot directly below the vertical step navigation, intended for a sidebar-style summary of the currently filled metadata. It is rendered **only on large (computer) screens** — on mobile and tablet the horizontal `FormSteps` are used instead and the slot is not displayed, so it should not be relied on as the only place to surface information.
+
+A typical use case is keeping the most important context visible at all times while the user is filling other tabs — for example the selected community, the current access setting, the number of uploaded files, or the chosen license — so they don't have to switch tabs to check.
+
+**Override ID:** `` `${overridablePrefix}.TabForm.FormMetadataSummary` ``
+
+The slot does not pass any props. The override pulls whatever it needs from the standard sources used elsewhere in the deposit form:
+
+- `useFormikContext()` — live form values, updated as the user types
+- `useSelector(state => state.deposit.record)` — the persisted record from the Redux store (updates on save)
+- `useFormConfig()` — the resolved form configuration (locale, vocabularies, permissions, etc.)
+
+By default nothing is rendered in this slot; provide an override to opt in.
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import React from "react";
+import { useSelector } from "react-redux";
+import { useFormikContext } from "formik";
+import { Segment, Header, List } from "semantic-ui-react";
+import { parseFormAppConfig, useFormConfig } from "@js/oarepo_ui/forms";
+
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridablePrefix = config.overridableIdPrefix;
+
+const FormMetadataSummary = () => {
+  // Redux: persisted record (only updates on save)
+  const record = useSelector((state) => state.deposit.record);
+  // Formik: live form values (update as the user types)
+  const { values } = useFormikContext();
+  // Form config (locale, vocabularies, permissions, …)
+  const formConfig = useFormConfig();
+
+  const title = values?.metadata?.title;
+  const creators = values?.metadata?.creators ?? [];
+  return (
+    <Segment className="mt-10">
+      <Header as="h4">Metadata summary</Header>
+      <List>
+        <List.Item>
+          <strong>Title:</strong> {title || <em>not set</em>}
+        </List.Item>
+        <List.Item>
+          <strong>Creators:</strong> {creators.length}
+        </List.Item>
+        <List.Item>
+          <strong>Record id:</strong> {record?.id || <em>unsaved</em>}
+        </List.Item>
+        <List.Item>
+          <strong>Locale:</strong> {formConfig?.default_locale}
+        </List.Item>
+      </List>
+    </Segment>
+  );
+};
+
+const componentOverrides = {
+  [`${overridablePrefix}.TabForm.FormMetadataSummary`]: FormMetadataSummary,
+};
+```
+
+Prefer `useFormikContext` for anything you want to see change while the user is editing other tabs; fall back to the Redux record when you only care about persisted state (for example whether the record has been saved yet, or its server-assigned id).
+
 ## useFieldData Helper
 
 The `useFieldData` hook from `oarepo_ui/forms` provides access to field metadata (labels, help text, hints, required status, icon) defined in your model's YAML schema. This metadata is extracted during model compilation and made available to React components.
