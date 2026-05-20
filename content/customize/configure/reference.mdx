@@ -23,30 +23,30 @@ The helper reads additional environment/variable flags and exposes many other op
 ### Effect
 Calling `configure_generic_parameters()` has a wide-ranging impact on application configuration:
 
-#### 🌐 Application & Site URLs
+#### Application & Site URLs
 - Defines `SITE_UI_URL` and `SITE_API_URL` using either environment-provided values or constructed defaults from host/port.
 - Sets `APP_ALLOWED_HOSTS` to allow local access (`0.0.0.0`, `localhost`, `127.0.0.1`).
 
-#### 🔒 Security
+#### Security
 - Configures **default security headers** (`APP_DEFAULT_SECURE_HEADERS`) including `Content-Security-Policy`, HTTPS enforcement, frame options, and cookie security.
 - Enables secure cookies (`SESSION_COOKIE_SECURE=True`) and sets sane `Strict-Transport-Security` defaults.
 - Enables local login and fine-grained security features (registration, password recovery, confirmation) via environment toggles (`INVENIO_SECURITY_*`).
 - Configures rate limits for guest and authenticated users (`RATELIMIT_GUEST_USER`, `RATELIMIT_AUTHENTICATED_USER`).
 
-#### 👥 Authentication
+#### Authentication
 - Enables OAuth/autologin redirects (`OAUTHCLIENT_AUTO_REDIRECT_TO_EXTERNAL_LOGIN`).
 - Defines empty `OAUTHCLIENT_REMOTE_APPS` ready to be populated with external identity providers.
 - Sets `ACCOUNTS_LOGIN_VIEW_FUNCTION` to auto-redirect when single external login is configured.
 
-#### 🗃️ Database
+#### Database
 - Constructs `SQLALCHEMY_DATABASE_URI` from `INVENIO_DATABASE_*` environment variables if not provided directly.
 - Uses PostgreSQL by default.
 
-#### 🌍 Internationalization
+#### Internationalization
 - Sets default locale (`BABEL_DEFAULT_LOCALE="en"`) and timezone (`Europe/Prague`).
 - Registers available UI languages from the `languages` argument into `I18N_LANGUAGES`.
 
-#### 📦 File Storage & S3
+#### File Storage & S3
 - Defaults to S3-based storage with fallback to local:
   - `FILES_REST_STORAGE_FACTORY = "invenio_s3.s3fs_storage_factory"`
   - Constructs `S3_ENDPOINT_URL`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY`.
@@ -54,23 +54,23 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 - Defines `FILES_REST_STORAGE_CLASS_LIST` and default storage class.
 - Sets file serving cache max-age (`SEND_FILE_MAX_AGE_DEFAULT = 300`).
 
-#### 👤 User Profiles
+#### User Profiles
 - Allows editing of profile info (`USERPROFILES_READ_ONLY = False`).
 
-#### 📚 Search
+#### Search
 - Configures OpenSearch connection (`SEARCH_INDEX_PREFIX`, `SEARCH_HOSTS`, `SEARCH_CLIENT_CONFIG`).
 - Supports SSL and certificate-based setups through environment variables.
 
-#### 🧠 Caching & Background Tasks
+#### Caching & Background Tasks
 - Enables Redis caching (`INVENIO_CACHE_TYPE = "redis"`).
 - Constructs Redis URLs for caches, sessions, communities, and Celery results.
 - Configures Celery broker (RabbitMQ by default) and Redis result backend.
 
-#### 🧾 JSON Schemas & Record Configuration
+#### JSON Schemas & Record Configuration
 - Sets `RECORDS_REFRESOLVER_CLS`, `RECORDS_REFRESOLVER_STORE`, and `JSONSCHEMAS_HOST`.
 - Optionally imports and sets `VOCABULARIES_*` configuration classes if `oarepo-vocabularies` is available.
 
-#### 🧩 RDM-Specific Settings
+#### RDM-Specific Settings
 - Enables RDM features (`INVENIO_RDM_ENABLED=True`).
 - Sets defaults for:
   - Persistent identifiers (`RDM_PERSISTENT_IDENTIFIERS`, `RDM_PARENT_PERSISTENT_IDENTIFIERS`).
@@ -79,17 +79,17 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
   - DOI/DataCite test mode.
 - Configures **identifier validation schemes** for persons, organizations, funders, affiliations, etc. (`VOCABULARIES_*_SCHEMES`, `RDM_RECORDS_*_SCHEMES`).
 
-#### 📧 Email
+#### Email
 - Sets `MAIL_DEFAULT_SENDER` (from environment or placeholder).
 - Enables `MAIL_SUPPRESS_SEND` if configured in environment.
 
-#### 🧮 Miscellaneous
+#### Miscellaneous
 - Defines rate limits and quota defaults (`APP_RDM_DEPOSIT_FORM_QUOTA`, `FILES_REST_DEFAULT_QUOTA_SIZE`).
 - Sets `SECRET_KEY` from environment.
 - Provides `DASHBOARD_RECORD_CREATE_URL` placeholder (to be customized).
 - Clears default Invenio record routes and endpoints (since NRP provides replacements).
 
-#### ⚙️ Environment-driven
+#### Environment-driven
 The helper relies heavily on `load_configuration_variables()` to pull all `INVENIO_*` prefixed environment variables (or values from an equivalent `.env`/variable store).  
 All discovered values are injected into the caller scope via `set_constants_in_caller()`.
 
@@ -131,26 +131,26 @@ _Defined in `oarepo/config/ui.py`._
 
 Calling `configure_ui()` populates numerous **UI- and frontend-related configuration constants**:
 
-#### 🎨 Theming & Templates
+#### Theming & Templates
 - Defines the **application theme chain** (`APP_THEME`) including the repository code, `oarepo`, and `semantic-ui` layers.
 - Points to a custom `INSTANCE_THEME_FILE` (`./less/theme.less`) for repository-specific LESS theme overrides.
 - Configures all core page **templates** (e.g., `BASE_TEMPLATE`, `HEADER_TEMPLATE`, `FOOTER_TEMPLATE`, `FRONTPAGE_TEMPLATE`, `SETTINGS_TEMPLATE`, etc.).
 - Ensures template load order avoids Invenio issues by explicitly setting `SETTINGS_TEMPLATE` and `HEADER_TEMPLATE`.
 - Enables `SEARCH_UI_SEARCH_TEMPLATE` for InvenioRDM-style search results.
 
-#### 👔 Branding & Identity
+#### Branding & Identity
 - Sets `THEME_SITENAME`, `THEME_FRONTPAGE_TITLE`, and `REPOSITORY_NAME` based on `name` parameter.
 - Defines `REPOSITORY_DESCRIPTION` for use in metadata and templates.
 - Configures `THEME_LOGO`, optional `THEME_FRONTPAGE_LOGO`, and intro visibility (`THEME_SHOW_FRONTPAGE_INTRO_SECTION`).
 - `THEME_FRONTPAGE` toggles whether the default front page is used.
 
-#### 📊 Analytics Integration
+#### Analytics Integration
 - If `analytics="matomo"` and the deployment is **not local**, adds Matomo tracking:
   - `MATOMO_ANALYTICS_TEMPLATE = "oarepo_ui/matomo_analytics.html"`
   - Reads `INVENIO_MATOMO_ANALYTICS_URL` and `INVENIO_MATOMO_ANALYTICS_SITE_ID` from environment.
   - Extends the `Content-Security-Policy` to allow Matomo endpoint URLs.
 
-#### 🧩 Frontend Build Configuration
+#### Frontend Build Configuration
 - Configures frontend build pipeline defaults:
   - `JAVASCRIPT_PACKAGES_MANAGER = "pnpm"`
   - `ASSETS_BUILDER = "rspack"`
@@ -249,7 +249,8 @@ config.configure_stats(enable=False)
 ## `configure_vocabulary`
 
 Register or extend controlled vocabularies used in the repository.  
-Each vocabulary is identified by a short `code` and associated metadata parameters that describe its configuration or source.
+Each vocabulary is identified by a short `code` and associated metadata parameters that describe its configuration or source.  
+Be consistent with [your vocabularies defined in `app_data` folder](../vocabularies/initial_data.mdx).
 
 _Defined in `oarepo/config/vocabulary.py`._
 
@@ -353,7 +354,59 @@ config.configure_communities(
             name="reader",
             title=_("Reader"),
             description=_("Can read community records."),
-        ),
+         ),
     ]
+)
+
+```
+
+## `register_workflow`
+
+Register a workflow with its display name, permission policy, and request policy.  
+Workflows define how deposits are handled in the repository, including approval processes, permissions, and request types.
+
+_Defined in `oarepo/config/workflows.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **name** | `str` | — | Unique identifier for the workflow (e.g., `"default"`, `"individual"`). |
+| **title** | `str` | — | Translated display name for the workflow, shown in UI and metadata. |
+| **permissions_class** | `str` | — | Dotted import path to the permission policy class that defines who can perform actions in this workflow. |
+| **requests_class** | `str` | — | Dotted import path to the request policy class that defines what types of requests (review, deletion, versioning) are supported. |
+
+### Effect
+
+- Registers a new workflow in the `WORKFLOWS` dictionary in the caller's configuration.
+- Each workflow entry maps the `name` to a dictionary containing `title`, `permissions_class`, and `requests_class`.
+- Makes the workflow available for use in community or individual deposit configurations.
+- Supports different approval processes: community workflows with curator/owner approval, or simpler individual workflows.
+
+### Example
+
+```python
+from invenio_i18n import lazy_gettext as _
+from oarepo import config
+
+# Full workflow for community deposits:
+# requires approval from curators/owners before publishing
+# and supports review, versioning, and deletion requests.
+config.register_workflow(
+     "default",
+     _("Default workflow"),
+     "common.workflows.default.DefaultWorkflowPermissions",
+     "common.workflows.default.DefaultWorkflowRequests",
+)
+
+
+# Simple workflow for individual deposits:
+# fewer rules, no full approval process like in communities,
+# mostly basic permissions for creating and managing records.
+config.register_workflow(
+     "individual",
+     _("Individual deposition workflow"),
+     "common.workflows.individual.IndividualDepositionWorkflowPermissions",
+     "oarepo_workflows.requests.policy.WorkflowRequestPolicy",
 )
 ```

@@ -1,5 +1,6 @@
 import {Difficulty} from '@/components/difficulty'
 import {ToDo} from '@/components/todo'
+import { Callout } from 'nextra/components'
 
 # Initial data for vocabularies <Difficulty level="easy" />
 
@@ -71,6 +72,11 @@ tags or custom fields here as well.
 See [Invenio vocabularies schema](https://github.com/inveniosoftware/invenio-vocabularies/blob/master/invenio_vocabularies/records/jsonschemas/vocabularies/vocabulary-v1.0.0.json)
 for more information.
 
+
+<Callout type="info">
+You should also [customize the UI for your vocabularies in `invenio.cfg` file](../configure/reference.mdx#configure_vocabulary).
+</Callout>
+
 ## Using specific python package
 
 <ToDo/>
@@ -80,7 +86,7 @@ for more information.
 For development purposes, you might want to speed up the initial data loading by reducing
 the number of vocabulary terms loaded. You can do so by modifying the
 `app_data/vocabularies.yaml` file to only include the vocabulary terms you need.
-The vocabularies not listed in the catalogue will be loaded from the default Invenio RDM vocabularies package.
+The vocabularies not listed in the catalogue will be loaded from the default Invenio RDM vocabularies package (see [standard vocabularies reference](https://github.com/inveniosoftware/invenio-rdm-records/tree/master/invenio_rdm_records/fixtures/data/vocabularies)).
 
 Suggested changes:
 
@@ -172,3 +178,4 @@ cc0-1.0,Creative Commons Zero v1.0 Universal,CC0 waives copyright interest in a 
 ## See also
 
 Invenio  RDM documentation on [vocabularies](https://inveniordm.docs.cern.ch/operate/customize/vocabularies/)
+- [Standard controlled vocabularies reference](https://github.com/inveniosoftware/invenio-rdm-records/tree/master/invenio_rdm_records/fixtures/data/vocabularies)
