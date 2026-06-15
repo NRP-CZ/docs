@@ -167,3 +167,17 @@ At this time the S3 storage does not have any buckets created. To create the ini
 ## Create a sample record
 
 To create a sample record, click on the "+" icon in the top right corner and select "New Equipment". Fill in the metadata fields and save the record. Then upload a file to the record and look at the record preview page.
+
+## Running on a different port during development
+
+By default, the application during development runs on port 5000. To run on a different port, you need to set a couple of options:
+
+```bash
+export INVENIO_SITE_UI_URL="https://127.0.0.1:<my-port>"
+export INVENIO_SITE_API_URL="https://127.0.0.1:<my-port>/api"
+
+./run.sh run -p <my-port>
+```
+
+The environment variables define how Invenio creates links inside the records, not where Invenio is running.
+If you do not set them, Invenio will start without errors, but links will be incorrect and commands like `nrp-cmd` will fail.
