@@ -12,7 +12,7 @@ This page explains how template resolution works, how to override templates, and
 
 ---
 
-## Understanding Template Layers in NRP Invenio Repositories
+## Understanding Template Layers in CESNET Invenio Repositories
 
 InvenioRDM provides a layered template system composed of:
 
@@ -112,7 +112,7 @@ Then, child templates extend the base and fill in those blocks:
   {% endblock %}
   ```
 
-In NRP Invenio repositories, most templates follow this pattern, allowing you to override just the parts you need while reusing common layout and structure from upstream templates. Base page layout is provided by the [Oarepo-UI](https://github.com/oarepo/oarepo-ui) package and extended in child templates by referencing it as `{% extends "oarepo_ui/base_page.html" %}`.
+In CESNET Invenio repositories, most templates follow this pattern, allowing you to override just the parts you need while reusing common layout and structure from upstream templates. Base page layout is provided by the [Oarepo-UI](https://github.com/oarepo/oarepo-ui) package and extended in child templates by referencing it as `{% extends "oarepo_ui/base_page.html" %}`.
 
 ## Example: Overriding a Footer Template
 
@@ -134,5 +134,5 @@ THEME_FOOTER_TEMPLATE="custom/myfooter.html"
 ```
 </Steps>
 
-This just scratches the surface of what you can achieve with templating in NRP Invenio repositories. For a more in-depth Jinja template development
+This just scratches the surface of what you can achieve with templating in CESNET Invenio repositories. For a more in-depth Jinja template development
 reference, please head over to the [Jinja templates](/customize/repository_ui/templating/jinja) section.

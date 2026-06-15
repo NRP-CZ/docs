@@ -9,9 +9,9 @@ import RequiredPublicity from  '../public/images/ENG_eu-msmt-eosc-loga-barevne-o
 export const metadata = {
   metadataBase: new URL('https://github.com/NRP-CZ/docs'),
   title: {
-    template: '%s - NRP Invenio Docs'
+    template: '%s - CESNET Invenio Docs'
   },
-  description: 'NRP Invenio Documentation Site',
+  description: 'CESNET Invenio Documentation Site',
   docsRepositoryBase: 'https://github.com/NRP-CZ/docs/blob/main/',
   footer: {
     text: 'CESNET z.s.p.o. 2024',
@@ -35,7 +35,7 @@ export default async function RootLayout({ children }) {
     <Navbar
       logo={
         <div>
-          <b>NRP Invenio</b>{' '}
+          <b>CESNET Invenio</b>{' '}
           <span style={{ opacity: '60%' }}>Documentation</span>
         </div>
       }
