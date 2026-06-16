@@ -18,7 +18,7 @@ export function Badge ({ variant = 'default', children }) {
             break
         }
         case 'green': {
-            variantStyle = "x:bg-green-100 x:text-green-800 dark:x:bg--900 dark:x:text-green-300"
+            variantStyle = "x:bg-green-100 x:text-black dark:x:bg-green-900 dark:x:text-green-300"
             break
         }
         case 'yellow': {
