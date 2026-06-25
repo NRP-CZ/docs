@@ -339,7 +339,7 @@ ReactDOM.render(
 
 #### How the Tab Form Works
 
-- **Free navigation** — users can switch between tabs at any time without being required to complete or validate the current section first.
+- **Free navigation** — users can switch between tabs at any time without being required to complete or validate the current section first. A section can opt out of this and temporarily lock navigation by defining a `lockTabChange` function (see [Locking Tab Navigation](#locking-tab-navigation)).
 - **Auto-save on tab switch** — if the form has unsaved changes when switching tabs, it automatically saves the draft. This also triggers a fresh round of validation errors from the backend, so validation feedback is up to date.
 - **URL persistence** — the active tab is reflected in the URL via the `?tab=key` query parameter, so users can bookmark or share a link that opens directly on a specific section.
 
@@ -411,6 +411,7 @@ ReactDOM.render(
 | `saveOnTabChange` | bool   | Forces a save when leaving this tab, even if the form is not dirty. Useful for sections like file upload or community selection that update Redux state rather than Formik state, so the form won't appear dirty despite having unsaved changes. |
 | `sectionCompletion`   | function | Custom function to compute how filled the section is. Receives `({ formikValues, reduxState, includesPaths })` and must return a number between 0 (empty) and 1 (fully filled). When omitted, the built-in generic function checks each path in `includesPaths` via Formik values |
 | `sectionCompletionThreshold` | number   | Fraction (0–1) at which the section progress bar turns from orange to green. Defaults to `0.8`    |
+| `lockTabChange`   | function | Optional gate that, when present on the **active** section, can temporarily block navigation away from that tab. Receives `(formik, reduxState)` and must return a boolean — return `true` to lock, `false` to allow. While locked, the other tabs render as disabled and `onTabChange` is a no-op. See [Locking Tab Navigation](#locking-tab-navigation) |
 
 **Props available to `component`:**
 
@@ -621,6 +622,51 @@ If you want to hide the section completion indicator entirely, add the following
   display: none;
 }
 ```
+
+##### Locking Tab Navigation
+
+By default, users can move between tabs freely at any point — see [How the Tab Form Works](#how-the-tab-form-works). For some sections this is undesirable: a file upload may be in progress, a community selection step may need to be committed before continuing, or a particular operation must finish atomically. The `lockTabChange` property lets a section opt into temporarily blocking navigation while a condition holds.
+
+The function signature is:
+
+```js
+lockTabChange(formik, reduxState) => boolean
+```
+
+It is only evaluated on the **currently active** section. Returning `true` has two effects simultaneously:
+
+- The other tabs in the menu render with `disabled` so users can see they cannot be clicked.
+- `handleSetStep` (the handler behind `onTabChange`) returns early, so programmatic navigation and keyboard navigation are blocked as well.
+
+Returning `false` (the default when the prop is omitted) keeps the standard free-navigation behavior.
+
+Because the function receives both the Formik context and the full Redux state, it can react to either form values or out-of-Formik state like in-flight file uploads:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FilesSection.js"
+export const FilesSection = {
+  key: "files",
+  label: i18next.t("Upload files"),
+  component: FilesSectionComponent,
+  includesPaths: ["files.enabled"],
+  // Block leaving this tab while there is an upload still running.
+  lockTabChange: (formik, reduxState) => {
+    const files = reduxState?.deposit?.files?.entries ?? [];
+    return files.some((f) => f.status === "uploading");
+  },
+};
+```
+
+<Callout type="info">
+  `lockTabChange` is re-evaluated on every Redux action and on every render of
+  the active tab, so changes in either Formik or Redux state lock or unlock
+  navigation immediately — no manual refresh needed.
+</Callout>
+
+<Callout type="warning">
+  Because the lock is total, make sure the condition is guaranteed to clear on
+  its own (e.g. the upload finishes or fails). A `lockTabChange` that gets
+  stuck on `true` will trap users on the current tab.
+</Callout>
 
 </Steps>
 
