@@ -8,6 +8,105 @@ import {
 # Migrations & Updates
 
 <MigrationHeader
+  date="2026-06-24"
+  title="oarepo-app 4.0.0 → 6.2.0"
+  versionBadge="oarepo-app ≥ 6.2.0"
+/>
+
+This upgrade moves a repository across the `5.0.0`, `6.0.0`, `6.1.0` and `6.2.0` releases in a single step. For the full list of package changes, see the [oarepo-app changelog](https://github.com/oarepo/oarepo-app/blob/rdm-14/CHANGELOG.md). The largest change is the Invenio major-version bump that ships with `oarepo-app` 6.0.0 (`invenio-rdm-records` 28.x → 32.x, `invenio-communities` 26.x → 28.x), which brings database migrations and changed search mappings. Repositories generated from `nrp-app-copier` use the stable `oarepo.config` and `oarepo_workflows` APIs, and the generated model UI (templates, React/JS imports and Python UI component imports) is compatible with the new `oarepo-ui` and `oarepo-rdm` versions, so no code changes are required — only a dependency bump, a database migration and an index rebuild.
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories on `oarepo-app == 4.0.0` upgrading to 6.2.0 | Repositories already on `oarepo-app >= 6.0.0` |
+| Repositories that catch `MissingCommunitiesError` or `MissingDefaultCommunityError` from community permission generators | Standard `nrp-app-copier` generated repositories (they do not catch these exceptions) |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**1. Update `pyproject.toml`**
+
+Bump the `oarepo-app` dependency to 6.2.0. If your dependency is a range such as `oarepo-app[production,ccmm]>=2.0.1,<3.0.0`, replace it with an exact pin.
+
+**Before:**
+```toml filename="pyproject.toml"
+dependencies = [
+    "oarepo[s3,rdm]>=14.0.0b1,<15.0.0",
+    "oarepo-app[production,ccmm]==4.0.0",
+]
+```
+
+**After:**
+```toml filename="pyproject.toml"
+dependencies = [
+    "oarepo[s3,rdm]>=14.0.0b1,<15.0.0",
+    "oarepo-app[production,ccmm]==6.2.0",
+]
+```
+
+The `oarepo[s3,rdm]` line needs no change — its range already covers the `oarepo` version pulled in by the `production` extra. The `production` extra now also includes `oarepo-related-resources`, so that package is installed automatically.
+
+**2. Reinstall and reinitialize the database and index**
+
+The `invenio-rdm-records` major bump changed the database schema and the search mappings, so the database and indices need to be brought in line with the new versions. Follow [Database and index reinitialization](/customize/model_backend/db_update):
+
+- **Local development:** `./run.sh reset` — wipes all data and performs a full reinstall and reinitialization in one step. It includes the reinstall that `./run.sh upgrade` does, so no separate upgrade is needed.
+- **Production:** reinstall, then migrate the database and rebuild the index to preserve data:
+  ```bash
+  ./run.sh upgrade                   # reinstall with the new versions
+  ./run.sh invenio alembic upgrade   # run database migrations
+  ./run.sh index rebuild             # drop, recreate and reindex OpenSearch
+  ./run.sh run                       # so Celery workers process the reindex queue
+  ```
+
+<Callout type="info">
+The production Alembic migration procedure is still work in progress. See the [`./run.sh` reference](/installation/run_script) for command details.
+</Callout>
+
+**3. Review behavioral changes and new features**
+
+The upgrade introduces several behavioral changes that may affect your repository:
+
+- **RDM file service configs now apply.** Models using the RDM preset now use `RDMFileService` and `RDMFileServiceConfig` (oarepo-rdm 8.1.0) instead of the base `FileService`. This means RDM file-related configuration — such as `RDM_RECORDS_MAX_FILES_COUNT` (file count limit) — is now enforced. If your repository previously had no file count limits, review the [RDM file config defaults](https://github.com/inveniosoftware/invenio-rdm-records/blob/v32.0.1/invenio_rdm_records/config.py#L872) and adjust if needed.
+
+- **PID/DOI field in the deposit form.** The "General information" section of the deposit form now includes a PID/DOI field (via `RDMPIDsConfigComponent`, oarepo-rdm 8.1.0). The field appears when DOI providers are configured. To disable it, either don't configure DOI providers or override the `PIDField` overridable component in your model's deposit form.
+
+- **Export sidebar filters by `display`.** The export sidebar now only shows exporters where `display=True` (oarepo-ui 13.2.3). The `Export` dataclass defaults `display=True`, so most exports are unaffected. But exports registered with `display=False` (e.g., OAI-only exports) are no longer visible in the UI. To show an export, set `display=True` on the `Export` instance or `AddMetadataExport` customization in your model definition.
+
+- **ZIP content previewing** (invenio-app-rdm 14.0.0rc2). ZIP files can now be browsed and their contents previewed inline. Enabled by default; controlled by `PREVIEWABLE_ZIP_PREVIEWER_NATIVE_EXTENSIONS` (default `["zip"]`). No action needed unless you want to disable it.
+
+- **`/uploads/new` model selection page** (oarepo-rdm 8.1.0). The `/uploads/new` route now shows a model selection page when multiple models exist, or redirects directly when only one model exists. Additive; no action needed.
+
+- **RDM-specific UI components.** The copier-generated model UI inherits from `RecordsUIResourceConfig` (generic, from `oarepo_ui.resources.records`) and defines its own `components` list. This list is missing six RDM-specific components that ship with `oarepo_rdm`: `FilesEnabledComponent`, `EmptyRecordPidsComponent`, `DepositFormDefaultsComponent`, `InjectParentDoiComponent`, `DoiRequiredComponent`, and `RDMPIDsConfigComponent`. Without them, file defaults, PID initialization, DOI checks, and deposit form defaults are not applied. To fix this, either switch your base class from `RecordsUIResource(Config)` to `RDMRecordsUIResource(Config)` (from `oarepo_rdm.ui`), which registers all RDM components automatically, or add the missing components to your `components` list manually.
+
+- **Search app layout changes** (oarepo-ui 13.0+). Several exported search components were renamed or removed: `ActiveFiltersElement` → `ActiveFilters`, `SearchAppResultOptions` → `ResultOptions`, `SearchAppSort` → `Sort`; `SearchAppLayoutWithSearchbarHOC` and `SearchAppResultViewWithSearchbar` were removed (use `SearchAppLayout` directly). A scroll-to-top button is now rendered by default; hide via CSS (`#scroll-to-top-button { display: none; }`) if unwanted. These changes only affect custom search code that imports the old component names directly — the copier-generated `search/index.js` is unaffected because it only uses `parseSearchAppConfigs` and `createSearchAppsInit`, which exist in both versions.
+
+**4. Review community permission exception handling**
+
+From `oarepo-communities` 8.1.3 (shipped with `oarepo-app` 5.0.0) and 9.0.0 (shipped with `oarepo-app` 6.2.0), the community permission generators no longer raise `MissingCommunitiesError` or `MissingDefaultCommunityError` — they return an empty list instead. Both exception classes are deprecated — their constructors emit a `DeprecationWarning`.
+
+If your code catches these exceptions, that branch is now dead code. Review and update it:
+
+```python
+# These are deprecated and no longer raised by the community permission
+# generators (OARepoCommunityRoles etc. return [] instead).
+from oarepo_communities.errors import (
+    MissingCommunitiesError,        # deprecated
+    MissingDefaultCommunityError,   # deprecated
+)
+
+# Any branch like this is now dead code:
+#     except MissingCommunitiesError: ...
+# Handle the empty-list case directly instead.
+```
+
+Standard `nrp-app-copier` generated repositories do not catch these exceptions, so no action is needed for them.
+
+</MigrationSteps>
+
+<MigrationHeader
   date="2026-05-15"
   title="oarepo-app v4.0.0 CCMM extra"
   versionBadge="oarepo-app ≥ 4.0.0"
@@ -129,7 +228,7 @@ Make sure you have run the older migrations first.
 
 The `model create` command now places the backend part of new models inside a `models/` folder
 (e.g. `models/datasets/`) instead of creating them as top-level directories (e.g. `datasets/`).
-This keeps the repository structure cleaner as the number of models grows.
+This keeps the repository structure cleaner as the number of models grows. New models are placed under `models/` automatically, so no action is needed for them — the steps below only apply to existing models that still live at the repository root.
 
 <Callout type="info">
 Existing repositories with models already at the top level will continue to work.
@@ -147,12 +246,7 @@ However, for a consistent folder structure we recommend moving existing models i
 
 <MigrationSteps>
 
-**Step 1 — New models are created automatically under `models/`**
-
-When you run `./run.sh model create <model_name>`, the model will now be placed in `models/<model_name>/`.
-No action is needed for new models.
-
-**Step 2 — Move existing top-level models into `models/`**
+**1. Move existing top-level models into `models/`**
 
 ```bash
 mv datasets models/
@@ -160,7 +254,7 @@ mv datasets models/
 
 Repeat for every model that currently lives at the repository root.
 
-**Step 3 — Update `invenio.cfg`**
+**2. Update `invenio.cfg`**
 
 Update the model import paths. For example, if you have a model called `datasets`:
 
@@ -174,7 +268,7 @@ from models.datasets import datasets_model
 datasets_model.register()
 ```
 
-**Step 4 — Update `pyproject.toml`**
+**3. Update `pyproject.toml`**
 
 In the `module-name` section of `pyproject.toml`, remove the entry for the model folder you just moved
 (e.g. remove `datasets`). The model is now discovered from `models/` automatically.
