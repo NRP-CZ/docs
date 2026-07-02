@@ -79,9 +79,87 @@ The upgrade introduces several behavioral changes that may affect your repositor
 
 - **`/uploads/new` model selection page** (oarepo-rdm 8.1.0). The `/uploads/new` route now shows a model selection page when multiple models exist, or redirects directly when only one model exists. Additive; no action needed.
 
-- **RDM-specific UI components.** The copier-generated model UI inherits from `RecordsUIResourceConfig` (generic, from `oarepo_ui.resources.records`) and defines its own `components` list. This list is missing six RDM-specific components that ship with `oarepo_rdm`: `FilesEnabledComponent`, `EmptyRecordPidsComponent`, `DepositFormDefaultsComponent`, `InjectParentDoiComponent`, `DoiRequiredComponent`, and `RDMPIDsConfigComponent`. Without them, file defaults, PID initialization, DOI checks, and deposit form defaults are not applied. To fix this, either switch your base class from `RecordsUIResource(Config)` to `RDMRecordsUIResource(Config)` (from `oarepo_rdm.ui`), which registers all RDM components automatically, or add the missing components to your `components` list manually.
+- **RDM-specific behaviour moved out of `RecordsUIResource`** (oarepo-ui 13.0+). RDM-specific behaviour (default `files.enabled`, `pids` initialisation, `APP_RDM_DEPOSIT_FORM_DEFAULTS`, parent-DOI injection for preview, and DOI-required checks) was removed from the base `RecordsUIResource` in `oarepo-ui` and moved into separate UI components that ship with `oarepo-rdm`: `FilesEnabledComponent`, `EmptyRecordPidsComponent`, `DepositFormDefaultsComponent`, `InjectParentDoiComponent`, `DoiRequiredComponent`, and `RDMPIDsConfigComponent`. If your UI resource and config inherit directly from the generic `RecordsUIResource` / `RecordsUIResourceConfig` (in `oarepo_ui.resources.records`), the new-record form will silently lose default files/PIDs/DOI handling — you must switch your base class. Edit `ui/<model_name>/__init__.py` (for example, `ui/datasets/__init__.py`).
 
-- **Search app layout changes** (oarepo-ui 13.0+). Several exported search components were renamed or removed: `ActiveFiltersElement` → `ActiveFilters`, `SearchAppResultOptions` → `ResultOptions`, `SearchAppSort` → `Sort`; `SearchAppLayoutWithSearchbarHOC` and `SearchAppResultViewWithSearchbar` were removed (use `SearchAppLayout` directly). A scroll-to-top button is now rendered by default; hide via CSS (`#scroll-to-top-button { display: none; }`) if unwanted. These changes only affect custom search code that imports the old component names directly — the copier-generated `search/index.js` is unaffected because it only uses `parseSearchAppConfigs` and `createSearchAppsInit`, which exist in both versions.
+    **For a CCMM-based model** — inherit from `CCMMRecordsUIResourceConfig` and `CCMMRecordsUIResource`, imported from:
+
+    - `from ccmm_invenio.ui.config import CCMMRecordsUIResourceConfig`
+    - `from ccmm_invenio.ui.resource import CCMMRecordsUIResource`
+
+    ```python filename="ui/<model_name>/__init__.py"
+    # Before
+    from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+    from oarepo_ui.resources.records.resource import RecordsUIResource
+
+    class DatasetsUIResourceConfig(RecordsUIResourceConfig):
+        ...
+
+    class DatasetsUIResource(RecordsUIResource):
+        pass
+
+    # After
+    from ccmm_invenio.ui.config import CCMMRecordsUIResourceConfig
+    from ccmm_invenio.ui.resource import CCMMRecordsUIResource
+
+    class DatasetsUIResourceConfig(CCMMRecordsUIResourceConfig):
+        ...
+
+    class DatasetsUIResource(CCMMRecordsUIResource):
+        pass
+    ```
+
+    **For a plain RDM-based model** — inherit from `RDMRecordsUIResourceConfig` and `RDMRecordsUIResource`, imported from:
+
+    - `from oarepo_rdm.ui.config import RDMRecordsUIResourceConfig`
+    - `from oarepo_rdm.ui.resource import RDMRecordsUIResource`
+
+    ```python filename="ui/<model_name>/__init__.py"
+    # Before
+    from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+    from oarepo_ui.resources.records.resource import RecordsUIResource
+
+    class DatasetsUIResourceConfig(RecordsUIResourceConfig):
+        ...
+
+    class DatasetsUIResource(RecordsUIResource):
+        pass
+
+    # After
+    from oarepo_rdm.ui.config import RDMRecordsUIResourceConfig
+    from oarepo_rdm.ui.resource import RDMRecordsUIResource
+
+    class DatasetsUIResourceConfig(RDMRecordsUIResourceConfig):
+        ...
+
+    class DatasetsUIResource(RDMRecordsUIResource):
+        pass
+    ```
+
+    If you compose `components` in your config, keep using `*<NewBase>.components` so the new RDM components are included.
+
+- **Search app: default two-column layout** (oarepo-ui 13.0+, [PR #460](https://github.com/oarepo/oarepo-ui/pull/460)). The default search app layout changed for repositories whose search bar lives **in the content area** (not in the page header). The page is now rendered as a two-column layout: facets on the left, results on the right, with the search bar sitting in the right-hand column. If your repository keeps the search bar in the page header (Invenio's default), the rendered page is unchanged and there is nothing to do.
+
+    **Old layout (search bar in content):**
+
+    ![Old search layout](https://github.com/user-attachments/assets/602eb5c9-a41a-4350-9cc3-7b302b9d5c3b)
+
+    **New layout (search bar in content):**
+
+    ![New search layout](https://github.com/user-attachments/assets/e305b943-10b1-4365-802f-6db247ca553c)
+
+    Several exported search components were renamed or removed: `ActiveFiltersElement` → `ActiveFilters`, `SearchAppResultOptions` → `ResultOptions`, `SearchAppSort` → `Sort`; `SearchAppLayoutWithSearchbarHOC` and `SearchAppResultViewWithSearchbar` were removed (use `SearchAppLayout` directly). These changes only affect custom search code that imports the old component names directly — the copier-generated `search/index.js` is unaffected because it only uses `parseSearchAppConfigs` and `createSearchAppsInit`, which exist in both versions. A `Scroll to top` button is now rendered by default; if you do not want it, hide it via CSS (`#scroll-to-top-button { display: none; }`).
+
+- **`invenio_url_for` and `Model.api_url` no longer accept `_external=True`** (oarepo-runtime 4.0.0+). Both helpers now **always** return an absolute (external) URL. Passing `_external=True` is no longer accepted and will raise (`Model.api_url` calls `invenio_url_for` under the hood and fails for the same reason). Drop `_external=True` from these calls — the returned URL is already absolute.
+
+    ```python
+    # Before
+    url = invenio_url_for("vocabularies.search", type="languages", _external=True)
+    api = model.api_url("search", type=alias, _external=True)
+
+    # After
+    url = invenio_url_for("vocabularies.search", type="languages")
+    api = model.api_url("search", type=alias)
+    ```
 
 **4. Review community permission exception handling**
 
