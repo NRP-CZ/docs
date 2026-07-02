@@ -1,0 +1,25 @@
+name: Update llms.txt
+
+on:
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  update-llms-file:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for git-auto-commit-action to push changes
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch llms.txt
+        run: |
+          mkdir -p public
+          curl -s https://context7.com/websites/nrp-cz_github_io/llms.txt > public/llms.txt
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: auto-update llms.txt from context7"
+          file_pattern: public/llms.txt
