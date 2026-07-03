@@ -1,0 +1,504 @@
+# Simplified configuration
+
+This guide is for repository administrators and content managers who want to define
+**how records move from creation to publication** in their CESNET Invenio repository.
+You do not need to be a software developer to follow it, but you will need access to
+the `invenio.cfg` configuration file.
+
+---
+
+## What is a Workflow?
+
+A **workflow** governs two things:
+
+1. **Who can do what** with a record at any given moment (create it, read it, edit it,
+   publish it, delete it, …).
+2. **How a record progresses** through its lifecycle: from first draft, through one or
+   more review steps, to final publication.
+
+Every record in a CESNET Invenio repository is assigned to exactly one workflow. When you deposit a record
+you pick (or the system assigns) a workflow code, and all permission and review rules
+for that record come from there.
+
+---
+
+## Record States
+
+A record travels through the following states. Not every workflow visits every state.
+
+| State | Meaning |
+|---|---|
+| `draft` | The record has been saved as a draft by the depositor and is still being edited. |
+| `submitted` | The depositor has sent the record for review. |
+| `revision_requested` | A review was declined, or a curator requested changes; the depositor must revise and re-submit. |
+| `published` | The record is live and publicly accessible (or restricted, but finalised). |
+
+---
+
+## The Two Workflow Types
+
+### `IndividualWorkflow` — standalone deposits (no community)
+
+Use this type when records are deposited directly into the repository, **not** through
+a community. Typical use cases: institutional repositories, personal data deposits,
+open-upload portals.
+
+### `CommunityWorkflow` — community-based deposits
+
+Use this type when records must be submitted to a **community** (a named group with
+its own curators, members, etc.) before they are published. The community's curators
+act as the gatekeepers.
+
+---
+
+## Registering Workflows in `invenio.cfg`
+
+The preferred way to register workflows in a CESNET Invenio repository is to call
+`configure_workflows()` from within `invenio.cfg`. Pass any number of workflow definition
+objects as arguments; the function automatically writes the `WORKFLOWS` and
+`WORKFLOWS_DEFAULT_WORKFLOW` configuration entries — no manual assignment needed.
+
+```python
+from oarepo_app.config import configure_workflows, IndividualWorkflow, CommunityWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    IndividualWorkflow(code="my-workflow", ...),
+    CommunityWorkflow(code="my-community", ...),
+    default_individual_workflow="my-workflow",
+)
+```
+
+`configure_workflows` also handles two useful defaults automatically:
+
+- **Called with no arguments** — creates a permissive `IndividualWorkflow` (any
+  authenticated user can create and self-publish). Handy for development or simple
+  open-access repositories.
+- **Called with only `CommunityWorkflow` definitions** — automatically appends a
+  restricted `IndividualWorkflow` (creation disabled, review required) so that records
+  without a community cannot be deposited directly.
+
+`code` must be **unique** across all entries. It is the identifier you (and depositors)
+use when creating records. The `default_individual_workflow` parameter (default:
+`"individual"`) names which workflow is used when a record is created without
+specifying one explicitly.
+
+See [code of IndividualWorkflow](https://github.com/oarepo/oarepo-app/blob/rdm-14/src/oarepo_app/config/workflows/individual.py)
+and [code of CommunityWorkflow](https://github.com/oarepo/oarepo-app/blob/rdm-14/src/oarepo_app/config/workflows/community.py)
+together with [base class](https://github.com/oarepo/oarepo-app/blob/rdm-14/src/oarepo_app/config/workflows/base.py)
+for a comprehensive list of options and their default values.
+
+---
+
+## Scenario Guide
+
+The scenarios below cover the most common setups. Each scenario shows the exact
+configuration snippet you need.
+
+---
+
+### Scenario 1 — Open Submission: anyone can deposit and self-publish
+
+**Situation:** You want any logged-in user to create and immediately publish records.
+No review step, no restrictions.
+
+```python
+from oarepo_app.config import configure_workflows, IndividualWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    IndividualWorkflow(
+        code="open",
+        label=_("Open Submission"),
+        authenticated_draft_creation=True,
+        publish_without_review=True,
+    ),
+)
+```
+
+**What this does:**
+- Any authenticated user can create a draft (`authenticated_draft_creation=True`).
+- The owner of the draft can publish it directly, without asking anyone for approval
+  (`publish_without_review=True`).
+
+---
+
+### Scenario 2 — Restricted Submission: only users with a specific role can deposit
+
+**Situation:** Only members of the `depositor` role (assigned by your administrators)
+are allowed to create records. They can publish their own records without review.
+
+```python
+from oarepo_app.config import configure_workflows, IndividualWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    IndividualWorkflow(
+        code="depositor-only",
+        label=_("Restricted Submission"),
+        draft_creation_roles=["depositor"],
+        publish_without_review=True,
+    ),
+)
+```
+
+**What this does:**
+- Only users whose account carries the `depositor` role can create a new draft.
+- Those users can publish directly.
+
+> **Tip:** roles like `depositor` are managed in the Invenio administration panel
+> under *User management → Roles*.
+
+---
+
+### Scenario 3 — Permission-Need Gated Submission
+
+**Situation:** Access is controlled through an action need
+(`deposition-access`) rather than a named role. Useful when you want to grant
+individual users access without creating a dedicated role, or when the same permission
+should be grantable either directly to a user or to an entire role.
+
+```python
+from oarepo_app.config import configure_workflows, IndividualWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    IndividualWorkflow(
+        code="need-gated",
+        label=_("Need-Gated Submission"),
+        draft_creation_needs=["deposition-access"],
+        publish_without_review=True,
+    ),
+)
+```
+
+**What this does:**
+- Only users who have been granted the `deposition-access` action need can create drafts.
+- They can publish directly.
+
+---
+
+### Scenario 4 — Curated Review: depositors submit, reviewers approve
+
+**Situation:** Any logged-in user can deposit, but a record must be reviewed and
+approved by a designated reviewer (a user with the `reviewer` role) before it is
+published.
+
+```python
+from oarepo_app.config import configure_workflows, IndividualWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    IndividualWorkflow(
+        code="curated",
+        label=_("Curated Submission"),
+        authenticated_draft_creation=True,
+        review_required=True,
+        reviewer_roles=["reviewer"],
+    ),
+)
+```
+
+**What this does:**
+- Any authenticated user can create a draft.
+- To publish, the depositor must submit a *review request*. The request is sent to users
+  who hold the `reviewer` role.
+- Only after a reviewer accepts the request does the record become published.
+
+**Flow:**
+
+```python
+Depositor creates draft  →  Depositor submits review request
+  →  Reviewer accepts  →  Record is published automatically
+  →  Reviewer declines  →  Record returns to "revision_requested"
+     (Depositor revises and re-submits)
+```
+
+---
+
+### Scenario 5 — Tiered Publish: trusted users publish directly, others need review
+
+**Situation:** Most users go through the review process, but members of the
+`trusted-depositor` role can bypass it and publish straight away.
+
+```python
+from oarepo_app.config import configure_workflows, IndividualWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    IndividualWorkflow(
+        code="tiered",
+        label=_("Tiered Submission"),
+        authenticated_draft_creation=True,
+        review_required=True,
+        reviewer_roles=["reviewer"],
+        publish_without_review_roles=["trusted-depositor"],
+    ),
+)
+```
+
+**What this does:**
+- Regular users must go through the `reviewer`-gated review flow.
+- Users who are *both* record owners **and** members of `trusted-depositor` can publish
+  without submitting a review request.
+
+---
+
+### Scenario 6 — External Pre-Approval: publish only after an external system approves
+
+**Situation:** Records can only be published from a special `preapproved` state,
+which is set by an external process (e.g. a data quality checker). The depositor cannot
+publish from a plain `draft` state.
+
+```python
+from oarepo_app.config import configure_workflows, IndividualWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    IndividualWorkflow(
+        code="externally-approved",
+        label=_("Externally Pre-Approved"),
+        authenticated_draft_creation=True,
+        publish_without_review=True,
+        publish_without_review_states=["preapproved"],   # NOT the default "draft"
+    ),
+)
+```
+
+**What this does:**
+- The depositor creates a draft in state `draft`, but cannot publish it yet.
+- Once the external system changes the record state to `preapproved`, the depositor (or
+  the system itself) can publish.
+- Attempting to publish from `draft` is denied.
+
+---
+
+### Scenario 7 — Default Community Workflow: submit to a community for curation
+
+**Situation:** Records belong to a community (e.g. a research group or department).
+Only community *submitters* can deposit records; community *curators* must approve them
+before they are published.
+
+```python
+from oarepo_app.config import configure_workflows, CommunityWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    CommunityWorkflow(
+        code="my-community",
+        label=_("Community Submission"),
+        # draft_creation_community_roles defaults to ["submitter"]
+        # community_curator_roles: who can accept/decline the review request
+        community_curator_roles=["curator"],
+    ),
+)
+```
+
+**What this does:**
+- Community members with the `submitter` role can create records
+  (this is the default — no extra option needed).
+- The depositor submits a *community-submission* request directed at the community.
+- Community members with the `curator` role can accept or decline.
+- On acceptance the record is published into the community.
+
+**Flow:**
+
+```python
+Submitter creates draft  →  Submitter sends community-submission request
+  →  Curator accepts  →  Record is published to the community
+  →  Curator declines  →  Record returns to "revision_requested"
+```
+
+> **Note:** The `code` of a `CommunityWorkflow` must match the **slug** of the
+> corresponding community in your Invenio instance (or be configured as an allowed
+> workflow for that community).
+
+---
+
+### Scenario 8 — Open Community: any logged-in user can submit
+
+**Situation:** The community is open for submissions from the general public (any
+logged-in user), not just assigned members.
+
+```python
+from oarepo_app.config import configure_workflows, CommunityWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    CommunityWorkflow(
+        code="open-community",
+        label=_("Open Community"),
+        authenticated_draft_creation=True,
+        community_curator_roles=["curator"],
+    ),
+)
+```
+
+**What this does:**
+- `authenticated_draft_creation=True` overrides the default "submitter only" rule so
+  that every logged-in user can create a draft, even non-members.
+- A curator still needs to approve before publication.
+
+---
+
+### Scenario 9 — Extended Community Roles: members can also deposit
+
+**Situation:** You want both `submitter` and `member` role holders to be able to
+create records (not just submitters).
+
+```python
+from oarepo_app.config import configure_workflows, CommunityWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    CommunityWorkflow(
+        code="member-deposits",
+        label=_("Member Deposits"),
+        draft_creation_community_roles=["member", "submitter"],
+        community_curator_roles=["curator"],
+    ),
+)
+```
+
+---
+
+### Scenario 10 — Community with Member Read Access
+
+**Situation:** The community contains restricted (non-public) records. You want all
+community *members* to be able to read drafts that are under review and restricted
+published records, not just the record owner.
+
+```python
+from oarepo_app.config import configure_workflows, CommunityWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    CommunityWorkflow(
+        code="member-read",
+        label=_("Member Read Access"),
+        community_curator_roles=["curator"],
+        read_draft_community_roles=["member"],           # see in-review drafts
+        read_restricted_community_roles=["member"],     # read restricted published records
+    ),
+)
+```
+
+**What this does:**
+- Community members can preview drafts that have been submitted for review.
+- Community members can read published records even when the record's access is set to
+  *restricted*.
+
+---
+
+### Scenario 11 — Community with Member Management
+
+**Situation:** You want community *members* to be able to edit and manage any record in
+the community, not only their own records.
+
+```python
+from oarepo_app.config import configure_workflows, CommunityWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    CommunityWorkflow(
+        code="member-manages",
+        label=_("Member Management"),
+        community_curator_roles=["curator"],
+        record_manage_community_roles=["member"],
+    ),
+)
+```
+
+---
+
+### Scenario 12 — Combining Multiple Workflows
+
+A real repository usually needs several workflows active at the same time. Below is a
+complete example that combines the most common patterns:
+
+```python
+from oarepo_app.config import configure_workflows, IndividualWorkflow, CommunityWorkflow
+from invenio_i18n import lazy_gettext as _
+
+configure_workflows(
+    # 1. Any authenticated user may self-publish
+    IndividualWorkflow(
+        code="open",
+        label=_("Open Self-Publish"),
+        authenticated_draft_creation=True,
+        publish_without_review=True,
+    ),
+
+    # 2. Only designated depositors may deposit; reviewers must approve
+    IndividualWorkflow(
+        code="curated",
+        label=_("Curated Deposit"),
+        draft_creation_roles=["depositor"],
+        review_required=True,
+        reviewer_roles=["reviewer"],
+    ),
+
+    # 3. Default community: submitters deposit, curators approve
+    CommunityWorkflow(
+        code="default-community",
+        label=_("Default Community"),
+        community_curator_roles=["curator"],
+    ),
+
+    # 4. Open community with broad read access for members
+    CommunityWorkflow(
+        code="open-community",
+        label=_("Open Community"),
+        authenticated_draft_creation=True,
+        community_curator_roles=["curator"],
+        read_draft_community_roles=["member"],
+        read_restricted_community_roles=["member"],
+    ),
+
+    default_individual_workflow="open",
+)
+```
+
+---
+
+## How Records Pick a Workflow
+
+When a depositor creates a record, they (or the UI) specify the workflow code in the
+record's `parent.workflow` field:
+
+```python
+{
+  "parent": {
+    "workflow": "curated"
+  },
+  "metadata": { "title": "My dataset", ... }
+}
+```
+
+If no workflow is specified, the system uses the workflow whose code matches the
+`default_individual_workflow` argument passed to `configure_workflows` (defaults to
+`"individual"`).
+
+---
+
+## Quick Decision Tree
+
+```python
+Is the record deposited through a community?
+├── Yes  →  Use CommunityWorkflow
+│          ├── Who can deposit?
+│          │   ├── Only submitters (default)  →  no extra option needed
+│          │   ├── Members too  →  draft_creation_community_roles=["member","submitter"]
+│          │   └── Anyone logged in  →  authenticated_draft_creation=True
+│          └── Who can read restricted/draft records?
+│              └── Members  →  read_draft_community_roles / read_restricted_community_roles
+└── No   →  Use IndividualWorkflow
+           ├── Who can deposit?
+           │   ├── Anyone logged in  →  authenticated_draft_creation=True
+           │   ├── Users with a role  →  draft_creation_roles=[...]
+           │   └── Users with a permission need  →  draft_creation_needs=[...]
+           └── Who can publish?
+               ├── Owner, no review  →  publish_without_review=True
+               ├── After review by role  →  review_required=True, reviewer_roles=[...]
+               └── Trusted users bypass review  →  publish_without_review_roles=[...]
+```

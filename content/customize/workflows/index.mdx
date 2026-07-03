@@ -1,15 +1,18 @@
 import { Cards, Mermaid } from 'nextra/components'
 import { Card } from "@/components/card";
 
-**TODO: RDM 12 version, update to RDM14**
-
 # Workflows
 
 ## Overview
 
-In the Invenio NRP repository, each record is always created within
-its primary community. In this model, the record does not belong
-to its depositor but to the community.
+In the Invenio NRP repository, a record might be created within
+or without a primary community. If the record is submitted without 
+a primary community, we call it an `individual submission`. In
+this case, the record belongs to the creator of the record.
+
+If a record is created within a primary community, it does not belong
+to the creator of the record but to the community instead.
+
 For example, if the community represents a project team,
 the record is an outcome of the project and thus belongs
 to the project as a whole—not just to the depositor.
@@ -25,6 +28,13 @@ the default and is used when a deposited record has no workflow explicitly assig
 
 Once a record is created within the community, the workflow is linked to it
 —from that point onward, the record is governed by that workflow.
+
+Individual submissions can also have a workflow assigned to them, but they
+behave differently than records created within a community. For example,
+a curator (if present) is not a community role (as is the case with records within a community),
+but a global invenio role.
+
+## Record state
 
 To track the progress of the record through the workflow,
 a special "status" read-only field is included at the top level
@@ -78,7 +88,26 @@ On record, the state is represented as a read-only field `state`.
 
 ![State field](./state_field.png)
 
-## Permissions
+## Configuration of workflows
+
+### Simplified configuration
+
+In most cases, we discourage the communities to create their custom workflows from scratch.
+The reason is that the workflow configuration is complex and requires a deep understanding 
+of Invenio's permissions. Any mistakes in the workflow configuration can lead to unexpected behavior,
+such as giving users access to records they are not supposed to have access to.
+
+Because of this, the `oarepo-app` library defines a simplified mechanism of declaring workflows
+by specifying high-level configuration of roles and settings. The workflows are then automatically
+generated based on this configuration.
+
+<Cards>
+    <Card title='Use simplified configuration' arrow href="/customize/workflows/simplified">Use simplified configuraiton inside an invenio.cfg file.</Card>
+</Cards>
+
+### Advanced configuration
+
+#### Permissions
 
 Permissions can be set for each state in the workflow,
 allowing for different users to have different permissions
@@ -112,7 +141,7 @@ The permissions determine:
     ]
 ```
 
-## Requests
+#### Requests
 
 Records move through the workflow by means of "requests". A request
 represents user's intention to perform an action on the record. Request
@@ -153,14 +182,14 @@ state]
 review_request -- "when request is rejected" --> draft
 </Mermaid>
 
-## Real-world example
+#### Real-world example
 
 The following example illustrates real-world workflows.
 
 * A [default workflow from the National Library of Technology, Czech Republic](https://github.com/Narodni-repozitar/nr-docs/blob/main/common/workflows/default.py) is intended for communities that trust their members. The deposition process is strict in the sense that the record is not published until the community curator approves it. However, draft records are visible to all community members (regardless of their publication status or their access status).
 * A [individual-but-curated workflow from BIOCEV's database of Molecular Biophysics Database](https://github.com/Molecular-Biophysics-Database/mbdb-app/blob/development/common/workflows/individual_workflow.py)
 
-## Creating and managing workflows
+#### Creating and managing workflows
 
 <Cards>
     <Card title='Create workflow' arrow href="/customize/workflows/create">Define workflows inside an invenio.cfg file.</Card>
