@@ -8,6 +8,40 @@ import {
 # Migrations & Updates
 
 <MigrationHeader
+  date="2026-07-13"
+  title="oarepo-app 6.2.0 → 6.3.0"
+  versionBadge="oarepo-app ≥ 6.3.0"
+/>
+
+This upgrade brings a couple of changes:
+
+- Permission update to allow curators more rights
+- Share button added to deposition form
+- Authentication interface for providers (for Kerberos support planned for v14)
+- Unified facets for several search pages
+- Support for extra checks (integrating invenio-checks), including AI-based checks
+- Citation updates (InvenioRDM)
+- New metadata.description field with its future mapping to CCMM descriptions fields
+- Refactored configuration to oarepo_config
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories on `oarepo-app <= 6.2.0` upgrading to 6.3.0 | Repositories already on `oarepo-app >= 6.3.0` |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+- Inside `invenio.cfg`, locate `from oarepo import config` and replace it with `import oarepo_config as config`
+- Inside pyproject.toml, change the dependency from `oarepo-app==6.2.0` to `oarepo-app==6.3.0`
+- Run `./run.sh upgrade` to bring in new libraries
+- Run `./run.sh invenio rdm rebuild-all-indices`
+
+</MigrationSteps>
+
+<MigrationHeader
   date="2026-06-24"
   title="oarepo-app 4.0.0 → 6.2.0"
   versionBadge="oarepo-app ≥ 6.2.0"
