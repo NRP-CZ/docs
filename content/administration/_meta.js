@@ -5,6 +5,12 @@ export default {
   "communities": {
     "title": "Communities"
   },
+  "subcommunities": {
+    "title": "Subcommunities"
+  },
+  "collections": {
+    "title": "Collections"
+  },
   "migrations": {
     "title": "Migrations"
   },
