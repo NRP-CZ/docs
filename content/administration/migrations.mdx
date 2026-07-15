@@ -35,6 +35,7 @@ This upgrade brings a couple of changes:
 <MigrationSteps>
 
 - Inside `invenio.cfg`, locate `from oarepo import config` and replace it with `import oarepo_config as config`
+- If you use other symbols from `oarepo.config`, also migrate them to `oarepo_config` - for example: `from oarepo_config importload_configuration_variables`
 - Inside pyproject.toml, change the dependency from `oarepo-app==6.2.0` to `oarepo-app==6.3.0`
 - Run `./run.sh upgrade` to bring in new libraries
 - Run `./run.sh invenio rdm rebuild-all-indices`
