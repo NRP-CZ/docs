@@ -1,0 +1,122 @@
+import { Callout, Steps, Cards } from "nextra/components";
+import { Card } from "@/components/card";
+
+# Subcommunities
+
+See also the upstream <a href="https://inveniordm.docs.cern.ch/releases/v13/version-v13.0.0/#subcommunities" target="_blank" rel="noopener noreferrer">InvenioRDM v13 release notes — Subcommunities</a>.
+
+A **subcommunity** is a community nested under another community. This lets you
+model organizational structure — for example a faculty with its departments, or
+a project with its work packages — as a parent community with one or more child
+communities.
+
+<Callout type="warning">
+  There is currently **no UI** to turn a community into a parent. Enabling
+  subcommunities requires editing a YAML fixture and reloading it (see
+  [Enabling subcommunities](#enabling-subcommunities)). This is verified against
+  `invenio-communities 28.1.0+oarepo.1` in the datarepo instance.
+</Callout>
+
+## How the hierarchy works
+
+- **One level only.** A parent may have children, but a child cannot itself have
+  children. This is enforced in `ChildrenComponent`: a community that has
+  `children.allow` set cannot be assigned as someone else's child, and a parent
+  cannot itself already have a parent.
+- **One parent.** A community can belong to at most one parent community.
+- **Records are *not* aggregated.** Unlike upstream InvenioRDM's stated
+  behavior, in these versions a parent community does **not** show its children's
+  records. The community records search filters on a single community id
+  (`parent.communities.ids:<id>`), with no "include subcommunities" option.
+  Community membership is stored per record and is never inherited up or down the
+  tree.
+
+## Enabling subcommunities
+
+`children.allow` is a top-level community field that is **only writable by the
+system process** (`can_manage_children = [SystemProcess()]`). It is not exposed
+in the community settings form and cannot be a custom field, so the only
+practical way to set it is through the fixture loader, which runs as
+`system_identity`.
+
+<Steps>
+
+### Add the community to the YAML fixture
+
+Edit `app_data/communities.yaml` in the datarepo project. The `app_data/`
+directory is symlinked into the instance path, so editing the project file is
+enough. Add a community with `children.allow: true`:
+
+```yaml filename="app_data/communities.yaml"
+- slug: sub-community-test
+  metadata:
+    title: Sub-community Test
+    description: Test community with sub-communities enabled.
+  access:
+    visibility: public
+    members_visibility: public
+    member_policy: open
+    record_policy: open
+    review_policy: closed
+  children:
+    allow: true
+  custom_fields:            # keep in sync with your workflow setup
+    allowed_workflows:
+      - community
+    workflow: community
+```
+
+### Load the fixture
+
+```bash
+.venv/bin/invenio rdm-records fixtures
+```
+
+</Steps>
+
+<Callout type="info">
+  The loader **skips slugs that already exist** — editing the YAML of a
+  community that is already loaded does nothing. To change an existing community,
+  use a new slug or delete the community first.
+</Callout>
+
+## Showing the Browse tab
+
+The **Browse** tab — where a parent's subcommunities and collections are listed
+— is hidden unless the following is set in `invenio.cfg`:
+
+```python
+COMMUNITIES_COLLECTIONS_ENABLED = True
+```
+
+The browse view returns early when this is falsy, before it even checks
+`children.allow`. In datarepo it currently defaults to `False`.
+
+## Requesting a subcommunity
+
+Attaching a child to a parent goes through a **subcommunity request**:
+
+- The owner of the child community requests to join a parent
+  (`can_request_join = [CommunityOwners()]` on the child).
+- An owner/manager of the parent accepts. On acceptance the child is reparented
+  by the system process.
+
+The request class used for this is controlled by the `COMMUNITIES_SUB_REQUEST_CLS`
+variable. In this repository it is already set to `RDMSubCommunityRequest`, so no
+action is needed:
+
+```python
+from invenio_rdm_records.requests.subcommunities import RDMSubCommunityRequest
+COMMUNITIES_SUB_REQUEST_CLS = RDMSubCommunityRequest
+```
+
+## Related
+
+<Cards>
+  <Card title="Communities" arrow href="/administration/communities">
+    Create and manage the communities that act as parents and children.
+  </Card>
+  <Card title="Collections" arrow href="/administration/collections">
+    Group records with query-based collection trees, including global collections.
+  </Card>
+</Cards>

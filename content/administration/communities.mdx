@@ -1,0 +1,91 @@
+import { Callout, Steps, Cards } from "nextra/components";
+import { Card } from "@/components/card";
+
+# Communities
+
+A **community** groups together records that share a common owner, topic, or
+governing body — for example a project team, a department, or a dataset series.
+When a record is created within a community, it belongs to the community rather
+than to the individual depositor, and the community's rules govern its whole
+lifecycle.
+
+For how a community's deposition lifecycle is configured (roles, review steps,
+permissions), see the [Workflows documentation](/customize/workflows). This page
+covers creating and managing the community itself.
+
+## Creating a community
+
+<Callout type="info">
+  Only a repository administrator can create a community and assign its owner.
+  The community owner then manages membership, roles and the community's
+  curation policy.
+</Callout>
+
+<Steps>
+
+### Create the community
+
+A repository administrator creates the community and assigns a community owner
+(curator).
+
+### Configure the workflow
+
+Assign a default deposition workflow to the community. This determines how
+records are submitted, reviewed and published. See
+[Apply workflow](/customize/workflows/apply).
+
+### Add members and assign roles
+
+The community owner adds users to the community and assigns them roles such as
+`curator`, `approver` or member. See the [Workflows example](/customize/workflows/example)
+for the roles used in the default workflows.
+
+### Fill in the curation policy
+
+The owner writes the community's [curation policy](#curation-policy) describing
+what the community accepts and what depositors must do before submitting.
+
+</Steps>
+
+## Curation policy
+
+Every community should define a **curation policy** — a human-readable statement
+of the rules for depositing records into that community. It answers questions
+such as:
+
+- What kind of records does this community accept (subject, type, scope)?
+- What metadata quality and completeness is expected?
+
+The curation policy serves two purposes:
+
+1. **Guidance for depositors.** It is the depositor's responsibility to read the curation policy before submitting
+   a record to the community, so they understand the community's rules up front
+   and can prepare a compliant submission.
+
+2. **Input for automated (LLM) checks.** The policy text can be used by automated
+   curation checks (if this feature is supported by a given repository) to evaluate whether a submitted record conforms to the
+   community's stated rules, and to give the depositor and curator early
+   feedback.
+
+<Callout type="warning">
+  Because the curation policy feeds automated checks, write it as clear,
+  concrete, verifiable rules rather than vague aspirations. For example, prefer
+  "Records must include at least one author with an ORCID and a license from the
+  approved list" over "Please provide good metadata."
+</Callout>
+
+### Writing an effective policy
+
+- Be specific and testable — state concrete requirements, not general intentions..
+- Keep it up to date as the community's workflow or scope changes.
+
+## Related
+
+<Cards>
+  <Card title="Workflows" arrow href="/customize/workflows">
+    How a community's deposition lifecycle is configured.
+  </Card>
+  <Card title="Apply workflow" arrow href="/customize/workflows/apply">
+    Select which workflow is default for a community.
+  </Card>
+</Cards>
