@@ -1,0 +1,88 @@
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+
+# AI Validation Checks
+
+This guide explains how to enable and configure AI-powered (LLM) validation checks in your Invenio repository. The checks are provided by the [`oarepo-checks`](https://github.com/oarepo/oarepo-checks) package, which integrates with Invenio's `invenio-checks` framework. The configuration helper `configure_llm` lives in the [`oarepo-config`](https://github.com/oarepo/oarepo-config) package.
+
+The feature uses Large Language Models to automatically validate records at the time of creation or submission. Validation rules are defined via Jinja2 templates and can be customised at both the repository level and the community level.
+
+## Overview
+
+The system consists of three layers:
+
+1. **Repository rules** (`repository_rules.jinja2`) — rules that apply to all records in the repository, regardless of community.
+2. **Community rules** (`community_rules.jinja2`) — rules specific to a community, including the community's curation policy.
+3. **LLM prompt** (`llm_prompt.jinja2`) — the main prompt template that combines repository rules, community rules, and the serialised record into a single prompt sent to the LLM.
+
+In order to use LLM checks in your repository, you need an **ai.e-infra.cz API key**. You can obtain it at **chat.ai.e-infra.cz** at **Settings → Account → API keys**.
+
+## Step 1: Add the LLM Dependency
+In your repository's `pyproject.toml`, add the `llm-production` (or `llm-development` for development) extra to the `oarepo-app` dependency:
+**For production:**
+
+```toml
+dependencies = [
+    "oarepo-app[ccmm-production,production,llm-production]"
+]
+```
+**For development:**
+```toml
+dependencies = [
+    "oarepo-app[ccmm-development,development,llm-development]>=6.4.0,<7.0.0",
+]
+```
+
+## Step 2: Add the API Token to Your Variables
+Add the following line to your repository's `variables` file:
+```
+INVENIO_OAREPO_CHECKS_TOKEN="your-ai-e-infra-cz-api-key"
+```
+
+## Step 3: Enable LLM Checks in `invenio.cfg`
+Add the following line to your `invenio.cfg`: 
+```
+config.configure_llm(api_token=getattr(env, "INVENIO_OAREPO_CHECKS_TOKEN", None))
+```
+
+## Step 4: Copy and Customise the Jinja2 Templates
+Copy the `oarepo_checks` templates from the [`oarepo-checks` repository](https://github.com/oarepo/oarepo-checks/tree/main/oarepo_checks/templates/oarepo_checks) into your repository's `templates/oarepo_checks/` folder.
+
+| File | Purpose |
+|---|---|
+| `repository_rules.jinja2` | Repository-wide validation rules. Modify this to change the rules that apply to all records [1]. |
+| `community_rules.jinja2` | Community-specific rules. This template exports `community.metadata.curation_policy` from the Curation Policy field in the repository UI [1]. |
+| `llm_prompt.jinja2` | The main prompt template. Combines repository rules, community rules, and the serialised record. Modify to change the overall prompt structure or output format. |
+
+## Step 5: Run the Update-Prompts Command
+After modifying templates, you need to write the updated prompts to the database:
+
+```bash
+oarepo checks update-prompts --community-slug <community-slug>
+```
+This regenerates prompts for all communities using the latest templates.
+
+To update a specific community only:
+
+```bash
+oarepo checks update-prompts --community-slug <community-slug>
+```
+
+## Step 6: Enable/Disable LLM Checks per Community
+
+LLM checks are enabled by default for all communities. You can manage them with CLI commands:
+
+**Disable LLM check for a specific community:**
+
+```bash
+oarepo checks disable-llm-check <community-slug>
+```
+
+**Enable LLM check for a specific community:**
+
+```bash
+oarepo checks enable-llm-check <community-slug>
+```
+
+
+LLM checks are enabled in [Catch-all data repository](https://datarepo.eosc.cz/). For reference, see its Github: [datarepo](https://github.com/NRP-CZ/datarepo).
