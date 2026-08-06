@@ -515,11 +515,11 @@ Components from [`oarepo-vocabularies`](https://github.com/oarepo/oarepo-vocabul
 Smart wrapper that automatically selects between local or API-loaded vocabulary selector based on form configuration:
 
 ```jsx
-import { VocabularyField } from "@js/oarepo_vocabularies_ui/form";
+import { VocabularyField } from "@js/oarepo_vocabularies/form";
 
 <VocabularyField
-  fieldPath="props.resource_type"
-  vocabularyName="resource_type"
+  fieldPath="metadata.resource_type"
+  vocabularyName="resourcetypes"
 />
 ```
 
@@ -539,11 +539,11 @@ import { VocabularyField } from "@js/oarepo_vocabularies_ui/form";
 API-loaded vocabulary selector for large vocabularies with pagination and remote search:
 
 ```jsx
-import { VocabularySelectField } from "@js/oarepo_vocabularies_ui/form";
+import { VocabularySelectField } from "@js/oarepo_vocabularies/form";
 
 <VocabularySelectField
   vocabularyName="languages"
-  fieldPath="props.language"
+  fieldPath="metadata.language"
   multiple={false}
   showLeafsOnly={false}
 />
@@ -570,11 +570,11 @@ import { VocabularySelectField } from "@js/oarepo_vocabularies_ui/form";
 Local vocabulary selector for small vocabularies loaded entirely at once:
 
 ```jsx
-import { LocalVocabularySelectField } from "@js/oarepo_vocabularies_ui/form";
+import { LocalVocabularySelectField } from "@js/oarepo_vocabularies/form";
 
 <LocalVocabularySelectField
-  vocabularyName="resource_type"
-  fieldPath="props.resource_type"
+  vocabularyName="resourcetypes"
+  fieldPath="metadata.resource_type"
   usedOptions={[]}
   showLeafsOnly={false}
 />
@@ -600,10 +600,10 @@ import { LocalVocabularySelectField } from "@js/oarepo_vocabularies_ui/form";
 Flexible picker field for displaying selected vocabulary values with custom selection UI:
 
 ```jsx
-import { VocabularyPickerField } from "@js/oarepo_vocabularies_ui/form";
+import { VocabularyPickerField } from "@js/oarepo_vocabularies/form";
 
 <VocabularyPickerField
-  fieldPath="props.subjects"
+  fieldPath="metadata.subjects"
   multiple={true}
   label="Subjects"
   initialValue={[]}
@@ -633,7 +633,7 @@ import { VocabularyPickerField } from "@js/oarepo_vocabularies_ui/form";
 Multilingual text input for vocabulary titles/names:
 
 ```jsx
-import { VocabularyMultilingualInputField } from "@js/oarepo_vocabularies_ui/form";
+import { VocabularyMultilingualInputField } from "@js/oarepo_vocabularies/form";
 
 <VocabularyMultilingualInputField
   fieldPath="title"
@@ -662,7 +662,7 @@ import { VocabularyMultilingualInputField } from "@js/oarepo_vocabularies_ui/for
 Renders custom vocabulary field props as text inputs:
 
 ```jsx
-import { PropFieldsComponent } from "@js/oarepo_vocabularies_ui/form";
+import { PropFieldsComponent } from "@js/oarepo_vocabularies/form";
 
 <PropFieldsComponent vocabularyProps={vocabularyProps} />
 ```
