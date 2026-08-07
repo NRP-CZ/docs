@@ -59,7 +59,7 @@ repository into your project's `templates/oarepo_checks/` directory.
 | File | Purpose |
 |---|---|
 | `repository_rules.jinja2` | Repository-wide validation rules. Modify this to change the rules that apply to all records. |
-| `community_rules.jinja2` | Community-specific rules. This template exports `community.metadata.curation_policy` from the Curation Policy field in the repository UI. |
+| `community_rules.jinja2` | Community-specific rules. This template exports `community.metadata.curation_policy` from the Curation Policy field in the repository UI. It normally need not be modified unless you want to add cross-community settings.|
 | `llm_prompt.jinja2` | The main prompt template. Combines repository rules, community rules, and the serialised record. Modify to change the overall prompt structure or output format. |
 
 ---
