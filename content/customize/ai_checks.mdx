@@ -1,0 +1,108 @@
+import { Cards } from 'nextra/components'
+import { Card } from "@/components/card";
+
+# AI Validation Checks
+
+This guide explains how to enable AI-powered (LLM) validation checks in your Invenio repository. The checks are provided by the [`oarepo-checks`](https://github.com/oarepo/oarepo-checks) package, which integrates with Invenio's `invenio-checks` framework. Repository configuration is handled by the `configure_llm` helper from [`oarepo-config`](https://github.com/oarepo/oarepo-config).
+
+LLM validation automatically reviews records during creation or submission. Validation rules are defined using Jinja2 templates and can be customized at both the repository and community levels.
+
+> **Prerequisite**
+>
+> To use LLM validation, you need an **ai.e-infra.cz** API key.
+>
+> Obtain one from **chat.ai.e-infra.cz** under **Settings → Account → API keys**.
+
+
+---
+
+## Step 1: Add the LLM dependency
+In your repository's `pyproject.toml`, add the `llm-production` (or `llm-development` for development) extra to the `oarepo-app` dependency:
+
+**For production:**
+
+```toml
+dependencies = [
+    "oarepo-app[ccmm-production,production,llm-production]>=6.4.0rc3,<7.0.0",
+]
+```
+**For development:**
+```toml
+dependencies = [
+    "oarepo-app[ccmm-development,development,llm-development]>=6.4.0,<7.0.0",
+]
+```
+---
+
+## Step 2: Set the API key as an environment variable
+
+```bash
+export INVENIO_OAREPO_CHECKS_TOKEN="your-ai-e-infra-cz-api-key""
+```
+---
+
+## Step 3: Enable LLM validation
+
+Add the following line to `invenio.cfg`: 
+
+```python
+config.configure_llm(api_token=getattr(env, "INVENIO_OAREPO_CHECKS_TOKEN", None))
+```
+
+---
+
+## Step 4: Copy and Customise the Jinja2 Templates
+Copy the templates from the
+[`oarepo-checks`](https://github.com/oarepo/oarepo-checks/tree/main/oarepo_checks/templates/oarepo_checks)
+repository into your project's `templates/oarepo_checks/` directory.
+
+| File | Purpose |
+|---|---|
+| `repository_rules.jinja2` | Repository-wide validation rules. Modify this to change the rules that apply to all records. |
+| `community_rules.jinja2` | Community-specific rules. This template exports `community.metadata.curation_policy` from the Curation Policy field in the repository UI. It normally need not be modified unless you want to add cross-community settings.|
+| `llm_prompt.jinja2` | The main prompt template. Combines repository rules, community rules, and the serialised record. Modify to change the overall prompt structure or output format. |
+
+---
+
+## Step 5: Update stored prompts
+
+This is the final step required to enable LLM validation. After modifying or copying the templates, regenerate the prompts stored in the database.
+
+Update all communities:
+
+```bash
+oarepo checks update-prompts
+```
+Update a single community:
+
+```bash
+oarepo checks update-prompts --community-slug <community-slug>
+```
+
+---
+## Optional: Enable or disable LLM validation for individual communities
+
+LLM validation is enabled by default for all communities.
+
+Disable validation for a community:
+
+```bash
+oarepo checks disable-llm-check <community-slug>
+```
+
+Enable validation for a community:
+
+```bash
+oarepo checks enable-llm-check <community-slug>
+```
+
+---
+
+## Example
+
+LLM validation is enabled in the
+[Catch-all data repository](https://datarepo.eosc.cz/).
+
+The complete configuration is available in the
+[datarepo](https://github.com/NRP-CZ/datarepo)
+repository.
