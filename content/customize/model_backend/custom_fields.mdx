@@ -104,7 +104,6 @@ The following custom field types are available for Invenio-based  repositories:
 
 * The `VocabularyCF` custom field is used to store a value from a controlled vocabulary.
   Pass `vocabulary_id="<vocabulary id>"`, where `<vocabulary id>` is the id of the vocabulary.
-  If the vocabulary is small, pass `dump_options=True` to speed up the UI.
 
 
 ## Deposit form
@@ -153,8 +152,8 @@ The following UI widgets are available for rendering custom fields in Invenio-ba
 | Input | Input box |
 | TextArea | Long, unformatted text |
 | RichInput | Formatted multiline text |
-| Dropdown | Dropdown list (for vocabularies with dump_options=True) |
-| AutocompleteDropdown | Dropdown list with autocomplete (for vocabularies with dump_options=False) |
+| Dropdown | Dropdown list |
+| AutocompleteDropdown | Dropdown list with autocomplete (for vocabularies) |
 
 
 ## Landing page

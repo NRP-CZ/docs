@@ -45,7 +45,6 @@ INVENIO_VOCABULARY_TYPE_METADATA = {
                 "search": False,
             },
         },
-        "dump_options": True,
     },
     # ...
 }
@@ -56,10 +55,6 @@ The `props` field is a dictionary of editable string fields, that can be set on 
 
 *Note:* Custom fields (that is, non-string fields, such as booleans, structures or arrays) can be specified elsewhere
 inside the `invenio.cfg`. See [Vocabulary custom fields](/customize/vocabularies/custom_fields.mdx) for more information.
-
-If you specify `dump_options` to `True`, the vocabulary content will be stored within the editing form,
-so that no API requests will need to be called to get the vocabulary content. This might yield a better user experience
-but should be used only for small vocabularies.
 
 ## Permission policy
 
