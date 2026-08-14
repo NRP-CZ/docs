@@ -512,44 +512,21 @@ Components from [`oarepo-vocabularies`](https://github.com/oarepo/oarepo-vocabul
 
 ### VocabularyField
 
-Smart wrapper that automatically selects between local or API-loaded vocabulary selector based on form configuration:
+API-loaded vocabulary selector with pagination and remote search. Values are
+fetched from `/api/vocabularies/<name>` as the user types:
 
 ```jsx
-import { VocabularyField } from "@js/oarepo_vocabularies_ui/form";
+import { VocabularyField } from "@js/oarepo_vocabularies/form";
 
 <VocabularyField
-  fieldPath="props.resource_type"
-  vocabularyName="resource_type"
-/>
-```
-
-**Source:** [oarepo-vocabularies/VocabularyField](https://github.com/oarepo/oarepo-vocabularies/tree/main/oarepo_vocabularies/ui/theme/assets/semantic-ui/js/oarepo_vocabularies_ui/form/components/VocabularyField)
-
-**Based on:** `LocalVocabularySelectField` or `VocabularySelectField` (auto-selected)
-
-**Props:**
-
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `fieldPath` | string | yes | Path to field in Formik values |
-| `vocabularyName` | string | yes | Vocabulary identifier |
-
-### VocabularySelectField
-
-API-loaded vocabulary selector for large vocabularies with pagination and remote search:
-
-```jsx
-import { VocabularySelectField } from "@js/oarepo_vocabularies_ui/form";
-
-<VocabularySelectField
   vocabularyName="languages"
-  fieldPath="props.language"
+  fieldPath="metadata.language"
   multiple={false}
   showLeafsOnly={false}
 />
 ```
 
-**Source:** [oarepo-vocabularies/VocabularySelectField](https://github.com/oarepo/oarepo-vocabularies/tree/main/oarepo_vocabularies/ui/theme/assets/semantic-ui/js/oarepo_vocabularies_ui/form/components/VocabularySelectField)
+**Source:** [oarepo-vocabularies/VocabularyField](https://github.com/oarepo/oarepo-vocabularies/tree/main/oarepo_vocabularies/ui/theme/assets/semantic-ui/js/oarepo_vocabularies_ui/form/components/VocabularyField)
 
 **Based on:** `react-invenio-forms.RemoteSelectField`
 
@@ -559,81 +536,17 @@ import { VocabularySelectField } from "@js/oarepo_vocabularies_ui/form";
 |------|------|----------|-------------|
 | `vocabularyName` | string | yes | Vocabulary identifier (`/api/vocabularies/<name>`) |
 | `fieldPath` | string | yes | Path in Formik state |
-| `externalAuthority` | boolean | no | Whether from external authority |
 | `multiple` | boolean | no | Enable multiple selections |
 | `filterFunction` | func | no | Filter/transform each suggestion |
 | `showLeafsOnly` | boolean | no | Show only leaf nodes (hierarchies) |
 | `suggestionAPIHeaders` | object | no (Accept header) | HTTP headers for API |
-
-### LocalVocabularySelectField
-
-Local vocabulary selector for small vocabularies loaded entirely at once:
-
-```jsx
-import { LocalVocabularySelectField } from "@js/oarepo_vocabularies_ui/form";
-
-<LocalVocabularySelectField
-  vocabularyName="resource_type"
-  fieldPath="props.resource_type"
-  usedOptions={[]}
-  showLeafsOnly={false}
-/>
-```
-
-**Source:** [oarepo-vocabularies/LocalVocabularySelectField](https://github.com/oarepo/oarepo-vocabularies/tree/main/oarepo_vocabularies/ui/theme/assets/semantic-ui/js/oarepo_vocabularies_ui/form/components/LocalVocabularySelectField)
-
-**Based on:** `react-invenio-forms.SelectField`
-
-**Props:**
-
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `fieldPath` | string | yes | Path in Formik values |
-| `vocabularyName` | string | yes | Key to look up options in `formConfig.vocabularies` |
-| `usedOptions` | array | no | Values to keep selectable even if used elsewhere |
-| `multiple` | boolean | no | Force multi-select mode |
-| `optimized` | boolean | yes | Use optimized select with debounced search |
-| `showLeafsOnly` | boolean | no | Show only leaf nodes |
-
-### VocabularyPickerField
-
-Flexible picker field for displaying selected vocabulary values with custom selection UI:
-
-```jsx
-import { VocabularyPickerField } from "@js/oarepo_vocabularies_ui/form";
-
-<VocabularyPickerField
-  fieldPath="props.subjects"
-  multiple={true}
-  label="Subjects"
-  initialValue={[]}
->
-  <YourVocabularySelector />
-</VocabularyPickerField>
-```
-
-**Source:** [oarepo-vocabularies/VocabularyPickerField](https://github.com/oarepo/oarepo-vocabularies/tree/main/oarepo_vocabularies/ui/theme/assets/semantic-ui/js/oarepo_vocabularies_ui/form/components/VocabularyPickerField)
-
-**Based on:** Formik context, `FieldValueProvider`
-
-**Props:**
-
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `fieldPath` | string | yes | Path in Formik values |
-| `label` | string \| node | no | Field label |
-| `multiple` | boolean | no | Enable multiple selections |
-| `required` | boolean | no | Mark as required |
-| `initialValue` | array \| object | no | Starting value |
-| `onChange` | func | no | Callback with new value (multi-select only) |
-| `children` | node | no | Child selector UI components |
 
 ### VocabularyMultilingualInputField
 
 Multilingual text input for vocabulary titles/names:
 
 ```jsx
-import { VocabularyMultilingualInputField } from "@js/oarepo_vocabularies_ui/form";
+import { VocabularyMultilingualInputField } from "@js/oarepo_vocabularies/form";
 
 <VocabularyMultilingualInputField
   fieldPath="title"
@@ -662,7 +575,7 @@ import { VocabularyMultilingualInputField } from "@js/oarepo_vocabularies_ui/for
 Renders custom vocabulary field props as text inputs:
 
 ```jsx
-import { PropFieldsComponent } from "@js/oarepo_vocabularies_ui/form";
+import { PropFieldsComponent } from "@js/oarepo_vocabularies/form";
 
 <PropFieldsComponent vocabularyProps={vocabularyProps} />
 ```
