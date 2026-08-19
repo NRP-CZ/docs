@@ -1,0 +1,14 @@
+[
+{
+"name": "oarepo-doi",
+"title": "OARepo DOI",
+"source": "https://raw.githubusercontent.com/oarepo/oarepo-doi/refs/heads/main/README.md",
+"target": "content/modules/oarepo_doi/index.mdx"
+},
+{
+"name": "oarepo-checks",
+"title": "OARepo CHECKS",
+"source": "https://raw.githubusercontent.com/oarepo/oarepo-checks/refs/heads/main/README.md",
+"target": "content/modules/oarepo_checks/index.mdx"
+}
+]

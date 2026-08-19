@@ -19,6 +19,11 @@ export default {
   "customize": {
     "type": "page"
   },
+  "modules": {
+    "title": "Modules",
+    "type": "page"
+  },
+
   "deploy": {
     "title": "Deploy",
     "type": "page"
