@@ -18,9 +18,6 @@ export default {
     "vocabularies": {
         "title": "Vocabularies"
     },
-    "oarepo_doi": {
-        "title": "OARepo DOI"
-    },
     "workflows": {
         "title": "Record workflows"
     }
