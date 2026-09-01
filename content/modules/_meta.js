@@ -15,5 +15,12 @@ export default {
     "oarepo_checks_link": {
       "title": "OARepo CHECKS",
       "href": "/modules/oarepo_checks"
+    },
+    "oarepo_runtime": {
+      "display": "hidden"
+    },
+    "oarepo_runtime_link": {
+      "title": "OARepo Runtime",
+      "href": "/modules/oarepo_runtime"
     }
   }
