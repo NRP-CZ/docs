@@ -91,6 +91,8 @@ In the following example, user can update the dataset only if they are the owner
 
 ![CESNET Authorization](./resources/cesnet_authorization.png)
 
+The `RequireAll` permission generator allows to require multiple permissions to be satisfied in order to grant access.
+
 ## Authorization process
 
 ### User claims extraction
@@ -105,7 +107,15 @@ When a user logs in or accesses invenio with their credentials via the API, the 
 
 #### Genomic Visas (proposal)
 
-This process is extensible. We can add a custom callback that would, for example, extract visas from the AAI response and map them to Invenio user claims.
+The GA4GH Passports and Visas framework standardizes how an authority outside the repository tells the repository that a researcher is allowed to do something.
+
+A **visa** is a signed credential that attests exactly one fact about a researcher: an affiliation, or an approval to access a particular controlled-access dataset. A **passport** is the set of visas a researcher presents. 
+
+Visas arrive with the user's identity: the AAI carries them at login, next to the other authentication information. Because a visa is self-contained and signed, the repository validates it without contacting the issuer: it verifies the signature against the issuer's published public key, checks that the issuer appears on the repository's trust list, and checks the expiry time.
+
+Only visas whose issuer is trusted and whose access grant the repository knows how to interpret become Invenio claims. Visas from unknown issuers, and grants with no configured meaning, are ignored.
+
+The after-login callbacks described above are where this plugs in: a custom callback reads the visas carried by the AAI and adds the corresponding claims.
 This will scale well provided the resulting set of claims is not too large (that is, the user does not have too many visas).
 
 Then the permission policy could look like:
@@ -195,8 +205,10 @@ the public key of the repository.
 The public key of the repository is advertised both in the repository UI and via the metadata of the repository
 accessible through a REST API.
 
-Then the encrypted file is uploaded to the repository as usual. The repository will perform a quick check that
-the file is encrypted using the CRYPT4GH format and that the repository can read and decode the headers of the file.
+Then the encrypted file is uploaded to the repository as usual. The repository will call a specialized service to 
+perform a quick check that the file is encrypted using the CRYPT4GH format and that the headers of the file can be decoded.
+The specialized service uses the private key associated with the repository to verify the signature of the file.
+The private key is stored securely inside a HSM (Hardware Security Module).
 
 CESNET will provide a command-line tool (`nrp-cmd`) that will be able to perform both operations automatically,
 without any additional configuration.
