@@ -10,5 +10,11 @@
 "title": "OARepo CHECKS",
 "source": "https://raw.githubusercontent.com/oarepo/oarepo-checks/refs/heads/main/README.md",
 "target": "content/modules/oarepo_checks/index.mdx"
+},
+{
+"name": "oarepo-runtime",
+"title": "OARepo Runtime",
+"source": "https://raw.githubusercontent.com/oarepo/oarepo-runtime/refs/heads/main/README.md",
+"target": "content/modules/oarepo_runtime/index.mdx"
 }
 ]
