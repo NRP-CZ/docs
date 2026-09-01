@@ -68,7 +68,7 @@ The user claims are compared against the excludes at first. If there is a match 
 The limitation of the plain Invenio permission system is that it does not support conjunctive needs. For example, the plain Invenio permissions cannot express:
 
 - Give access to the dataset only 
-   - if the user has a specific role **AND** accesses the dataset from a specific trusted research environment.
+   - if the user has a specific role **AND** accesses the dataset from a specific trusted research environment (TRE).
 - User can edit metadata 
    - if they are the owner of the dataset **AND** are a member of an organization the dataset belongs to (that is, the user has not left the organization).
 
@@ -116,11 +116,11 @@ can_read_files = [
 ]
 ```
 
-This will allow the user to read files only if they have a valid visa that specifies the dataset, tre and workflow. 
+This will allow the user to read files only if they have a valid visa that specifies the dataset, TRE and workflow. 
 
 ### TRE and Workflows identification
 
-The set of user claims will be augmented with the TRE(s) and workflow(s) required to access the dataset and passed
+The set of user claims will be augmented with the TRE(s) and workflow(s) used to access the dataset and passed
 inside the request.
 
 See [Dominik Pantůček; Job Authentication in Computation Environment](/files/jaice.pdf) on how these are
@@ -138,7 +138,7 @@ A grant is a piece of information that is connected to a dataset and specifies:
 For repositories containing sensitive data, this information will be amended with:
 - the TRE(s) required to access the dataset
 - the software(s) required to fetch the dataset
-- the workflows(s) required to process the dataset
+- the workflow(s) required to process the dataset
 
 The UI dialogue will be extended to allow entering these extra fields. 
 
