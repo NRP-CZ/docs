@@ -39,9 +39,9 @@ via email and the dataset owner can approve or deny the request.
 When a user tries to access a protected dataset or wants to execute an action inside the repository, the following steps are taken:
 
 1. If the user is not authenticated, a redirect to the login page is performed.
-2. For an authenticated user, the user is represented via an "Identity" object. The identity object contains:
+2. For an authenticated user, the user is represented via an "Identity". The identity contains:
    - User ID
-   - A set of provided "claims" which are an instance of Flask-Principal's `Need` class. 
+   - A set of provided "claims" which are an instance of Flask-Principal's `Need`. 
      An example of such a token is a `CommunityRoleNeed(community_id, role_id)` which claims
      that the user has a specific role in a community.
 
