@@ -12,7 +12,7 @@ In an Invenio repository, access to the dataset can be restricted in two ways:
   - Restricted files: only users with the appropriate permissions can access the files, but everyone can still search for the dataset.
 ![dataset visibility](./resources/dataset_visibility.png)
 
-When a dataset is restricted, the dataset can be shared by the dataset owner (or community owner/curator when the dataset is a member of a community).
+When a dataset is restricted, the dataset can be shared by the dataset owner (or community owner/curator when the dataset is a included in a community).
 
 ![Restricted dataset](./resources/restricted_dataset.png)
 
@@ -123,7 +123,7 @@ This will allow the user to read files only if they have a valid visa that speci
 The set of user claims will be augmented with the TRE(s) and workflow(s) used to access the dataset and passed
 inside the request.
 
-See [Dominik Pantůček; Job Authentication in Computation Environment](/files/jaice.pdf) on how these are
+See [Dominik Pantůček: Job Authentication in Computation Environment](/files/jaice.pdf) on how these are
 generated and transferred over the wire to the repository in a cryptographically secure manner.
 
 ### Grants
