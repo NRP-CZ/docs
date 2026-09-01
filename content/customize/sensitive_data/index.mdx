@@ -42,7 +42,7 @@ When a user tries to access a protected dataset or wants to execute an action in
 2. For an authenticated user, the user is represented via an "Identity". The identity contains:
    - User ID
    - A set of provided "claims" which are an instance of Flask-Principal's `Need`. 
-     An example of such a token is a `CommunityRoleNeed(community_id, role_id)` which claims
+     An example of such a need is a `CommunityRoleNeed(community_id, role_id)` which claims
      that the user has a specific role in a community.
 
 So, a physical user is represented inside Invenio as this set of claims.
@@ -78,7 +78,7 @@ This brings problems with AAI integration, where the user retains the same ident
 
 Permission policies are declared within the code of the repository. Their rules are not dynamic - that is, after the repository is deployed, the permission system will not change.
 
-### CESNET Invenio extension
+### CESNET Invenio extension (already available)
 
 CESNET Invenio in version 14 brings conjunctive needs support to the permission system. This means that the following 
 permissions can be expressed:
@@ -91,6 +91,8 @@ In the following example, user can update the dataset only if they are the owner
 
 ![CESNET Authorization](./resources/cesnet_authorization.png)
 
+The `RequireAll` permission generator allows to require multiple permissions to be satisfied in order to grant access.
+
 ## Authorization process
 
 ### User claims extraction
@@ -98,14 +100,22 @@ In the following example, user can update the dataset only if they are the owner
 When a user logs in or accesses invenio with their credentials via the API, the flask-login with optionally flask-oauthclient is activated. The process goes like this:
 
 - verify that the user is who they claim to be. 
-  This can be done by verifying the password agains the local database, checking the JWT token, or using an external authentication service (oauth provider).
+  This can be done by verifying the password against the local database, checking the JWT token, or using an external authentication service (oauth provider).
 - optionally, extract the user's claims from the authentication token (e.g. convert PERUN capabilities to Invenio RoleNeed)
 - after-login callbacks are called. Their aim is to read the database/request and enhance the user's claims with additional information from the database.
   For example, the process will read community membership table from the database to determine the user's role in each community.
 
-#### Genomic Visas
+#### Genomic Visas (proposal)
 
-This process is extensible. We can add a custom callback that would, for example, extract visas from the AAI response and map them to Invenio user claims.
+The GA4GH Passports and Visas framework standardizes how an authority outside the repository tells the repository that a researcher is allowed to do something.
+
+A **visa** is a signed credential that attests exactly one fact about a researcher: an affiliation, or an approval to access a particular controlled-access dataset. A **passport** is the set of visas a researcher presents. 
+
+Visas arrive with the user's identity: the AAI carries them at login, next to the other authentication information. Because a visa is self-contained and signed, the repository validates it without contacting the issuer: it verifies the signature against the issuer's published public key, checks that the issuer appears on the repository's trust list, and checks the expiry time.
+
+Only visas whose issuer is trusted and whose access grant the repository knows how to interpret become Invenio claims. Visas from unknown issuers, and grants with no configured meaning, are ignored.
+
+The after-login callbacks described above are where this plugs in: a custom callback reads the visas carried by the AAI and adds the corresponding claims.
 This will scale well provided the resulting set of claims is not too large (that is, the user does not have too many visas).
 
 Then the permission policy could look like:
@@ -118,7 +128,7 @@ can_read_files = [
 
 This will allow the user to read files only if they have a valid visa that specifies the dataset, TRE and workflow. 
 
-### TRE and Workflows identification
+### TRE and Workflows identification (proposal)
 
 The set of user claims will be augmented with the TRE(s) and workflow(s) used to access the dataset and passed
 inside the request.
@@ -126,7 +136,7 @@ inside the request.
 See [Dominik Pantůček: Job Authentication in Computation Environment](/files/jaice.pdf) on how these are
 generated and transferred over the wire to the repository in a cryptographically secure manner.
 
-### Grants
+### Grants (proposal)
 
 In the examples at the beginning of this document, we've seen that a restricted dataset 
 can be shared with other users. Internally, this is represented by a grant.
@@ -175,7 +185,7 @@ and workflow - and access to the dataset is granted only if all of them are sati
 
 ![Overall Process](./resources/overall_process.png)
 
-## Data encryption
+## Data encryption (proposal, PoC in progress)
 
 Data encryption is used to protect the dataset during transfer and storage. In traditional repositories,
 the data is encrypted only during the transfer process via HTTPS. If the owner of the dataset wants to have 
@@ -195,8 +205,10 @@ the public key of the repository.
 The public key of the repository is advertised both in the repository UI and via the metadata of the repository
 accessible through a REST API.
 
-Then the encrypted file is uploaded to the repository as usual. The repository will perform a quick check that
-the file is encrypted using the CRYPT4GH format and that the repository can read and decode the headers of the file.
+Then the encrypted file is uploaded to the repository as usual. The repository will call a specialized service to 
+perform a quick check that the file is encrypted using the CRYPT4GH format and that the headers of the file can be decoded.
+The specialized service uses the private key associated with the repository to verify the signature of the file.
+The private key is stored securely inside a HSM (Hardware Security Module).
 
 CESNET will provide a command-line tool (`nrp-cmd`) that will be able to perform both operations automatically,
 without any additional configuration.
