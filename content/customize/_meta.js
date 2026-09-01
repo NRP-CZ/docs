@@ -20,5 +20,9 @@ export default {
     },
     "workflows": {
         "title": "Record workflows"
-    }
+    },
+    "sensitive_data": {
+      "title": "Sensitive data",
+      "display": "hidden"
+    },
 }
