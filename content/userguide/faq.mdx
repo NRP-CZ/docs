@@ -88,9 +88,18 @@ There are also global repository roles that can be mapped to certain permissions
 <details>
 <summary><b>Can community roles be used for authorization outside Invenio?</b></summary>
 
-Yes, repository membership and roles assigned within repository communities are represented as groups in the virtual organization of the repository in Perun and can be passed to other services and used for authorization in external systems if the service is setup to do so and the user consents to share the information with the service.
+Partially. CESNET Invenio can consume external groups from
+[Perun](https://www.cesnet.cz/sluzby/identita-6/autentizacni-a-autorizacni-infrastruktura-perun-25),
+which external systems can connect to — provided the service is set up to do so
+and the user consents to sharing their group membership with the service.
 
-Describe your use case to the repository system specialists and they will arrange a consultation with Perun specialists to setup the exchange of attributes necessary to support the use case in the external system.
+However, since CESNET Invenio 14, groups are **no longer synchronized back** to
+Perun. This means that changes made inside CESNET Invenio — e.g. adding or
+removing group members, or changing roles — will **not** be reflected in Perun,
+and therefore cannot be used for authorization in external systems.
+
+The reason is technical: we cannot guarantee consistency between Invenio and
+Perun in all cases.
 
 </details>
 
