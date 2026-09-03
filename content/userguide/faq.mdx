@@ -1,8 +1,46 @@
 # Frequently Asked Questions
 
-## Troubleshooting Sign-In Issues
 
-If you're experiencing problems signing in to the repository, clearing your browser's cookies and cache for the specific site often resolves the issue. Below are instructions for the most commonly used browsers.
+## Metadata Model
+
+<details>
+<summary><b>Does Invenio support hierarchical records?</b></summary>
+
+It depends on what exactly you need. You can find a detailed explanation of mechanisms that can be used to achieve linked or hierarchical records that Invenio has or could have in the near future [here](https://github.com/orgs/NRP-CZ/discussions/15).
+
+</details>
+
+<details>
+<summary><b>Can RDF/OWL metadata models designed in DataSpecer be imported directly into Invenio?</b></summary>
+
+No. While metadata models designed in [DataSpecer](https://dataspecer.com/) and represented in OWL or RDF provide useful semantic documentation, they must still be manually translated into the [YAML model representation used by CESNET Invenio](https://nrp-cz.github.io/docs/customize/model_backend/model). For a detailed explanation on how to do so, [see](https://gist.github.com/mesemus/fce11c506d3e67d266380d7df5f3434a).
+
+</details>
+
+## PID
+
+<details>
+<summary><b>Does Invenio validate ORCID identifiers?</b></summary>
+
+ORCID identifiers are not automatically validated (e.g. by a user signing in with their ORCID account or by a data curator). Similarly, DataCite does not validate whether submitted ORCID identifiers are correct. Given how the deposition workflow in Invenio works it does not make sense for ORCIDs in record metadata to be validated.
+
+For legacy reasons Invenio displays a full green icon since the feature was implemented before ORCID changed it's [ORCID iD display guidlines](https://info.orcid.org/documentation/integration-guide/orcid-id-display-guidelines/) to using an icon with a green outline for unvalidated ORCID. The change in policy also states that the API should indicate that the ORCID iD is unverified which is a more involved change than just changing an icon. The change in policy has been acknowledged by the InvenioRDM team but not yet implemented and has a low priority.
+
+</details>
+
+<details>
+<summary><b>Does Invenio support Handles or other persistent identifiers besides DOI?</b></summary>
+
+Not yet. Support for additional persistent identifier types (such as Handles, ARK or ePIC) is possible and requested by multiple communities building upon CESNET Invenio. For more details see the Alternative PIDs section in [CESNET Invenio Support for Linked and Hierarchical Records > Related Topics](https://github.com/orgs/NRP-CZ/discussions/15#alternative-pids). For the latest roadmap and implementation status, see the [Planned features](https://nrp-cz.github.io/docs/administration/planned_features) page.
+
+</details>
+
+## Communities, Workflows and Access control
+
+<details>
+<summary><b>I'm having trouble signing in to the repository. What should I do?</b></summary>
+
+Clearing your browser's cookies and cache for the specific site often resolves sign-in issues. Below are instructions for the most commonly used browsers.
 
 ### Google Chrome
 
@@ -34,24 +72,60 @@ If you're experiencing problems signing in to the repository, clearing your brow
 6. Click the trash icon next to it to delete its cookies
 
 ### Safari (macOS)
+</details>
 
-1. Open Safari and click **Safari** in the menu bar
-2. Select **Settings** (or **Preferences** on older versions)
-3. Click the **Privacy** tab
-4. Click **Manage Website Data**
-5. Search for the repository URL in the list
-6. Select it and click **Remove**
-7. Click **Done** when finished
+<details>
+<summary><b>What user roles are there by default in Invenio?</b></summary>
 
-### Safari (iOS/iPadOS)
+Invenio primarily assigns roles to users relative to a community. The default community roles are defined by InvenioRDM as Owner, Manager, Curator and Reader. For more details, [see the documentation](https://inveniordm.docs.cern.ch/maintenance/architecture/communities/#community-roles). These roles are generally sufficient for most use cases but additional roles can also be defined.
 
-1. Open Safari and tap the **AA** icon in the address bar
-2. Tap **Privacy Report** then **Manage Website Data**
-3. Tap **Edit** in the top-right corner
-4. Tap the red minus icon next to the repository URL
-5. Tap **Delete**
-6. Tap **Done**
+CESNET Invenio offers more advanced role management as part of workflows, [see the documentation](https://nrp-cz.github.io/docs/customize/workflows/example).
 
----
+There are also global repository roles that can be mapped to certain permissions, such as to access the repository administration panel, [for example see Create administration group](https://nrp-cz.github.io/docs/installation/run_instance#create-administration-group).
 
-> **Note:** After clearing the site's cookies, you may need to sign in again to your account.
+</details>
+
+<details>
+<summary><b>Can community roles be used for authorization outside Invenio?</b></summary>
+
+Partially. CESNET Invenio can consume external groups from
+[Perun](https://www.cesnet.cz/sluzby/identita-6/autentizacni-a-autorizacni-infrastruktura-perun-25),
+which external systems can connect to — provided the service is set up to do so
+and the user consents to sharing their group membership with the service.
+
+However, since CESNET Invenio 14, groups are **no longer synchronized back** to
+Perun. This means that changes made inside CESNET Invenio — e.g. adding or
+removing group members, or changing roles — will **not** be reflected in Perun,
+and therefore cannot be used for authorization in external systems.
+
+The reason is technical: we cannot guarantee consistency between Invenio and
+Perun in all cases.
+
+</details>
+
+<details>
+<summary><b>Can communities have their own visual identity?</b></summary>
+
+Yes. Starting with InvenioRDM 13, each community can have its own visual appearance (see [Themed communities](https://inveniordm.docs.cern.ch/operate/customize/look-and-feel/themed_communities/)). If stronger separation is required, repository teams can discuss the technical feasibility with the CESNET Invenio developers.
+
+</details>
+
+<details>
+<summary><b>Can the repository provide access to data for reviewers even when the data is unpublished?</b></summary>
+
+Yes. Records can be shared by link, or with specific users, even while still in draft, so reviewers can access data before it is published. For more details, see https://help.zenodo.org/docs/share/link-sharing/.
+
+</details>
+
+## Data migration and API
+
+<details>
+<summary><b>Can data be imported in bulk?</b></summary>
+
+Yes. Bulk ingestion through command-line tools or APIs is supported and is recommended for repositories that import large numbers of records or records with many and/or large files. [For more detailed information, see the user guide.](https://nrp-cz.github.io/docs/userguide)
+
+Uploading data directly to external data storage (such as NRP S3) is **not supported**. Instead, files should be uploaded through the repository API. The API uploads the files directly to S3 without storing them temporarily in local storage, so it should not significantly affect the upload speed.
+
+Bulk imported records can subsequently be edited through the graphical user interface.
+
+</details>
