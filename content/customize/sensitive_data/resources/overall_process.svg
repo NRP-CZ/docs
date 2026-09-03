@@ -1,0 +1,386 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#3b5bdb"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#2f9e44"/>
+    </marker>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#1e2a5e" flood-opacity="0.10"/>
+    </filter>
+
+    <symbol id="icon-lock" viewBox="0 0 24 24">
+      <path d="M6 10V8a6 6 0 0 1 12 0v2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="4" y="10" width="16" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="12" cy="15.5" r="1.5" fill="currentColor"/>
+    </symbol>
+    <symbol id="icon-key" viewBox="0 0 24 24">
+      <circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M11 11 L21 21 M17 17 L20 14 M14 20 L17 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-shield-check" viewBox="0 0 24 24">
+      <path d="M12 2 L20 5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M8.5 12 L11 14.5 L16 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-cloud" viewBox="0 0 24 24">
+      <path d="M7 18a4 4 0 0 1-1-7.9 5 5 0 0 1 9.6-2 4.5 4.5 0 0 1 3.4 4.4 4 4 0 0 1-.8 7.5Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-cloud-upload" viewBox="0 0 24 24">
+      <path d="M7 17a4 4 0 0 1-1-7.9 5 5 0 0 1 9.6-2 4.5 4.5 0 0 1 3.4 4.4 4 4 0 0 1-.8 7.5H7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M12 8v6M9 11l3-3 3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-terminal" viewBox="0 0 24 24">
+      <rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M6 9l4 3-4 3M12 15h6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-building" viewBox="0 0 24 24">
+      <path d="M12 2 21 8H3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M4 8v12M20 8v12M2 20h20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M8 20v-7M12 20v-7M16 20v-7" stroke="currentColor" stroke-width="2" fill="none"/>
+    </symbol>
+    <symbol id="icon-doc-lock" viewBox="0 0 24 24">
+      <path d="M6 2H14L19 7V22H6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M14 2V7H19" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <rect x="8.3" y="13.2" width="7.4" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M10 13.2v-1.6a2 2 0 0 1 4 0v1.6" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="icon-doc" viewBox="0 0 24 24">
+      <path d="M6 2H14L19 7V22H6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M14 2V7H19" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M9 13h6M9 16.5h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-db-lock" viewBox="0 0 24 24">
+      <ellipse cx="9.5" cy="5" rx="6.5" ry="2.7" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M3 5v10c0 1.5 2.9 2.7 6.5 2.7 .6 0 1.2 0 1.7-.1" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <rect x="12.5" y="13" width="9" height="8" rx="1.4" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M14.3 13v-1.8a2.7 2.7 0 0 1 5.4 0V13" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="icon-person" viewBox="0 0 24 24">
+      <circle cx="12" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M4 21c0-4.5 3.6-7 8-7s8 2.5 8 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-clipboard-check" viewBox="0 0 24 24">
+      <rect x="5" y="4" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <rect x="9" y="2" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M8.5 13l2.3 2.3L16 10.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-server-lock" viewBox="0 0 24 24">
+      <rect x="2" y="3" width="13" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <rect x="2" y="11" width="13" height="6" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="5.3" cy="6" r=".8" fill="currentColor"/>
+      <circle cx="5.3" cy="14" r=".8" fill="currentColor"/>
+      <rect x="14.5" y="15" width="9" height="8" rx="1.4" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="M16.3 15v-1.8a2.7 2.7 0 0 1 5.4 0V15" fill="none" stroke="currentColor" stroke-width="2"/>
+    </symbol>
+    <symbol id="icon-ticket" viewBox="0 0 24 24">
+      <path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 8 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M14 6v12" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2 2"/>
+    </symbol>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="1000" fill="#ffffff"/>
+
+  <!-- ============ SECTION 1 ============ -->
+  <rect x="16" y="16" width="1568" height="440" rx="14" fill="#f8f9fc" stroke="#c7d2ea" stroke-width="1.5"/>
+  <text x="40" y="50" font-size="21" font-weight="700" fill="#1e2a5e">1. Creating and Uploading a Dataset (Owner)</text>
+
+  <!-- left info cards -->
+  <g font-size="11.3" fill="#333">
+    <!-- Card 1: Traditional Repository -->
+    <rect x="32" y="68" width="300" height="192" rx="10" fill="#ffffff" stroke="#d7deef" filter="url(#softShadow)"/>
+    <use href="#icon-lock" x="44" y="82" width="16" height="16" color="#1e3a8a"/>
+    <text x="66" y="94" font-size="13" font-weight="700" fill="#1e3a8a">Traditional Repository</text>
+    <text x="44" y="116" font-weight="700" fill="#222">Encrypted in transit only (HTTPS)</text>
+    <text x="44" y="131">Files stored unencrypted at rest.</text>
+    <use href="#icon-key" x="44" y="141" width="14" height="14" color="#1e3a8a"/>
+    <text x="64" y="153" font-weight="700" fill="#222">If owner wants encryption at rest:</text>
+    <text x="50" y="171">• Must encrypt files before upload</text>
+    <text x="50" y="187">• Must distribute keys to recipients</text>
+    <text x="50" y="203">• Repository has no access to keys</text>
+    <text x="50" y="219">• Repository cannot decrypt files</text>
+
+    <!-- Card 2: CESNET Invenio Extension -->
+    <rect x="32" y="268" width="300" height="90" rx="10" fill="#ffffff" stroke="#d7deef" filter="url(#softShadow)"/>
+    <use href="#icon-lock" x="44" y="282" width="16" height="16" color="#1f8a4c"/>
+    <text x="66" y="294" font-size="12.3" font-weight="700" fill="#3730a3">CESNET Invenio Extension (Sensitive Data)</text>
+    <text x="44" y="314" font-weight="700" fill="#1f8a4c">Encrypted in transit (HTTPS) + at rest</text>
+    <text x="44" y="330">Repository can grant access on demand</text>
+    <text x="44" y="345">without owners distributing keys.</text>
+
+    <!-- Card 3: Encryption Standard -->
+    <rect x="32" y="366" width="300" height="66" rx="10" fill="#ffffff" stroke="#d7deef" filter="url(#softShadow)"/>
+    <text x="44" y="386" font-size="12.3" font-weight="700" fill="#4338ca">Encryption Standard</text>
+    <rect x="44" y="396" width="46" height="20" rx="5" fill="#4338ca"/>
+    <text x="67" y="410" font-size="10.5" font-weight="700" fill="#fff" text-anchor="middle">C4GH</text>
+    <text x="98" y="404">Uses CRYPT4GH file format</text>
+    <text x="98" y="419">(GA4GH Standard)</text>
+  </g>
+
+  <!-- flow: step 1 Get Repository Public Key -->
+  <g>
+    <circle cx="369" cy="70" r="13" fill="#1e3a8a"/>
+    <text x="369" y="74" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+    <text x="387" y="75" font-size="14" font-weight="700" fill="#1e2a5e">Get Repository Public Key</text>
+    <rect x="356" y="92" width="190" height="300" rx="10" fill="#ffffff" stroke="#c7d2ea" filter="url(#softShadow)"/>
+    <use href="#icon-building" x="431" y="112" width="40" height="40" color="#3b5bdb"/>
+    <g font-size="11.5" fill="#333">
+      <text x="370" y="172">Repository public key is</text>
+      <text x="370" y="188">advertised in:</text>
+      <text x="376" y="208">• Repository UI</text>
+      <text x="376" y="224">• Repository REST API</text>
+      <text x="382" y="240">(metadata)</text>
+    </g>
+  </g>
+  <line x1="546" y1="240" x2="584" y2="240" stroke="#3b5bdb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- step 2 Encrypt File -->
+  <g>
+    <circle cx="599" cy="70" r="13" fill="#1e3a8a"/>
+    <text x="599" y="74" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+    <text x="617" y="75" font-size="14" font-weight="700" fill="#1e2a5e">Encrypt File (CRYPT4GH)</text>
+    <rect x="586" y="92" width="190" height="300" rx="10" fill="#ffffff" stroke="#c7d2ea" filter="url(#softShadow)"/>
+    <use href="#icon-doc-lock" x="661" y="112" width="40" height="40" color="#3b5bdb"/>
+    <g font-size="11.5" fill="#333">
+      <text x="600" y="172">Owner encrypts files</text>
+      <text x="600" y="188">using CRYPT4GH.</text>
+      <text x="600" y="212">Recipients set contains</text>
+      <text x="600" y="228">one entry:</text>
+      <text x="606" y="248">• Repository public key</text>
+    </g>
+  </g>
+  <line x1="776" y1="240" x2="814" y2="240" stroke="#3b5bdb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- step 3 Upload Encrypted File -->
+  <g>
+    <circle cx="829" cy="70" r="13" fill="#1e3a8a"/>
+    <text x="829" y="74" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+    <text x="847" y="75" font-size="14" font-weight="700" fill="#1e2a5e">Upload Encrypted File</text>
+    <rect x="816" y="92" width="190" height="300" rx="10" fill="#ffffff" stroke="#c7d2ea" filter="url(#softShadow)"/>
+    <use href="#icon-cloud-upload" x="878" y="112" width="34" height="34" color="#3b5bdb"/>
+    <use href="#icon-terminal" x="898" y="122" width="26" height="26" color="#1e2a5e"/>
+    <g font-size="11.5" fill="#333">
+      <text x="830" y="172">Encrypted file is uploaded</text>
+      <text x="830" y="188">to the repository as usual</text>
+      <text x="830" y="204">(via HTTPS).</text>
+      <text x="830" y="226" font-weight="700" fill="#4338ca">CESNET</text>
+      <text x="879" y="226">provides</text>
+      <text x="830" y="242" font-weight="700" fill="#4338ca">nrp-cmd</text>
+      <text x="878" y="242">which:</text>
+      <text x="836" y="262">• Encrypts files in</text>
+      <text x="842" y="277">CRYPT4GH format</text>
+      <text x="842" y="292">for the repository</text>
+      <text x="836" y="311">• Validates files before</text>
+      <text x="842" y="326">upload</text>
+    </g>
+  </g>
+  <line x1="1006" y1="240" x2="1044" y2="240" stroke="#3b5bdb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- step 4 Repository Validation -->
+  <g>
+    <circle cx="1059" cy="70" r="13" fill="#1e3a8a"/>
+    <text x="1059" y="74" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+    <text x="1077" y="75" font-size="14" font-weight="700" fill="#1e2a5e">Repository Validation</text>
+    <rect x="1046" y="92" width="190" height="300" rx="10" fill="#ffffff" stroke="#c7d2ea" filter="url(#softShadow)"/>
+    <use href="#icon-shield-check" x="1121" y="112" width="40" height="40" color="#3b5bdb"/>
+    <g font-size="11.5" fill="#333">
+      <text x="1060" y="172">Repository uses a</text>
+      <text x="1060" y="188">specialized service to</text>
+      <text x="1060" y="204">perform a quick check:</text>
+      <text x="1066" y="224">• File is in CRYPT4GH</text>
+      <text x="1072" y="239">format</text>
+      <text x="1066" y="259">• Repository can read</text>
+      <text x="1072" y="274">and decode headers</text>
+      <text x="1072" y="289">(not the content)</text>
+    </g>
+  </g>
+  <line x1="1236" y1="240" x2="1274" y2="240" stroke="#3b5bdb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+
+  <!-- step 5 Stored at Rest -->
+  <g>
+    <circle cx="1289" cy="70" r="13" fill="#1e3a8a"/>
+    <text x="1289" y="74" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+    <text x="1307" y="75" font-size="14" font-weight="700" fill="#1e2a5e">Stored at Rest (Encrypted)</text>
+    <rect x="1276" y="92" width="190" height="300" rx="10" fill="#ffffff" stroke="#c7d2ea" filter="url(#softShadow)"/>
+    <use href="#icon-db-lock" x="1351" y="112" width="40" height="40" color="#3b5bdb"/>
+    <g font-size="11.5" fill="#333">
+      <text x="1290" y="172">File is stored encrypted</text>
+      <text x="1290" y="188">at rest.</text>
+      <text x="1290" y="212">Repository does not</text>
+      <text x="1290" y="228">have access to the</text>
+      <text x="1290" y="244">decryption keys or the</text>
+      <text x="1290" y="260">cleartext data.</text>
+    </g>
+  </g>
+  <line x1="1466" y1="240" x2="1500" y2="240" stroke="#3b5bdb" stroke-width="2" marker-end="url(#arrowBlue)"/>
+  <circle cx="1520" cy="70" r="13" fill="#1e3a8a"/>
+  <text x="1520" y="74" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">6</text>
+
+  <!-- result banner -->
+  <rect x="356" y="404" width="1160" height="38" rx="8" fill="#eef1fb" stroke="#c7d2ea"/>
+  <use href="#icon-shield-check" x="368" y="413" width="20" height="20" color="#1e3a8a"/>
+  <text x="398" y="428" font-size="12.5" font-weight="700" fill="#1e3a8a">Result:</text>
+  <text x="443" y="428" font-size="12" fill="#334">Files are encrypted at rest using CRYPT4GH.  Repository can manage access without owners distributing keys.</text>
+
+  <!-- ============ SECTION 2 ============ -->
+  <rect x="16" y="472" width="1568" height="418" rx="14" fill="#f6fbf7" stroke="#c9e3cf" stroke-width="1.5"/>
+  <text x="40" y="504" font-size="21" font-weight="700" fill="#175a30">2. Accessing the Dataset (User)</text>
+
+  <!-- slot 1: User Requests Access -->
+  <circle cx="53" cy="525" r="12" fill="#1f7a3d"/>
+  <text x="53" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+  <text x="70" y="530" font-size="13.5" font-weight="700" fill="#175a30">User Requests Access</text>
+  <rect x="40" y="546" width="310" height="176" rx="10" fill="#ffffff" stroke="#cfe8d4" filter="url(#softShadow)"/>
+  <use href="#icon-person" x="52" y="608" width="46" height="46" color="#1f7a3d"/>
+  <line x1="102" y1="600" x2="130" y2="583" stroke="#2f9e44" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+  <line x1="102" y1="631" x2="130" y2="631" stroke="#2f9e44" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+  <line x1="102" y1="662" x2="130" y2="679" stroke="#2f9e44" stroke-width="1.6" marker-end="url(#arrowGreen)"/>
+  <g font-size="10.6" fill="#333">
+    <use href="#icon-cloud" x="134" y="565" width="16" height="16" color="#1f7a3d"/>
+    <text x="156" y="577">Request from</text>
+    <text x="156" y="590">TRE (with TRE JWT)</text>
+    <use href="#icon-person" x="134" y="613" width="16" height="16" color="#1f7a3d"/>
+    <text x="156" y="625">Request outside</text>
+    <text x="156" y="638">TRE (with user JWT)</text>
+    <use href="#icon-ticket" x="134" y="662" width="16" height="16" color="#1f7a3d"/>
+    <text x="156" y="674">Genomic visas</text>
+    <text x="156" y="687">(if available)</text>
+  </g>
+  <line x1="350" y1="631" x2="368" y2="631" stroke="#2f9e44" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- slot 2: Authorization -->
+  <circle cx="387" cy="525" r="12" fill="#1f7a3d"/>
+  <text x="387" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+  <text x="404" y="530" font-size="13.5" font-weight="700" fill="#175a30">Authorization</text>
+  <rect x="374" y="546" width="165" height="176" rx="10" fill="#ffffff" stroke="#cfe8d4" filter="url(#softShadow)"/>
+  <use href="#icon-clipboard-check" x="436" y="562" width="40" height="40" color="#2f9e44"/>
+  <g font-size="10.8" fill="#333">
+    <text x="386" y="620">Repository performs</text>
+    <text x="386" y="634">authorization (role,</text>
+    <text x="386" y="648">TRE, software,</text>
+    <text x="386" y="662">workflow, visas, etc.).</text>
+    <text x="386" y="684">If access is not</text>
+    <text x="386" y="698">granted, request is</text>
+    <text x="386" y="712">rejected.</text>
+  </g>
+  <line x1="539" y1="631" x2="561" y2="631" stroke="#2f9e44" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- slot 3: Select Recipient Public Key -->
+  <circle cx="576" cy="525" r="12" fill="#1f7a3d"/>
+  <text x="576" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+  <text x="593" y="530" font-size="13.5" font-weight="700" fill="#175a30">Select Recipient Public Key</text>
+  <rect x="563" y="546" width="280" height="176" rx="10" fill="#ffffff" stroke="#cfe8d4" filter="url(#softShadow)"/>
+  <g font-size="10.8" fill="#333">
+    <text x="575" y="565">On granted access, repository selects the</text>
+    <text x="575" y="579">public key of the final recipient:</text>
+  </g>
+  <use href="#icon-cloud" x="575" y="592" width="16" height="16" color="#1f7a3d"/>
+  <g font-size="10.6" fill="#333">
+    <text x="598" y="597" font-weight="700">From TRE:</text>
+    <text x="575" y="611">Use public key from TRE JWT token</text>
+  </g>
+  <use href="#icon-person" x="575" y="628" width="16" height="16" color="#1f7a3d"/>
+  <g font-size="10.6" fill="#333">
+    <text x="598" y="633" font-weight="700">Outside TRE:</text>
+    <text x="575" y="647">Use user public key from AAI</text>
+    <text x="575" y="660">(stored in user profile)</text>
+  </g>
+  <line x1="843" y1="631" x2="865" y2="631" stroke="#2f9e44" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- slot 4: Specialized Delivery Service -->
+  <circle cx="880" cy="525" r="12" fill="#1f7a3d"/>
+  <text x="880" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+  <text x="897" y="530" font-size="13" font-weight="700" fill="#175a30">Specialized Delivery Service</text>
+  <rect x="867" y="546" width="160" height="176" rx="10" fill="#ffffff" stroke="#cfe8d4" filter="url(#softShadow)"/>
+  <use href="#icon-server-lock" x="927" y="562" width="40" height="40" color="#2f9e44"/>
+  <g font-size="10.4" fill="#333">
+    <text x="879" y="622">Repository uses a</text>
+    <text x="879" y="635">specialized service to</text>
+    <text x="879" y="648">serve the file.</text>
+    <text x="879" y="668">The service adds the</text>
+    <text x="879" y="681">selected recipient public</text>
+    <text x="879" y="694">key to the file headers</text>
+    <text x="879" y="707">(CRYPT4GH) and streams it.</text>
+  </g>
+  <line x1="1027" y1="631" x2="1049" y2="631" stroke="#2f9e44" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- slot 5: User Receives Encrypted File -->
+  <circle cx="1064" cy="525" r="12" fill="#1f7a3d"/>
+  <text x="1064" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+  <text x="1081" y="530" font-size="12.6" font-weight="700" fill="#175a30">User Receives File</text>
+  <rect x="1051" y="546" width="150" height="176" rx="10" fill="#ffffff" stroke="#cfe8d4" filter="url(#softShadow)"/>
+  <use href="#icon-doc-lock" x="1106" y="562" width="40" height="40" color="#2f9e44"/>
+  <g font-size="10.4" fill="#333">
+    <text x="1063" y="622">User (or workflow</text>
+    <text x="1063" y="635">in TRE) receives</text>
+    <text x="1063" y="648">the file with their</text>
+    <text x="1063" y="661">public key in the</text>
+    <text x="1063" y="674">headers.</text>
+  </g>
+  <line x1="1201" y1="631" x2="1223" y2="631" stroke="#2f9e44" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- slot 6: Client Decrypts -->
+  <circle cx="1238" cy="525" r="12" fill="#1f7a3d"/>
+  <text x="1238" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">6</text>
+  <text x="1255" y="530" font-size="12.6" font-weight="700" fill="#175a30">Client Decrypts</text>
+  <rect x="1225" y="546" width="145" height="176" rx="10" fill="#ffffff" stroke="#cfe8d4" filter="url(#softShadow)"/>
+  <use href="#icon-key" x="1277" y="562" width="40" height="40" color="#2f9e44"/>
+  <g font-size="10.4" fill="#333">
+    <text x="1237" y="622">User's system /</text>
+    <text x="1237" y="635">workflow decrypts</text>
+    <text x="1237" y="648">the file locally with</text>
+    <text x="1237" y="661">its private key.</text>
+    <text x="1237" y="681">Repository never</text>
+    <text x="1237" y="694">sees the private key</text>
+    <text x="1237" y="707">or decrypts the file.</text>
+  </g>
+  <line x1="1370" y1="631" x2="1392" y2="631" stroke="#2f9e44" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- slot 7: Secure Data Access -->
+  <circle cx="1407" cy="525" r="12" fill="#1f7a3d"/>
+  <text x="1407" y="529" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">7</text>
+  <text x="1424" y="530" font-size="12.6" font-weight="700" fill="#175a30">Secure Data Access</text>
+  <rect x="1394" y="546" width="166" height="176" rx="10" fill="#ffffff" stroke="#cfe8d4" filter="url(#softShadow)"/>
+  <use href="#icon-shield-check" x="1457" y="562" width="40" height="40" color="#2f9e44"/>
+  <g font-size="10.4" fill="#333">
+    <text x="1406" y="622">Data protected in</text>
+    <text x="1406" y="635">transit (HTTPS) and</text>
+    <text x="1406" y="648">at rest (CRYPT4GH).</text>
+    <text x="1406" y="668">Access is granted only</text>
+    <text x="1406" y="681">to authorized recipients</text>
+    <text x="1406" y="694">on demand.</text>
+  </g>
+
+  <!-- ============ BOTTOM: LEGEND + KEY BENEFITS ============ -->
+  <rect x="16" y="906" width="990" height="78" rx="10" fill="#fafafa" stroke="#e4e4e4"/>
+  <text x="34" y="932" font-size="12.5" font-weight="700" fill="#333">Legend</text>
+  <g font-size="10.8" fill="#333">
+    <use href="#icon-lock" x="110" y="920" width="16" height="16" color="#333"/>
+    <text x="132" y="932">Encrypted</text>
+    <use href="#icon-key" x="220" y="920" width="16" height="16" color="#333"/>
+    <text x="242" y="932">Key / Key Pair</text>
+    <use href="#icon-shield-check" x="360" y="920" width="16" height="16" color="#333"/>
+    <text x="382" y="932">Validation / Security</text>
+    <use href="#icon-cloud" x="550" y="920" width="16" height="16" color="#333"/>
+    <text x="572" y="932">Network / Transfer</text>
+    <use href="#icon-person" x="110" y="954" width="16" height="16" color="#333"/>
+    <text x="132" y="966">User / Identity</text>
+    <use href="#icon-server-lock" x="260" y="954" width="16" height="16" color="#333"/>
+    <text x="282" y="966">Repository / Service</text>
+    <use href="#icon-doc" x="470" y="954" width="16" height="16" color="#333"/>
+    <text x="492" y="966">File / Data</text>
+  </g>
+
+  <rect x="1022" y="906" width="562" height="78" rx="10" fill="#fff8ec" stroke="#f3d19e"/>
+  <text x="1040" y="932" font-size="12.5" font-weight="700" fill="#c2680a">Key Benefits</text>
+  <g font-size="10.8" fill="#333">
+    <text x="1040" y="954" fill="#2f9e44">✓</text>
+    <text x="1056" y="954">Encrypted at rest with CRYPT4GH</text>
+    <text x="1040" y="970" fill="#2f9e44">✓</text>
+    <text x="1056" y="970">No need for owners to distribute keys</text>
+    <text x="1330" y="954" fill="#2f9e44">✓</text>
+    <text x="1346" y="954">On-demand access with proper authorization</text>
+    <text x="1330" y="970" fill="#2f9e44">✓</text>
+    <text x="1346" y="970">Standards-based (GA4GH CRYPT4GH)</text>
+  </g>
+</svg>
