@@ -1,4 +1,4 @@
-import { Cards } from 'nextra/components';
+import { Cards, Callout } from 'nextra/components';
 import { Card } from "@/components/card";
 
 
@@ -158,6 +158,34 @@ This allows:
 | `SetIndexNestedFieldsLimit(limit)` | Sets the maximum number of nested object fields |
 | `PatchIndexPropertyMapping(field, mapping)` | Modifies or adds OpenSearch mapping for a specific field |
 | `AddFacetGroup(name, facets, exists_ok=False)` | Adds a facet group for organizing related filters |
+
+<Callout type="warning">
+  **All `search_fields` must be text fields.** Due to how OpenSearch works
+  internally, every field listed in `search_fields` passed to
+  `SetDefaultSearchFields` must be a text field — that is, its type must be
+  `keyword`, `fulltext`, or `fulltext+keyword`. Adding a non-text field will
+  cause searches to fail with a message like
+  `failed to create query: For input string: "..."`.
+
+  If other types, for example integers, need to be searchable, they must
+  first expose a text subfield using the `fields` option in the field
+  mapping:
+
+  ```yaml
+  recid:
+    type: int
+    label:
+      en: Record ID
+    mapping:
+      type: integer
+      fields:
+        keyword:
+          type: keyword
+  ```
+
+  Then use the `metadata.recid.keyword` field for searching (not just
+  `metadata.recid`).
+</Callout>
 
 ## Facet Configuration in Model Schema
 
