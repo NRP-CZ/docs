@@ -1,0 +1,155 @@
+import {Difficulty} from '@/components/difficulty'
+import { Callout } from 'nextra/components'
+
+# External vocabularies <Difficulty level="advanced" />
+
+CESNET Invenio does not natively support controlled vocabularies that
+live outside the repository (e.g. [Catalogue of Life](https://www.catalogueoflife.org/),
+which is very large and updated daily). Loading such vocabularies as
+[internal fixtures](initial_data) is impractical, as they would need frequent
+re-imports.
+
+Depending on your use case, integrate an external vocabulary in one of the
+following ways:
+
+| Approach | Validates? | External API called from | Main drawback |
+|----------|------------|---------------------------|--------------|
+| [Use case 1](#use-case-1-suggestions-in-the-deposit-form-ui-only): UI suggestions only | No | Browser | No validation; values stored as plain data |
+| [Use case 2](#use-case-2-validation-against-a-frequently-changing-vocabulary): validator or check | Yes | Server (on save / before publish) | Slower saves; depends on API availability |
+| [Use case 3](#use-case-3-validation-against-a-slowly-changing-vocabulary): local cache with external fallback | Yes | Server, only on cache miss | First lookup slower; cache needs maintenance |
+
+## Use case 1: Suggestions in the deposit form UI only
+
+The vocabulary is used only to help users fill in the form; the resulting
+metadata values are stored as plain data inside the record (no linkage,
+no validation against the vocabulary afterwards).
+
+Implementation:
+
+1. Implement the lookup in the React form field component of your
+   [deposit form](/customize/model_ui/deposit): call the external vocabulary's
+   REST API, parse the results and offer them as autocomplete suggestions.
+   The [deposit form components](/customize/model_ui/deposit_components)
+   page lists the vocabulary-related building blocks you can start from.
+2. Allow the external hostname in the **Content Security Policy**
+   configuration of your instance (extend `connect-src` in
+   `APP_DEFAULT_SECURE_HEADERS`, documented in the
+   [configuration reference](/customize/configure/reference)), otherwise
+   browser requests to the external API will be blocked:
+
+```python filename="invenio.cfg"
+# illustrative sketch
+APP_DEFAULT_SECURE_HEADERS = {
+    # ... keep the existing directives ...
+    "connect-src": ["'self'", "https://api.example.org"],
+}
+```
+
+<Callout type="info">
+The CSP change is only needed because the **browser** calls the external API
+directly. If you route the calls through a small endpoint on your repository
+backend instead, no CSP change is needed, cross-origin restrictions do not
+apply, and the API key of the external service never leaves the server.
+</Callout>
+
+## Use case 2: Validation against a frequently changing vocabulary
+
+The metadata must be validated against the vocabulary, and entries change
+so often that a local copy would quickly go stale.
+
+Implementation options:
+
+- **Marshmallow validator** — call the external vocabulary's API from a
+  [Marshmallow](https://marshmallow.readthedocs.io/en/stable/) field validator,
+  defined next to your [model fields](/customize/model_backend/model)
+  (or passed via `field_args` for
+  [custom fields](/customize/model_backend/custom_fields)). The check runs
+  on every form save, and you can use it to enrich the record metadata
+  (e.g. store the canonical label or IRI along with the value).
+
+```python filename="models/validators.py"
+# illustrative sketch
+import requests
+from marshmallow import ValidationError, validates
+
+
+class MySchema:
+    # ... your model fields ...
+
+    @validates("species")
+    def validate_species(self, value):
+        response = requests.get(
+            "https://api.example.org/species",
+            params={"name": value},
+            timeout=5,
+        )
+        if response.status_code == 404:
+            raise ValidationError(f"'{value}' is not a known species")
+```
+
+<Callout type="warning">
+Decide upfront what happens when the external service is down or slow:
+fail-closed (reject the deposit, safer for data quality) or fail-open
+(accept with a warning, friendlier during outages). Either way, set an
+explicit request timeout and consider caching accepted values to reduce
+the number of outgoing API calls.
+</Callout>
+
+- **[Invenio checks](/modules/oarepo_checks)** — implement the validation
+  as a check that runs before publication. This tolerates slower external
+  APIs, but results are asynchronous — the user sees them only after the
+  check finishes.
+
+## Use case 3: Validation against a slowly changing vocabulary
+
+Entries change infrequently (weeks/months), but the full dataset is still
+too large for a plain fixture import.
+
+Implementation:
+
+1. Load the relevant subset as a local vocabulary (see
+   [Initial data](initial_data)).
+2. In your Marshmallow validator, look the value up in the **local
+   vocabulary first** (to avoid overloading the external service).
+3. On a cache miss, call the external API and store the confirmed entry
+   into the local vocabulary (caching):
+
+```python filename="models/validators.py"
+# illustrative sketch
+from invenio_access.permissions import system_identity
+from invenio_vocabularies.proxies import current_vocabulary_service
+
+
+def resolve_term(vocabulary_type, value):
+    """Return the local entry, or resolve it externally and cache it."""
+    # 1. local lookup first to avoid overloading the external service
+    try:
+        return current_vocabulary_service.read(
+            system_identity, value, type=vocabulary_type
+        )
+    except LookupError:
+        pass  # not cached yet
+
+    # 2. on a cache miss, call the external API
+    data = fetch_from_external_api(value)
+    if not data:
+        raise LookupError(f"'{value}' not found in external vocabulary")
+
+    # 3. store the confirmed entry for next time and return it
+    return current_vocabulary_service.create(
+        system_identity, {"id": value, **data}, type=vocabulary_type
+    )
+```
+
+## Getting help
+
+Not sure which pattern fits your data? Contact
+[cesnet-invenio@eosc.cz](mailto:cesnet-invenio@eosc.cz) — the CESNET Invenio
+team and metadata experts both follow that list.
+
+## See also
+
+- [Initial data for vocabularies](initial_data) — loading local vocabularies from fixtures
+- [Deposit form components](/customize/model_ui/deposit_components) — vocabulary form fields and their props
+- [Invenio checks](/modules/oarepo_checks) — asynchronous validation before publication
+- [Invenio RDM documentation on vocabularies](https://inveniordm.docs.cern.ch/operate/customize/vocabularies/)
