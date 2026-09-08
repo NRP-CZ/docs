@@ -45,6 +45,7 @@ Data type for storing true/false values. Essential for research metadata like pe
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Boolean` |
 | ui_marshmallow_field_class | FormatBoolean |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -94,6 +95,7 @@ Data type for 32-bit signed integers, supporting values from -2,147,483,648 to 2
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
 | strict_validation | Make sure that the value is exactly an integer, not a string containing an integer |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -143,6 +145,7 @@ Data type for 64-bit signed integers, supporting values from -9,223,372,036,854,
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
 | strict_validation | Make sure that the value is exactly an integer, not a string containing an integer |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -192,6 +195,7 @@ Data type for single precision floating-point numbers (32-bit IEEE 754). Support
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
 | strict_validation | Make sure that the value is exactly a float, not a string containing a float |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -243,6 +247,7 @@ Data type for double precision floating-point numbers (64-bit IEEE 754). Provide
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
 | strict_validation | Make sure that the value is exactly a float, not a string containing a float |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -299,6 +304,7 @@ Data type for exact-match text fields that are not analyzed (not broken into tok
 | max_length | Maximum string length |
 | enum | List of allowed values |
 | pattern | Regular expression pattern for validation |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -353,6 +359,7 @@ Data type for analyzed text content that supports full-text search capabilities.
 | max_length | Maximum string length |
 | enum | List of allowed values |
 | pattern | Regular expression pattern for validation |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -406,6 +413,7 @@ Data type that combines both full-text search and exact-match capabilities in a 
 | max_length | Maximum string length |
 | enum | List of allowed values |
 | pattern | Regular expression pattern for validation |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -460,6 +468,7 @@ Data type for internationalized text fields that store language-value pairs as n
 | ui_marshmallow_field_class | I18nStrUIField |
 | multilingual.lang_name | Custom name for language field (defaults to "lang") |
 | multilingual.value_name | Custom name for value field (defaults to "value") |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -521,6 +530,7 @@ Data type for arrays of language-value pairs, enabling multiple translations per
 | ui_marshmallow_field_class | MultilingualUIField |
 | multilingual.lang_name | Custom name for language field (defaults to "lang") |
 | multilingual.value_name | Custom name for value field (defaults to "value") |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -587,6 +597,7 @@ Data type for simple multilingual dictionaries where language codes are direct o
 |------------------------|-------------|
 | marshmallow_field_class | i18n_strings (from invenio_vocabularies) |
 | ui_marshmallow_field_class | (no UI transformation - returns empty dict) |
+| marshmallow_validate | not supported, the field is a fixed instance (see [Custom validators](#custom-validators)) |
 
 **Example:**
 
@@ -648,6 +659,7 @@ Data type for date-only values (year-month-day) without time information. Stores
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatDate` |
 | min_date | Minimum allowed date |
 | max_date | Maximum allowed date |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -699,6 +711,7 @@ Data type for complete date and time information including timezone support. Sto
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatDatetime` |
 | min_datetime | Minimum allowed datetime |
 | max_datetime | Maximum allowed datetime |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -749,6 +762,7 @@ Data type for time-only values (hours, minutes, seconds) without date informatio
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatTime` |
 | min_time | Minimum allowed time |
 | max_time | Maximum allowed time |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -798,6 +812,7 @@ Data type for Extended Date/Time Format (EDTF) supporting flexible and imprecise
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow_utils.fields.edtfdatestring.EDTFDateTimeString` |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -845,6 +860,7 @@ Data type for Extended Date/Time Format (EDTF) focused on date values without ti
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.String` |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -892,6 +908,7 @@ Data type for EDTF interval representations, specifically designed for date rang
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.String` |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -929,7 +946,7 @@ funding_period:
 
 ### object
 
-Data type for structured objects with defined properties, creating nested document structures. Each object requires a `properties` definition specifying the nested fields and their types. OpenSearch stores objects as flattened structures, making them searchable but not independently queryable (use `nested` for that). Automatically generates marshmallow schemas for validation and serialization. Perfect for addresses, contact information, metadata structures, and any logical grouping of related fields. The `dynamic: strict` mapping prevents unexpected fields from being indexed.
+Data type for structured objects with defined properties, creating nested document structures. Each object requires a `properties` definition specifying the nested fields and their types. OpenSearch stores objects as flattened structures, making them searchable but not independently queryable (use `nested` for that). Automatically generates marshmallow schemas for validation and serialization. The generated schema can be extended with reusable validation logic through `marshmallow_schema_mixins`. Perfect for addresses, contact information, metadata structures, and any logical grouping of related fields. The `dynamic: strict` mapping prevents unexpected fields from being indexed.
 
 | Property | Description |
 |----------|-------------|
@@ -943,7 +960,9 @@ Data type for structured objects with defined properties, creating nested docume
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema) |
 | properties | Dictionary of nested field definitions |
 | marshmallow_schema_class | Custom Marshmallow schema class (optional) |
+| marshmallow_schema_mixins | List of `marshmallow.Schema` subclass import paths mixed into the generated schema (optional) |
 | ui_marshmallow_schema_class | Custom UI Marshmallow schema class (optional) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -969,6 +988,42 @@ funding_info:
     amount:
       type: double
 ```
+
+**Schema mixins example:**
+
+`marshmallow_schema_mixins` extends the auto-generated schema with reusable logic, most importantly cross-property validation that cannot be expressed on a single property. Each entry is the fully qualified import path of a `marshmallow.Schema` subclass. The mixins are added to the bases of the generated schema: fields they declare are merged with the generated ones and their `@marshmallow.validates_schema` hooks run on load.
+
+```python
+# model/validators.py
+import marshmallow as ma
+
+
+class DateRangeMixin(ma.Schema):
+    @ma.validates_schema
+    def check_range(self, data, **kwargs):
+        start, end = data.get("start"), data.get("end")
+        if start and end and start > end:
+            raise ma.ValidationError({"end": ["end must not be before start"]})
+```
+
+```yaml
+date_range:
+  type: object
+  marshmallow_schema_mixins:
+    - model.validators.DateRangeMixin
+  properties:
+    start:
+      type: keyword
+    end:
+      type: keyword
+```
+
+With this definition, loading `{"start": "2024-05-01", "end": "2024-01-01"}` fails with `{"end": ["end must not be before start"]}`; the valid order is accepted unchanged.
+
+- The value must be a list of importable `marshmallow.Schema` subclasses. A non-list value, a non-importable path, or a class that does not subclass `marshmallow.Schema` raises an error when the model is built.
+- Multiple mixins can be listed; all of them are applied.
+- Mixins apply to the API (load) schema only, the UI schema is unaffected.
+- If `marshmallow_schema_class` is set, it replaces the generated schema and the mixins are ignored.
 
 **Valid input json example:**
 
@@ -1014,6 +1069,7 @@ Data type for nested objects that maintain their structure independently in Open
 | properties | Dictionary of nested field definitions |
 | marshmallow_schema_class | Custom Marshmallow schema class (optional) |
 | ui_marshmallow_schema_class | Custom UI Marshmallow schema class (optional) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -1086,6 +1142,7 @@ Data type for ordered collections of homogeneous items, where each item must con
 | min_items | Minimum number of items |
 | max_items | Maximum number of items |
 | unique_items | Whether items must be unique |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -1157,6 +1214,7 @@ Data type for objects with unpredictable or variable property names, such as mul
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Nested` (with PermissiveSchema) |
 | ui_marshmallow_field_class | (no UI transformation) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -1221,6 +1279,7 @@ Data type for discriminated union types where a field can represent different ob
 | ui_marshmallow_field_class | PolymorphicField |
 | discriminator | Field name used to determine schema variant (defaults to "type") |
 | oneof | Array of schema variants with discriminator values |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Important:**
 
@@ -1330,6 +1389,7 @@ Data type for creating relationships between records using Persistent Identifier
 | pid_field | PID field getter function or PID field instance |
 | cache_key | Optional cache key for caching the resolved record |
 | relation_field_kwargs | Additional kwargs for the relation field |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -1406,6 +1466,7 @@ Data type for references to controlled vocabularies, extending pid-relation with
 | record_cls | (inherited from pid-relation, auto-determined from vocabulary-type) |
 | pid_field | (inherited from pid-relation, auto-determined from vocabulary-type) |
 | cache_key | (inherited from pid-relation, defaults to vocabulary-type if not specified) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -1482,6 +1543,46 @@ related_award:
 | `author_affiliation.identifiers.ror:"042nb2s44"` | Search by ROR identifier |
 | `research_subject.title.en:"Computer Science"` | Search by subject title |
 | `funding_agency.id:nsf AND related_award.id:nsf*` | Search for NSF funding and awards |
+
+## Custom validators
+
+`marshmallow_validate` attaches additional validation to a field whose marshmallow field is generated from the model schema, i.e. every data type listed in this reference. It is a list of validators that run on load, in addition to - not instead of - the built-in validation options such as `min_length`, `enum` or `min_inclusive`.
+
+Each item of the list declares one validator, in one of two forms:
+
+| Form | Meaning |
+|------|---------|
+| `fully.qualified.name` | The imported callable is used directly as the validator. Use it for plain functions `def validator(value)` that raise `marshmallow.ValidationError` on invalid input. |
+| `[fully.qualified.name, [args], {kwargs}]` | The imported object is instantiated with the given arguments (both optional) and the instance is used as the validator. Use it for marshmallow validator classes such as `marshmallow.validate.Length` or `marshmallow.validate.Range`. |
+
+**Example:**
+
+```python
+# model/validators.py
+import marshmallow as ma
+
+
+def no_trailing_space(value):
+    if value != value.strip():
+        raise ma.ValidationError("value must not start or end with whitespace")
+```
+
+```yaml
+title:
+  type: fulltext+keyword
+  marshmallow_validate:
+    - model.validators.no_trailing_space
+    - ["marshmallow.validate.Length", {"min": 3, "max": 500}]
+
+pages:
+  type: int
+  marshmallow_validate:
+    - ["marshmallow.validate.Range", [1, 10000]]
+```
+
+- All validators in the list are applied; the value must pass every one of them. Errors are reported for the validated field.
+- A non-importable path or an invalid constructor call raises an error when the model is built, not at runtime.
+- Validators receive a single (already deserialized) value. For cross-field validation of `object` types, use [schema mixins](#object) instead.
 
 <!-- Template 
 
