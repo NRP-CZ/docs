@@ -28,6 +28,8 @@ This file describes the data types supported by the model builder for defining r
 | [dynamic-object](#dynamic-object) | Object with dynamic properties |
 | [polymorphic](#polymorphic) | Discriminated union type |
 | [pid-relation](#pid-relation) | Relation to another record using a PID |
+| [lazy-pid-relation](#lazy-pid-relation) | PID relation resolved lazily (self-references, circular references) |
+| [internal-relation](#internal-relation) | Relation to another part of the same record |
 | [vocabulary](#vocabulary) | Reference to a controlled vocabulary |
 | [geo_point](#geo_point) | Geographic point (latitude/longitude) |
 | [geo_shape](#geo_shape) | Geographic shape (WKT or GeoJSON) |
@@ -506,12 +508,15 @@ Data type for text provided in several languages: a list of [`i18n`](#i18n) entr
 |----------|-------------|
 | source code | [multilingual.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/multilingual.py) (`MultilingualDataType`), registered as an `array` of `i18n` items in [entrypoints.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/entrypoints.py) |
 | jsonschema type | `array` of i18n objects |
-| mapping | `array` of [`object`](https://docs.opensearch.org/latest/field-types/supported-field-types/object/) with `lang.id` (keyword) and `value` (keyword) |
+| mapping | the `i18n` item mapping emitted directly ([`object`](https://docs.opensearch.org/latest/field-types/supported-field-types/object/) with `dynamic: strict`, `lang.id` keyword and `value` keyword); the array wrapper is skipped because OpenSearch arrays are implicit, so the field accepts a single object or a list |
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.List` (of `Nested` i18n items) |
 | ui_marshmallow_field_class | `marshmallow.fields.List` (with item UI field) |
+| min_items | Minimum number of language entries |
+| max_items | Maximum number of language entries |
+| unique_items | Whether the entries must be unique (duplicate language codes are rejected regardless) |
 | marshmallow_validate | List of validators run in addition to the built-in validation options (including the language-uniqueness one), see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -567,9 +572,9 @@ Data type for simple multilingual dictionaries where language codes are direct o
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | i18n_strings (from invenio_vocabularies) |
+| marshmallow_field_class | fixed to the `i18n_strings` field instance (from `invenio_vocabularies`): a `fields.Dict` whose keys must be two-letter lowercase codes and whose values are sanitized text |
 | ui_marshmallow_field_class | (no UI transformation - returns empty dict) |
-| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+| marshmallow_validate | not supported - the field is hard-coded to `i18n_strings`, so `marshmallow_validate`, `required`, `allow_none`, `marshmallow_field_class` and `marshmallow_field` are all ignored |
 
 **Example:**
 
@@ -627,7 +632,7 @@ Data type for date-only values (year-month-day) without time information. Stores
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | `marshmallow.fields.Date` |
+| marshmallow_field_class | `DateString` (a `marshmallow.fields.Date` that keeps the original string on output) |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatDate` |
 | min_date | Minimum allowed date |
 | max_date | Maximum allowed date |
@@ -679,7 +684,7 @@ Data type for complete date and time information including timezone support. Sto
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | `marshmallow.fields.DateTime` |
+| marshmallow_field_class | `DateTimeString` (a `marshmallow.fields.DateTime` that keeps the original string on output) |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatDatetime` |
 | min_datetime | Minimum allowed datetime |
 | max_datetime | Maximum allowed datetime |
@@ -730,7 +735,7 @@ Data type for time-only values (hours, minutes, seconds) without date informatio
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | `marshmallow.fields.Time` |
+| marshmallow_field_class | `TimeString` (a `marshmallow.fields.Time` that keeps the original string on output) |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatTime` |
 | min_time | Minimum allowed time |
 | max_time | Maximum allowed time |
@@ -783,7 +788,7 @@ Data type for Extended Date/Time Format (EDTF) supporting flexible and imprecise
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow_utils.fields.edtfdatestring.EDTFDateTimeString` |
-| ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| ui_marshmallow_field_class | `oarepo_runtime.services.schema.ui.LocalizedEDTFTime` |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -831,7 +836,7 @@ Data type for Extended Date/Time Format (EDTF) focused on date values without ti
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.String` |
-| ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| ui_marshmallow_field_class | `oarepo_runtime.services.schema.ui.LocalizedEDTF` |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -879,7 +884,7 @@ Data type for EDTF interval representations, specifically designed for date rang
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.String` |
-| ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| ui_marshmallow_field_class | `oarepo_runtime.services.schema.ui.LocalizedEDTFTimeInterval` |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -1064,13 +1069,13 @@ With this definition, loading `{"start": "2024-05-01", "end": "2024-01-01"}` fai
 
 ### nested
 
-Data type for nested objects that maintain their structure independently in OpenSearch, unlike regular objects which are flattened. Each nested object is indexed as a separate document, enabling complex queries that preserve the relationship between nested fields. Essential for arrays of objects where you need to query specific combinations within individual array items (e.g., "authors where role=editor AND name=Smith"). More resource-intensive than regular objects but provides powerful querying capabilities. Supports specialized nested faceting and aggregations.
+Data type for nested objects that maintain their structure independently in OpenSearch, unlike regular objects which are flattened. Each nested object is indexed as a separate document, enabling complex queries that preserve the relationship between nested fields. Essential for lists of objects where you need to query specific combinations within individual items (e.g., "authors where role=editor AND name=Smith"). A bare `nested` field holds a single object; to store a list of them, wrap it in an [`array`](#array) whose `items` are `type: nested` (the OpenSearch `nested` mapping keeps each item's fields grouped). More resource-intensive than regular objects but provides powerful querying capabilities. Supports specialized nested faceting and aggregations.
 
 | Property | Description |
 |----------|-------------|
 | source code | [collections.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/collections.py) |
 | jsonschema type | `object` |
-| mapping | [`nested`](https://docs.opensearch.org/latest/field-types/supported-field-types/nested/) |
+| mapping | [`nested`](https://docs.opensearch.org/latest/field-types/supported-field-types/nested/) with `dynamic: strict` |
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
@@ -1078,6 +1083,7 @@ Data type for nested objects that maintain their structure independently in Open
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema) |
 | properties | Dictionary of nested field definitions |
 | marshmallow_schema_class | Custom Marshmallow schema class (optional) |
+| marshmallow_schema_mixins | List of `marshmallow.Schema` subclass import paths mixed into the generated schema (optional) |
 | ui_marshmallow_schema_class | Custom UI Marshmallow schema class (optional) |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
@@ -1222,7 +1228,7 @@ Data type for objects with unpredictable or variable property names, such as mul
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | `marshmallow.fields.Nested` (with PermissiveSchema) |
+| marshmallow_field_class | `marshmallow.fields.Raw` (arbitrary JSON passed through unchanged on load and dump) |
 | ui_marshmallow_field_class | (no UI transformation) |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
@@ -1401,6 +1407,8 @@ Data type for creating relationships between records using Persistent Identifier
 | relation_field_kwargs | Additional kwargs for the relation field |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
+The `id` field is always part of the relation, whether or not it is listed in `keys` (it is what the relation actually stores, keyed by the target's PID). A hidden `@v` field is added to the OpenSearch mapping and JSON Schema (dump-only) and skipped on marshmallow load.
+
 **Example:**
 
 ```yaml
@@ -1422,6 +1430,18 @@ parent_collection:
 
 **Valid input json example:**
 
+Submitting the target record's PID is enough; the `keys` you declared are filled in from the resolved record.
+
+```json
+{
+  "cited_publication": { "id": "pub-12345" },
+  "related_dataset": { "id": "ds-67890" },
+  "parent_collection": { "id": "col-11111" }
+}
+```
+
+After the record is saved, `RelationDumperExt` dereferences each relation, so the response and the search index hold the locally cached copy of the target:
+
 ```json
 {
   "cited_publication": {
@@ -1432,7 +1452,7 @@ parent_collection:
     }
   },
   "related_dataset": {
-    "id": "ds-67890", 
+    "id": "ds-67890",
     "metadata": {
       "title": "Bioinformatics Training Data",
       "resource_type": "dataset"
@@ -1457,6 +1477,194 @@ parent_collection:
 | `related_dataset.metadata.resource_type:dataset` | Search for documents with related datasets |
 | `parent_collection.metadata.title:*Research*` | Search by parent collection title pattern |
 
+### lazy-pid-relation
+
+Variant of [`pid-relation`](#pid-relation) for relations whose target model cannot be introspected eagerly at build time: self-references (a record pointing to another record of the same model) and circular references (model A references model B, which references back to model A). Everything about the relation - the OpenSearch mapping, the JSON Schema, the marshmallow schemas (API and UI), and any relations nested inside the cached `keys` - is resolved lazily the first time the target model is actually available in the runtime registry, by which point the whole model graph has finished building. The generated JSON Schema and OpenSearch mapping are `object`s whose sub-properties come from the target model's own schema (or the explicit definition you provide per key), with `unevaluatedProperties: false` and `dynamic: strict`. Facets are intentionally skipped for this type's `keys` (facet names must be known synchronously, and they cannot be, for a self-reference).
+
+| Property | Description |
+|----------|-------------|
+| source code | [lazy_relations.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/lazy_relations.py) |
+| jsonschema type | `object` with `unevaluatedProperties: false` and lazily-resolved `properties` (from the target model) |
+| mapping | `object` with `dynamic: strict` and lazily-resolved `properties` (from the target model) |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Nested` |
+| ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema, also lazily resolved from the target's `RecordUISchema`) |
+| keys | **Required.** List of dotted field paths to cache locally (e.g., `["id", "metadata.title"]`). Each entry is either a plain string (definition is looked up lazily in the target model's real schema) or a single-key mapping `"<dotted.path>": {<type definition>}` (definition provided explicitly) |
+| model | **Required.** Target model name (as registered in the runtime models registry); use the current model's own name for self-references |
+| record_cls | Optional target record class (e.g., `"my_records.records:Record"`); if set, its `pid` attribute is used as the PID field instead of the lazy resolver |
+| pid_field | Optional PID field getter or PID field instance; overrides `record_cls` and the lazy `model`-based resolution when set |
+| cache_key | Optional cache key for caching the resolved record |
+| relation_field_kwargs | Additional kwargs forwarded to the underlying relation field |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+The `id` field is always part of the relation, whether or not it is listed in `keys` (it is what the relation actually stores; every relation is keyed by the target's PID). A hidden `@v` field is added to the OpenSearch mapping and JSON Schema (dump-only) and skipped on marshmallow load.
+
+**Example:**
+
+```yaml
+# self-reference: a record of model "records" pointing to another record
+# of the same model
+parent_version:
+  type: lazy-pid-relation
+  model: records
+  keys: ["id", "metadata.title"]
+
+# circular reference: model "datasets" pointing at "publications", which
+# itself references back to "datasets" (the eager `pid-relation` would
+# fail to resolve in that cycle)
+primary_publication:
+  type: lazy-pid-relation
+  model: publications
+  keys: ["id", "metadata.title", "metadata.doi"]
+
+# any number of array and object levels around the relation is fine
+revisions:
+  type: array
+  items:
+    type: lazy-pid-relation
+    model: records
+    keys: ["id", "metadata.title"]
+```
+
+**Valid input json example:**
+
+Submitting the target's PID is enough; the cached `keys` are filled in from the resolved record.
+
+```json
+{
+  "parent_version": { "id": "rec-aaaa" },
+  "primary_publication": { "id": "pub-12345" },
+  "revisions": [ { "id": "rec-bbbb" }, { "id": "rec-cccc" } ]
+}
+```
+
+After the record is saved, `RelationDumperExt` dereferences each relation, so the response and the search index hold the full cached value:
+
+```json
+{
+  "parent_version": {
+    "id": "rec-aaaa",
+    "metadata": { "title": "Previous version of this dataset" }
+  },
+  "primary_publication": {
+    "id": "pub-12345",
+    "metadata": {
+      "title": "The paper this dataset supports",
+      "doi": "10.1038/nature12373"
+    }
+  },
+  "revisions": [
+    { "id": "rec-bbbb", "metadata": { "title": "Revision 1" } },
+    { "id": "rec-cccc", "metadata": { "title": "Revision 2" } }
+  ]
+}
+```
+
+**Sample search queries:**
+
+| Query | Description |
+|-------|-------------|
+| `parent_version.id:"rec-aaaa"` | Search by the cached target PID |
+| `parent_version.metadata.title:"Previous version"` | Search by the cached target title |
+| `primary_publication.metadata.doi:"10.1038/nature12373"` | Search by a key cached from the circularly-referenced model |
+
+### internal-relation
+
+Relation to a part of the *same* record: a self-referencing relation whose target is a sub-path of the current model rather than the model's root. Structurally a [`lazy-pid-relation`](#lazy-pid-relation) (with all the same lazy machinery for mapping, JSON Schema, marshmallow and UI schema), except that the target is always a path inside the record the field is declared on, and the target's PID is not consulted - resolution happens at runtime through an `InternalRelations` lookup table the record exposes as `record.internal_relations`, keyed by each entry's dot-separated path within the record. The lookup table auto-discovers every dict with an `id` anywhere in the record, so any sub-object with an `id` can be pointed at.
+
+To actually resolve at runtime, the model must also include `presets.internal_relations.internal_relations_preset` (from [oarepo-model/presets/internal_relations](https://github.com/oarepo/oarepo-model/tree/main/src/oarepo_model/presets/internal_relations)); without it the field builds but never resolves. Like `lazy-pid-relation`, facets are skipped for the relation's `keys` and any nested relations inside the target are discovered lazily (on first `record.relations` access), not at build time.
+
+| Property | Description |
+|----------|-------------|
+| source code | [internal_relations.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/internal_relations.py) |
+| jsonschema type | `object` with `unevaluatedProperties: false` and `properties` lazily resolved from the record's own schema at `target` |
+| mapping | `object` with `dynamic: strict` and `properties` lazily resolved from the record's own mapping at `target` |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Nested` |
+| ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema, also lazily resolved from the same record's UI schema at `target`) |
+| target | **Required.** Dotted path to the sub-property of the same record this field points into (e.g., `metadata.proteins`). Must resolve to a nested field (or an array of nested fields) at build time |
+| keys | **Required.** List of dotted field paths (relative to `target`) to cache locally. Each entry is either a plain string (definition is looked up lazily in the target's real schema) or a single-key mapping `"<dotted.path>": {<type definition>}` |
+| relation_field_kwargs | Additional kwargs forwarded to `InternalRelation(**kwargs)` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+Unlike `pid-relation` / `lazy-pid-relation`, `model`, `record_cls`, `pid_field` and `cache_key` do not apply here - the target is always the same record and there is no external PID to resolve.
+
+As with `lazy-pid-relation`, the `id` field is always part of the relation whether or not it is listed in `keys` (it is what the relation stores and resolution is keyed off it), and a hidden `@v` field is added to the mapping and JSON Schema. A `keys` entry may itself be a dotted path into the target (e.g. `provider.name`). The `target` may also point at an array of a [`polymorphic`](#polymorphic) type, in which case `keys` resolve as the union of the properties declared across all the `oneof` variants.
+
+**Example:**
+
+```yaml
+# a record that carries its own lists of proteins and instruments, and points
+# at one protein (scalar relation) and several instruments (array relation)
+# from within itself
+metadata:
+  proteins:
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          type: keyword
+        name:
+          type: keyword
+        sequence:
+          type: fulltext
+  instruments:
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          type: keyword
+        name:
+          type: keyword
+  main_protein:
+    type: internal-relation
+    target: metadata.proteins
+    keys: ["id", "name"]
+  used_instruments:
+    type: array
+    items:
+      type: internal-relation
+      target: metadata.instruments
+      keys: ["id", "name"]
+```
+
+**Valid input json example:**
+
+You submit only the referenced `id`(s); the remaining `keys` are resolved for you.
+
+```json
+{
+  "metadata": {
+    "proteins": [
+      { "id": "prot-1", "name": "Hemoglobin", "sequence": "MGLSDGEWQLVLNVWGKVEADIP" },
+      { "id": "prot-2", "name": "Myoglobin",  "sequence": "VLVLGAEEKLYPVMTILALGSSA" }
+    ],
+    "instruments": [
+      { "id": "inst-1", "name": "Spectrometer A" },
+      { "id": "inst-2", "name": "Microscope B" }
+    ],
+    "main_protein": { "id": "prot-1" },
+    "used_instruments": [ { "id": "inst-1" }, { "id": "inst-2" } ]
+  }
+}
+```
+
+On save, `RelationDumperExt` dereferences each relation against its `target`, so the API response and the search index carry the full `keys` (e.g. `main_protein.name` becomes `"Hemoglobin"`, and each `used_instruments[]` entry gains the matching instrument `name`) even though only ids were submitted. Referencing an `id` that does not exist at `target` fails validation with `InvalidRelationValue`.
+
+**Sample search queries:**
+
+| Query | Description |
+|-------|-------------|
+| `metadata.main_protein.id:"prot-1"` | Search by the referenced entry's ID |
+| `metadata.main_protein.name:"Hemoglobin"` | Search by the dereferenced name |
+| `metadata.used_instruments.name:"Spectrometer A"` | Search an array internal relation by a dereferenced key |
+
 ### vocabulary
 
 Data type for references to controlled vocabularies, extending pid-relation with vocabulary-specific functionality. Automatically configures appropriate fields and schemas based on the `vocabulary-type` (languages, affiliations, funders, awards, subjects). Each vocabulary type has predefined field sets (e.g., affiliations include identifiers and name fields). Provides seamless integration with Invenio's vocabulary system, automatic PID field resolution, and specialized marshmallow schemas. Essential for maintaining data consistency and enabling faceted search across standardized terms and entities.
@@ -1477,6 +1685,8 @@ Data type for references to controlled vocabularies, extending pid-relation with
 | pid_field | (inherited from pid-relation, auto-determined from vocabulary-type) |
 | cache_key | (inherited from pid-relation, defaults to vocabulary-type if not specified) |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+As with [`pid-relation`](#pid-relation), the `id` field is always part of the relation whether or not it is listed in `keys`, and a hidden `@v` field is added to the mapping and JSON Schema (dump-only) and skipped on marshmallow load.
 
 **Example:**
 
@@ -1504,61 +1714,71 @@ related_award:
 
 **Valid input json example:**
 
+Submitting the vocabulary term's `id` is enough; the fields defined for that vocabulary type are filled in from the vocabulary record.
+
+```json
+{
+  "language": { "id": "en" },
+  "author_affiliation": { "id": "02ex6cf31" },
+  "research_subject": { "id": "ab" },
+  "funding_agency": { "id": "05k73zm37" },
+  "related_award": { "id": "01cwqze88::1R01HL141112-01" }
+}
+```
+
+After the record is saved, the relation is dereferenced against the vocabulary, so the response and the search index hold the keys predefined for each vocabulary type:
+
 ```json
 {
   "language": {
-    "id": "eng",
-    "title": {
-      "en": "English",
-      "cs": "Angličtina"
-    }
+    "id": "en",
+    "title": { "en": "English", "cs": "Angličtina" }
   },
   "author_affiliation": {
-    "id": "mit",
-    "title": {
-      "en": "Massachusetts Institute of Technology"
-    },
-    "identifiers": {
-      "ror": "042nb2s44"
-    }
+    "id": "02ex6cf31",
+    "name": "Brookhaven National Laboratory",
+    "identifiers": [ { "scheme": "ror", "identifier": "02ex6cf31" } ]
   },
   "research_subject": {
-    "id": "computer-science",
-    "title": {
-      "en": "Computer Science"
-    }
+    "id": "ab",
+    "subject": "Agricultural biotechnology",
+    "scheme": "FOS",
+    "props": { "classification": "FOS" }
   },
   "funding_agency": {
-    "id": "nsf",
-    "title": {
-      "en": "National Science Foundation"
-    }
+    "id": "05k73zm37",
+    "name": "Academy of Finland"
   },
   "related_award": {
-    "id": "nsf-2023-1234",
-    "title": {
-      "en": "Machine Learning for Scientific Discovery"
-    }
+    "id": "01cwqze88::1R01HL141112-01",
+    "title": { "en": "Studies of mRNA translational regulations in erythropoiesis" },
+    "number": "1R01HL141112-01",
+    "identifiers": [ { "scheme": "doi", "identifier": "10.1234/01cwqze88::1R01HL141112-01" } ],
+    "acronym": "mRNA",
+    "program": "NATIONAL_HEART,_LUNG,_AND_BLOOD_INSTITUTE"
   }
 }
 ```
+
+Note that the dereferenced keys are not uniform across vocabulary types: `languages` expose a multilingual `title`, while `affiliations` and `funders` expose `name`, and `identifiers` is a list of `{scheme, identifier}` objects (not a mapping keyed by scheme).
 
 **Sample search queries:**
 
 | Query | Description |
 |-------|-------------|
-| `language.id:eng` | Search for English language documents |
-| `author_affiliation.id:mit` | Search by affiliation ID |
-| `author_affiliation.title.en:"Massachusetts Institute of Technology"` | Search by affiliation name |
-| `author_affiliation.identifiers.ror:"042nb2s44"` | Search by ROR identifier |
-| `research_subject.title.en:"Computer Science"` | Search by subject title |
-| `funding_agency.id:nsf AND related_award.id:nsf*` | Search for NSF funding and awards |
+| `language.id:en` | Search for English language documents |
+| `author_affiliation.id:02ex6cf31` | Search by affiliation ID |
+| `author_affiliation.name:"Brookhaven National Laboratory"` | Search by affiliation name |
+| `author_affiliation.identifiers.scheme:ror` | Filter by the scheme of a cached identifier |
+| `research_subject.subject:"Agricultural biotechnology"` | Search by the cached subject term |
+| `funding_agency.name:"Academy of Finland"` | Search by funder name |
+| `related_award.number:"1R01HL141112-01"` | Search by the cached award number |
 
 ## Geospatial and astronomical data types
 
 ### geo_point
 
-Data type for geographic points (latitude/longitude). The value is an object with numeric `lat` and `lon` properties. Maps to OpenSearch's [`geo_point`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-point/) field. It can be queried with: `geo_distance:<field>`, `geo_bounding_box:<field>` and `geo_shape:<field>` (see sample queries below). A place name (e.g. `Prague, Czechia`) can be used instead of coordinates and is resolved via OpenStreetMap Nominatim geocoding. Coordinates are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. 
+Data type for geographic points (latitude/longitude). The value is an object with numeric `lat` and `lon` properties. Maps to OpenSearch's [`geo_point`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-point/) field. It can be queried with: `geo_distance:<field>`, `geo_bounding_box:<field>` and `geo_shape:<field>` (see sample queries below). A place name (e.g. `Prague, Czechia`) can be used instead of coordinates and is resolved via OpenStreetMap Nominatim geocoding. Coordinates are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. In the search queries below the coordinates are given longitude-first (`[lon, lat, …]`, the GeoJSON order), unlike the stored value's `{lat, lon}` keys. 
 
 | Property | Description |
 |----------|-------------|
@@ -1594,10 +1814,10 @@ location:
 
 | Query | Description |
 |-------|-------------|
-| `geo_distance:metadata.location=[50.0875,14.4213,10km]` | Records within 10 km of the point, closer ones boosted in relevance |
+| `geo_distance:metadata.location=[14.4213,50.0875,10km]` | Records within 10 km of the point `[lon,lat,distance]` (longitude first), closer ones boosted in relevance |
 | `geo_distance:metadata.location=[Prague, Czechia,50km]` | Same, with the centre resolved from a place name via geocoding |
-| `geo_bounding_box:metadata.location=[51.0,14.0,49.0,14.5]` | Records within a rectangle given by two opposite corners (any order) |
-| `geo_shape:metadata.location=WITHIN POLYGON ((14.0 49.0, 14.5 49.0, 14.5 51.0, 14.0 51.0, 14.0 49.0))` | Records within a WKT geometry, relation `INTERSECTS` (default), `DISJOINT`, `WITHIN` or `CONTAINS` |
+| `geo_bounding_box:metadata.location=[14.0,49.0,14.5,51.0]` | Records within a rectangle `[west,south,east,north]` (lon,lat order); the first corner must be the south-westerly one |
+| `geo_shape:metadata.location=WITHIN POLYGON ((14.0 49.0, 14.5 49.0, 14.5 51.0, 14.0 51.0, 14.0 49.0))` | Records within a WKT geometry (`lon lat` pairs), relation `INTERSECTS` (default), `DISJOINT`, `WITHIN` or `CONTAINS` |
 
 ### geo_shape
 
@@ -1641,7 +1861,7 @@ survey_route:
 
 | Query | Description |
 |-------|-------------|
-| `geo_shape:metadata.spatial_coverage=INTERSECTS POINT (14.4213 50.0875)` | Shapes intersecting the point (`INTERSECTS` is the default relation) |
+| `geo_shape:metadata.spatial_coverage=INTERSECTS POINT (14.4213 50.0875)` | Shapes intersecting the point, WKT coordinates as `lon lat` pairs (`INTERSECTS` is the default relation) |
 | `geo_shape:metadata.survey_route=WITHIN POLYGON ((14.0 49.0, 14.5 49.0, 14.5 51.0, 14.0 51.0, 14.0 49.0))` | Relation can be `INTERSECTS`, `DISJOINT`, `WITHIN` or `CONTAINS` |
 | `geo_shape:metadata.spatial_coverage=INTERSECTS Prague, Czechia` | A place name instead of WKT is geocoded to a shape via Nominatim |
 
@@ -1685,7 +1905,7 @@ position:
 | Query | Description |
 |-------|-------------|
 | `icrs_distance:metadata.position=[83.6331,22.0145,5]` | Records within 5 degrees of the position (distance in degrees, no unit suffix), closer ones boosted |
-| `icrs_bounding_box:metadata.position=[80.0,20.0,90.0,25.0]` | Records within a box given by two opposite corners in ra/dec |
+| `icrs_bounding_box:metadata.position=[80.0,20.0,90.0,25.0]` | Records within a box given by two opposite corners in `[ra,dec,ra,dec]` order; the first corner must be the lower-declination one |
 
 ### icrs_shape
 
