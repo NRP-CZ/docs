@@ -14,4 +14,7 @@ export default {
   "model_reference": {
     "title": "Metadata reference"
   },
+  "compound_datasets": {
+    "title": "Compound datasets (proposal)"
+  }
 }
