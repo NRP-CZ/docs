@@ -319,7 +319,7 @@ InvenioRDM provides two file upload UI options:
 | **FileUploader** | `APP_RDM_DEPOSIT_NG_FILES_UI_ENABLED = False` |
 | **UppyUploader** | `APP_RDM_DEPOSIT_NG_FILES_UI_ENABLED = True` (enable in `invenio.cfg`) |
 
-**Note:** The nrp-model-copier template uses `UppyUploader` by default in `FormFieldsContainer.jsx`. To use the standard uploader used by InvenioRDM, import `FileUploader` instead.
+**Note:** The current nrp-model-copier template (`rdm-14`) wires `UppyUploader` through the RDM/CCMM `files` section. To use the standard uploader used by InvenioRDM, import `FileUploader` instead.
 
 **CSP Configuration:** When using Uppy, add to your application configuration (`invenio.cfg`):
 ```python filename="invenio.cfg"

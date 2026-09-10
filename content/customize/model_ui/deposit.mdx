@@ -48,7 +48,7 @@ graph TD
         DFA["DepositFormApp"]
         DB["DepositBootstrap"]
         BFL["BaseFormLayout"]
-        FFC["FormFieldsContainer"]
+        SEC["Your sections (wizard)"]
     end
 
     VR -->|auth and permissions| RC
@@ -83,7 +83,7 @@ graph TD
 | **Form App**         | `DepositFormApp`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx)                               | Main React form component with providers, router, and context   |
 | **Bootstrap**        | `DepositBootstrap`                                                           | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wraps form with notification providers and service setup        |
 | **Form Layout**      | `BaseFormLayout`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout)                                                  | Generic form layout component with overridable fields container |
-| **Fields Container** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Your custom component that defines form fields                  |
+| **Sections** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` (+ section files you add) | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Your custom sections composing the wizard form (older docs call the legacy single-component approach `FormFieldsContainer`) |
 
 ## Configuration
 
@@ -201,7 +201,11 @@ Metadata:
 
 See [Model schema customization](/customize/model_backend/model) for details on defining field types, labels, hints, and help text.
 
-### Build Your Form in FormFieldsContainer
+<Callout type="warning">
+**`FormFieldsContainer.jsx` is not part of the current template.** The current `nrp-model-copier` (`rdm-14`) generates only `forms/index.js` wiring preset section arrays (`CCMMSections`, `RDM*Sections`, or `ExampleSection`) into `DepositFormApp` with `useWizardForm`. The recommended customization path is [Defining Sections](#defining-sections) below (plus [component overrides](#adding-content-to-every-section-via-override) for tuning preset sections). The following subsection describes the legacy single-`FormFieldsContainer` pattern, kept for repositories scaffolded before the sections-based forms were introduced — if your generated `forms/` contains only `index.js`, skip to "Use the Wizard Form Layout".
+</Callout>
+
+### Build Your Form in a Single Fields Container (legacy)
 
 Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` to define your form fields organized into accordion sections:
 
