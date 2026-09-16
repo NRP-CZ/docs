@@ -16,6 +16,7 @@ Alphabetical list of terms
 | Model | A metadata schema together with its configuration, including configuration of supported persistent identifier types. |
 | part_of | The API field on a PartRecord that links it to the CompoundRecord version(s) it belongs to. It is an array of URLs rather than a single value, since the same PartRecord version can be part of more than one CompoundRecord version. |
 | PartRecord | The concrete part-side record/version participating in a compound structure. |
+| PartRecord aggregation | The process of populating CompoundRecord metadata fields from its PartRecords, implemented by overriding the `aggregate_part_records` method of `PartRecordAggregationComponent`. Runs when a CompoundRecord draft is being published, not on every save of a PartRecord draft. |
 | PartRecord RDM parent | The RDM parent of the record that acts as a PartRecord; in other words, the all-versions layer of that PartRecord. |
 | PartRecord-publication status | Status information carried by the CompoundRecord, especially while it is in `publishing`, to show whether PartRecord publication is pending, in progress, completed, or failed. A `failed` status corresponds to the affected PartRecord being in the `publication_error` state. |
 | PartRecordMembership | The database table recording the relationship between a PartRecord and a CompoundRecord, including its status (`I` for included, `PE` for pending exclusion, `PI` for pending inclusion). |

@@ -749,4 +749,41 @@ Using this model will add the following components:
 The task will look at all PartRecords with `PartRecordMembership` status set to `PI` (pending inclusion) or `PE` (pending exclusion).
 For each of these records, it will perform the change (like publish or exclude) and update the `PartRecordMembership` status accordingly.
 
+### Aggregating PartRecord data into CompoundRecords
+
+If a CompoundRecord needs to be searchable by data from its PartRecords, that data needs to be propagated from the PartRecords to the CompoundRecord. This propagation depends on the specific use case and usually requires custom logic. To do so, the implementation must define the following:
+
+- In the CompoundRecord model's metadata schema (`metadata.yaml`), define the fields that will be populated from the PartRecords.
+- Create a new service component class that inherits from `PartRecordAggregationComponent` and overrides the `aggregate_part_records` method:
+
+```python
+class MyAggregationComponent(PartRecordAggregationComponent):
+    def aggregate_part_records(
+        self,
+        compound_record: CompoundRecord,
+        part_records: Iterable[RecordItem[PartRecord]],
+    ):
+        # part_records is a single-use iterable of PartRecord items:
+        # once exhausted, it cannot be iterated again
+        compound_record.metadata["something"] = list(
+            {  # deduplicate by converting to a set
+                p["metadata"].get("blah") for p in part_records if "blah" in p["metadata"]
+            }
+        )
+```
+
+This method is called when a CompoundRecord draft is being published. By design, it is not called on every save of a PartRecord draft - a single CompoundRecord can have thousands of PartRecords, and running it whenever any of them is saved would be inefficient.
+
+#### API extensions (potential, only if needed)
+
+An API extension might be provided for cases where the aggregation logic needs to be triggered for draft records.
+
+```rest
+POST /api/studies/12345-67890/draft/actions/aggregate
+
+202 Accepted
+```
+
+This will trigger the `aggregate_part_records` logic in the background.
+
 ## UI tools
