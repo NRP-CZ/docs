@@ -39,10 +39,10 @@ Implementation:
 
 ```python filename="invenio.cfg"
 # illustrative sketch
-APP_DEFAULT_SECURE_HEADERS = {
-    # ... keep the existing directives ...
-    "connect-src": ["'self'", "https://api.example.org"],
-}
+config.configure_ui(
+    ...
+    csp=config.CSP(connect_src=["https://api.example.org"])
+)
 ```
 
 <Callout type="info">
@@ -50,6 +50,12 @@ The CSP change is only needed because the **browser** calls the external API
 directly. If you route the calls through a small endpoint on your repository
 backend instead, no CSP change is needed, cross-origin restrictions do not
 apply, and the API key of the external service never leaves the server.
+
+The negative effect of that is that all the requests will be tunnelled through
+a single IP address, which means that the service will apply the rate limiting
+to the whole server and not to individual users (so regardless of how many users
+are using the service, the external vocabulary will stop working after, for
+example, 100 requests/hour).
 </Callout>
 
 ## Use case 2: Validation against a frequently changing vocabulary
@@ -93,6 +99,8 @@ fail-closed (reject the deposit, safer for data quality) or fail-open
 (accept with a warning, friendlier during outages). Either way, set an
 explicit request timeout and consider caching accepted values to reduce
 the number of outgoing API calls.
+
+See the note above for FUP concerns.
 </Callout>
 
 - **[Invenio checks](/modules/oarepo_checks)** — implement the validation
