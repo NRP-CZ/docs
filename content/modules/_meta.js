@@ -15,5 +15,12 @@ export default {
     "oarepo_checks_link": {
       "title": "OARepo CHECKS",
       "href": "/modules/oarepo_checks"
+    },
+    "oarepo_glitchtip": {
+      "display": "hidden"
+    },
+    "oarepo_glitchtip_link": {
+      "title": "OARepo CHECKS",
+      "href": "/modules/oarepo_glitchtip"
     }
   }
