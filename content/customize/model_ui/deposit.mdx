@@ -85,11 +85,9 @@ graph TD
 | **Form Layout**      | `BaseFormLayout`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout)                                                  | Generic form layout component with overridable fields container |
 | **Sections** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` (+ section files you add) | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Your custom sections composing the wizard form |
 
-## Configuration
-
 ### UI Resource Routes
 
-The deposit routes are defined in your model's UI resource config:
+The deposit routes that trigger this flow are defined in your model's UI resource config:
 
 ```python filename="ui/mymodel/__init__.py"
 from oarepo_ui.resources.records.config import RecordsUIResourceConfig
@@ -104,10 +102,6 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
         # ... other routes
     }
 ```
-
-### Form Configuration
-
-Form field definitions, labels, hints, and validation rules are derived from your record model's YAML schema definition. See [Model schema customization](/customize/model_backend/model) for details on defining field types, labels, hints, and help text.
 
 ### Template Context
 
