@@ -972,7 +972,7 @@ graph TD
 | **View**              | `RecordsUIResource.deposit_create/edit()`                | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py)         | Handles HTTP request, authenticates user, fetches record/draft data        |
 | **Components**        | `run_components()`                                       | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)          | Executes component hooks to modify `form_config` and add context variables |
 | **Default Component** | `oarepo_ui.pages.DepositCreate/Edit`                     | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages)             | Pre-defined JinjaX page component with def block                           |
-| **Model Template**    | `model_name/deposit_edit\|create.html`                   | [nrp-model-copier](https://github.com/oarepo/nrp-model-copier)                                             | Model-specific template extending oarepo-ui base                           |
+| **Model Template**    | `model_name/deposit_edit\|create.html`                   | [nrp-model-copier](https://github.com/oarepo/nrp-model-copier)                                             | Model-specific template extending `oarepo_ui/deposit_edit\|create.html`     |
 | **Base Template**     | `invenio_app_rdm/records/deposit.html`                   | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm)                                      | Provides page skeleton (CSS, JS, header, footer blocks)                    |
 | **Form Content**      | `deposit/form.html`                                      | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app        |
 
@@ -1030,7 +1030,7 @@ The `{# def #}` block below is from the `deposit_create` page component (the `de
 {% extends model_name ~ "/deposit_create.html" %}
 ```
 
-The default component extends your model's base template (`mymodel/deposit_create.html` or `mymodel/deposit_edit.html`), which is provided by nrp-model-copier and extends `oarepo_ui/base_deposit.html`.
+The default component extends your model's base template (`mymodel/deposit_create.html` or `mymodel/deposit_edit.html`), which is provided by nrp-model-copier and extends `oarepo_ui/deposit_create.html` / `oarepo_ui/deposit_edit.html`.
 
 These context variables are available in your templates:
 
