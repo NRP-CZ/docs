@@ -5,147 +5,13 @@ import { Card } from "@/components/card";
 
 The deposit form enables users to create and edit records. It's a React-based form application that provides field validation, dynamic sections, and integration with your record model.
 
-## Request and Application Flow
+## Key Concepts
 
-### Request Flow
+- **Wizard of sections** — the form renders as a wizard with vertical tabs, built from an **ordered array of section objects** (one tab each). You customize the form by composing and extending this array, not by editing a monolithic form file.
+- **Field metadata comes from the model** — labels, hints, help text, and required status are defined in your model's YAML schema and surfaced to React via the `useFieldData` hook. You place field components; you don't re-declare their labels in JSX.
+- **Server renders, React mounts** — the server-side view renders a page with hidden inputs (record, form config) plus an empty `<div id="deposit-form">`; a small webpack entry point mounts the React app onto that div.
 
-When a user accesses the deposit form URL:
-
-```mermaid
-graph TD
-    U[User] -->|GET /mymodel/uploads/new| VR[UI Resource View]
-    VR -->|fetch initial data and form config| SVC[Service Layer]
-    SVC -->|form config initial data| VR
-    VR -->|context variables| GC[Default JinjaX Component]
-    GC -->|extends| BD[mymodel/deposit_create or edit.html]
-    BD -->|embeds JS bundle| PG[Rendered HTML Page]
-    PG -->|mount| RA[React App]
-    PG -->|hidden inputs| RA
-    RA -->|renders form| U
-    RA -->|submit| API[REST APIs]
-    API -->|validation errors| RA
-    API -->|validated data| DB[(Database)]
-```
-
-### Application Layers
-
-The deposit form application is organized into server-side and client-side layers:
-
-```mermaid
-graph TD
-    subgraph ServerSide["Server-Side Python/JinjaX"]
-        VR["RecordsUIResource.deposit_{edit|create}"]
-        RC["UI Resource Components"]
-        GC["Default JinjaX Component"]
-        MT["mymodel/deposit_edit|create.html"]
-        BT["oarepo_ui/deposit_edit|create.html"]
-        ID["invenio_app_rdm/records/deposit.html"]
-        FH["deposit/form.html"]
-    end
-
-    subgraph ClientSide["Client-Side React"]
-        EP["Webpack Entry Point"]
-        DFA["DepositFormApp"]
-        DB["DepositBootstrap"]
-        BFL["BaseFormLayout"]
-        SEC["Your sections (wizard)"]
-    end
-
-    VR -->|auth and permissions| RC
-    RC -->|form_config and context| GC
-    GC -->|extends| MT
-    MT -->|extends| BT
-    BT -->|extends| ID
-    BT -->|includes| FH
-    FH -->|hidden inputs| EP
-    EP -->|mounts React app| DFA
-    DFA -->|renders| DB
-    DB -->|renders| BFL
-    BFL -->|renders| SEC
-```
-
-#### Server-Side Layers
-
-| Layer                 | Component                                                | Source                                                                                                     | Purpose                                                                    |
-| --------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **View**              | `RecordsUIResource.deposit_create/edit()`                | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py)         | Handles HTTP request, authenticates user, fetches record/draft data        |
-| **Components**        | `run_components()`                                       | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)          | Executes component hooks to modify `form_config` and add context variables |
-| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit`                     | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages)             | Pre-defined JinjaX page component with def block                           |
-| **Model Template**    | `model_name/deposit_edit\|create.html`                   | [nrp-model-copier](https://github.com/oarepo/nrp-model-copier)                                             | Model-specific template extending oarepo-ui base                           |
-| **Base Template**     | `invenio_app_rdm/records/deposit.html`                   | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm)                                      | Provides page skeleton (CSS, JS, header, footer blocks)                    |
-| **Form Content**      | `deposit/form.html`                                      | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app        |
-
-#### Client-Side Layers
-
-| Layer                | Component                                                                    | Source                                                                                                                                                                                      | Purpose                                                         |
-| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **Entry Point**      | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js`                | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Webpack entry that mounts React app to `#deposit-form` div      |
-| **Form App**         | `DepositFormApp`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx)                               | Main React form component with providers, router, and context   |
-| **Bootstrap**        | `DepositBootstrap`                                                           | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wires the form into redux via `DepositFormSubmitContext` and `BaseForm` (save/publish/preview/delete actions) |
-| **Form Layout**      | `BaseFormLayout`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout)                                                  | Generic form layout component with overridable fields container |
-| **Sections** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` (+ section files you add) | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Your custom sections composing the wizard form |
-
-### UI Resource Routes
-
-The deposit routes that trigger this flow are defined in your model's UI resource config:
-
-```python filename="ui/mymodel/__init__.py"
-from oarepo_ui.resources.records.config import RecordsUIResourceConfig
-
-class MymodelUIResourceConfig(RecordsUIResourceConfig):
-    blueprint_name = "mymodel"
-    url_prefix = "/mymodel"
-
-    routes = {
-        "deposit_create": "/uploads/new",
-        "deposit_edit": "/uploads/<pid_value>",
-        # ... other routes
-    }
-```
-
-### Template Context
-
-When no custom page template is configured, oarepo-ui uses the default page component (`oarepo_ui.pages.DepositCreate` or `oarepo_ui.pages.DepositEdit`). This component declares all context variables in a `{# def #}` block and extends your model's base template.
-
-The `{# def #}` block below is from the `deposit_create` page component (the `deposit_edit` block is identical except it omits `preselectedCommunity` and adds `file_modification = {}`):
-
-```jinja
-{# def
-  theme,
-  forms_config,
-  searchbar_config,
-  record,
-  community,
-  community_ui,
-  community_use_jinja_header,
-  files,
-  preselectedCommunity=None,  # create only
-  files_locked,
-  extra_context,
-  ui_links,
-  permissions,
-  webpack_entry,
-#}
-{% extends model_name ~ "/deposit_create.html" %}
-```
-
-The default component extends your model's base template (`mymodel/deposit_create.html` or `mymodel/deposit_edit.html`), which is provided by nrp-model-copier and extends `oarepo_ui/base_deposit.html`.
-
-These context variables are available in your templates:
-
-| Variable           | Description                                         |
-| ------------------ | --------------------------------------------------- |
-| `theme`            | Theme configuration                                 |
-| `forms_config`     | Form configuration                                  |
-| `searchbar_config` | Search bar configuration                            |
-| `record`           | Current record data (for edit mode)                 |
-| `community`        | Community data if applicable                        |
-| `community_ui`     | Community UI data                                   |
-| `files`            | Record files entries                                |
-| `extra_context`    | Additional context from resource components         |
-| `ui_links`         | UI links                                            |
-| `permissions`      | User permissions                                    |
-| `webpack_entry`    | Webpack entry point for the deposit form JavaScript |
+See [How It Works Under the Hood](#how-it-works-under-the-hood) for the full request and application-layer architecture.
 
 ## Building Your Deposit Form
 
@@ -284,35 +150,21 @@ Use the components documented in [Deposit Form Components](/customize/model_ui/d
   components](#create-custom-form-components).
 </Callout>
 
-### Tune Preset Sections with Overrides
+</Steps>
 
 To reorder, extend, or remove parts of preset sections (`CCMMSections`, `RDM*Sections`) without rewriting them, use `componentOverrides` on `DepositFormApp` — see [Using CCMM sections](#using-ccmm-sections) for worked examples, including adding content below any section and removing individual fields.
 
-### The Wizard Form Layout
+## The Wizard Form
 
-The form is rendered as a wizard with vertical tabs — the copier-generated entry point already passes `useWizardForm` together with the `sections` array (see [Build Your Form from Sections](#build-your-form-from-sections)). A minimal setup looks like this:
+The form is rendered as a wizard with vertical tabs — the entry point passes `useWizardForm` together with the `sections` array and an optional `componentOverrides` map to `DepositFormApp` (as in [Build Your Form from Sections](#build-your-form-from-sections)). This section is the reference for the wizard's behaviour and the section-object format.
 
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
-ReactDOM.render(
-  <DepositFormApp
-    config={config}
-    {...rest}
-    sections={mySections}
-    recordSerializer={OARepoDepositSerializer}
-    componentOverrides={componentOverrides}
-    useWizardForm // Enable wizard layout
-  />,
-  rootEl,
-);
-```
-
-#### How the Tab Form Works
+### How the Tab Form Works
 
 - **Free navigation** — users can switch between tabs at any time without being required to complete or validate the current section first. A section can opt out of this and temporarily lock navigation by defining a `lockTabChange` function (see [Locking Tab Navigation](#locking-tab-navigation)).
 - **Auto-save on tab switch** — if the form has unsaved changes when switching tabs, it automatically saves the draft. This also triggers a fresh round of validation errors from the backend, so validation feedback is up to date.
 - **URL persistence** — the active tab is reflected in the URL via the `?tab=key` query parameter, so users can bookmark or share a link that opens directly on a specific section.
 
-#### Defining Sections
+### Defining Sections
 
 Each section is a plain JavaScript object. The recommended approach is to define each section in its own file, then assemble them into an ordered array. This mirrors how `ccmm-invenio` organizes its built-in sections.
 
@@ -393,11 +245,11 @@ ReactDOM.render(
 | `back`          | function | Call `back()` to programmatically navigate to the previous tab                                                                                                        |
 | `initialRecord` | object   | The record data as it was when the form first loaded, before any user edits. Useful for comparing current state to the saved state                                    |
 
-#### Using CCMM sections
+### Using CCMM sections
 
 If during model creation you chose ccmm-invenio, your form will already be provided with prepared [sections](https://github.com/NRP-CZ/ccmm-invenio/blob/main/src/ccmm_invenio/ui/semantic-ui/js/ccmm_invenio/forms/CCMMSections.js) for this model.
 
-##### Adding Custom Sections
+#### Adding Custom Sections
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
 import { CCMMSections } from "@js/ccmm_invenio/forms";
@@ -408,7 +260,7 @@ import { i18next } from "@translations/i18next";
 export const mySections = [...CCMMSections, MyNewSection];
 ```
 
-##### Adding Content to Every Section via Override
+#### Adding Content to Every Section via Override
 
 To add inputs or content at the bottom of every section (or specific sections), use the Overridable pattern with the section key:
 
@@ -436,7 +288,7 @@ The override component receives these props:
 - `next` - Function to navigate to next step
 - `back` - Function to navigate to previous step
 
-##### Reorganizing CCMM Sections
+#### Reorganizing CCMM Sections
 
 The `CCMMSections` export is a fixed ordered array. If you need a different order, or want to omit some sections, you cannot simply sort or filter the imported array — you need to import the individual section objects and assemble your own array:
 
@@ -463,7 +315,7 @@ export const mySections = [
 ];
 ```
 
-##### Overriding Individual Fields Within a Section
+#### Overriding Individual Fields Within a Section
 
 Each field inside a CCMM section is wrapped in an `<Overridable>` component, which means you can replace or adjust it via `componentOverrides` in your entry point without touching the section file itself.
 
@@ -535,7 +387,7 @@ ReactDOM.render(
   `datasets/metadata.yaml`).
 </Callout>
 
-##### Section Completion Indicator
+#### Section Completion Indicator
 
 Because the wizard form only validates against the server when saving (i.e. when switching tabs), validation errors are not immediately visible while the user is editing. To compensate, each tab displays a real-time **progress bar** that shows how much of the section has been filled in. This gives users continuous feedback on their progress without waiting for a save round-trip.
 
@@ -591,7 +443,7 @@ If you want to hide the section completion indicator entirely, add the following
 }
 ```
 
-##### Locking Tab Navigation
+#### Locking Tab Navigation
 
 By default, users can move between tabs freely at any point — see [How the Tab Form Works](#how-the-tab-form-works). For some sections this is undesirable: a file upload may be in progress, a community selection step may need to be committed before continuing, or a particular operation must finish atomically. The `lockTabChange` property lets a section opt into temporarily blocking navigation while a condition holds.
 
@@ -636,7 +488,6 @@ export const FilesSection = {
   stuck on `true` will trap users on the current tab.
 </Callout>
 
-</Steps>
 
 ## Form Metadata Summary
 
@@ -1054,6 +905,149 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     # ...
     components = [ExtraContextComponent]
 ```
+
+## How It Works Under the Hood
+
+#### Request Flow
+
+When a user accesses the deposit form URL:
+
+```mermaid
+graph TD
+    U[User] -->|GET /mymodel/uploads/new| VR[UI Resource View]
+    VR -->|fetch initial data and form config| SVC[Service Layer]
+    SVC -->|form config initial data| VR
+    VR -->|context variables| GC[Default JinjaX Component]
+    GC -->|extends| BD[mymodel/deposit_create or edit.html]
+    BD -->|embeds JS bundle| PG[Rendered HTML Page]
+    PG -->|mount| RA[React App]
+    PG -->|hidden inputs| RA
+    RA -->|renders form| U
+    RA -->|submit| API[REST APIs]
+    API -->|validation errors| RA
+    API -->|validated data| DB[(Database)]
+```
+
+#### Application Layers
+
+The deposit form application is organized into server-side and client-side layers:
+
+```mermaid
+graph TD
+    subgraph ServerSide["Server-Side Python/JinjaX"]
+        VR["RecordsUIResource.deposit_{edit|create}"]
+        RC["UI Resource Components"]
+        GC["Default JinjaX Component"]
+        MT["mymodel/deposit_edit|create.html"]
+        BT["oarepo_ui/deposit_edit|create.html"]
+        ID["invenio_app_rdm/records/deposit.html"]
+        FH["deposit/form.html"]
+    end
+
+    subgraph ClientSide["Client-Side React"]
+        EP["Webpack Entry Point"]
+        DFA["DepositFormApp"]
+        DB["DepositBootstrap"]
+        BFL["BaseFormLayout"]
+        SEC["Your sections (wizard)"]
+    end
+
+    VR -->|auth and permissions| RC
+    RC -->|form_config and context| GC
+    GC -->|extends| MT
+    MT -->|extends| BT
+    BT -->|extends| ID
+    BT -->|includes| FH
+    FH -->|hidden inputs| EP
+    EP -->|mounts React app| DFA
+    DFA -->|renders| DB
+    DB -->|renders| BFL
+    BFL -->|renders| SEC
+```
+
+##### Server-Side Layers
+
+| Layer                 | Component                                                | Source                                                                                                     | Purpose                                                                    |
+| --------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **View**              | `RecordsUIResource.deposit_create/edit()`                | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py)         | Handles HTTP request, authenticates user, fetches record/draft data        |
+| **Components**        | `run_components()`                                       | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)          | Executes component hooks to modify `form_config` and add context variables |
+| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit`                     | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages)             | Pre-defined JinjaX page component with def block                           |
+| **Model Template**    | `model_name/deposit_edit\|create.html`                   | [nrp-model-copier](https://github.com/oarepo/nrp-model-copier)                                             | Model-specific template extending oarepo-ui base                           |
+| **Base Template**     | `invenio_app_rdm/records/deposit.html`                   | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm)                                      | Provides page skeleton (CSS, JS, header, footer blocks)                    |
+| **Form Content**      | `deposit/form.html`                                      | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app        |
+
+##### Client-Side Layers
+
+| Layer                | Component                                                                    | Source                                                                                                                                                                                      | Purpose                                                         |
+| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Entry Point**      | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js`                | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Webpack entry that mounts React app to `#deposit-form` div      |
+| **Form App**         | `DepositFormApp`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx)                               | Main React form component with providers, router, and context   |
+| **Bootstrap**        | `DepositBootstrap`                                                           | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wires the form into redux via `DepositFormSubmitContext` and `BaseForm` (save/publish/preview/delete actions) |
+| **Form Layout**      | `BaseFormLayout`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout)                                                  | Generic form layout component with overridable fields container |
+| **Sections** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` (+ section files you add) | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Your custom sections composing the wizard form |
+
+#### UI Resource Routes
+
+The deposit routes that trigger this flow are defined in your model's UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    blueprint_name = "mymodel"
+    url_prefix = "/mymodel"
+
+    routes = {
+        "deposit_create": "/uploads/new",
+        "deposit_edit": "/uploads/<pid_value>",
+        # ... other routes
+    }
+```
+
+#### Template Context
+
+When no custom page template is configured, oarepo-ui uses the default page component (`oarepo_ui.pages.DepositCreate` or `oarepo_ui.pages.DepositEdit`). This component declares all context variables in a `{# def #}` block and extends your model's base template.
+
+The `{# def #}` block below is from the `deposit_create` page component (the `deposit_edit` block is identical except it omits `preselectedCommunity` and adds `file_modification = {}`):
+
+```jinja
+{# def
+  theme,
+  forms_config,
+  searchbar_config,
+  record,
+  community,
+  community_ui,
+  community_use_jinja_header,
+  files,
+  preselectedCommunity=None,  # create only
+  files_locked,
+  extra_context,
+  ui_links,
+  permissions,
+  webpack_entry,
+#}
+{% extends model_name ~ "/deposit_create.html" %}
+```
+
+The default component extends your model's base template (`mymodel/deposit_create.html` or `mymodel/deposit_edit.html`), which is provided by nrp-model-copier and extends `oarepo_ui/base_deposit.html`.
+
+These context variables are available in your templates:
+
+| Variable           | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| `theme`            | Theme configuration                                 |
+| `forms_config`     | Form configuration                                  |
+| `searchbar_config` | Search bar configuration                            |
+| `record`           | Current record data (for edit mode)                 |
+| `community`        | Community data if applicable                        |
+| `community_ui`     | Community UI data                                   |
+| `files`            | Record files entries                                |
+| `extra_context`    | Additional context from resource components         |
+| `ui_links`         | UI links                                            |
+| `permissions`      | User permissions                                    |
+| `webpack_entry`    | Webpack entry point for the deposit form JavaScript |
+
 
 ## Further Reading
 
