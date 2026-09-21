@@ -10,5 +10,11 @@
 "title": "OARepo CHECKS",
 "source": "https://raw.githubusercontent.com/oarepo/oarepo-checks/refs/heads/main/README.md",
 "target": "content/modules/oarepo_checks/index.mdx"
+},
+{
+"name": "oarepo-glitchtip",
+"title": "OARepo GlitchTip",
+"source": "https://raw.githubusercontent.com/oarepo/oarepo-glitchtip/refs/heads/main/README.md",
+"target": "content/modules/oarepo_glitchtip/index.mdx"
 }
 ]
