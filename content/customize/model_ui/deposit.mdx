@@ -81,7 +81,7 @@ graph TD
 | -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | **Entry Point**      | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js`                | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Webpack entry that mounts React app to `#deposit-form` div      |
 | **Form App**         | `DepositFormApp`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx)                               | Main React form component with providers, router, and context   |
-| **Bootstrap**        | `DepositBootstrap`                                                           | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wraps form with notification providers and service setup        |
+| **Bootstrap**        | `DepositBootstrap`                                                           | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wires the form into redux via `DepositFormSubmitContext` and `BaseForm` (save/publish/preview/delete actions) |
 | **Form Layout**      | `BaseFormLayout`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout)                                                  | Generic form layout component with overridable fields container |
 | **Sections** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` (+ section files you add) | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Your custom sections composing the wizard form |
 
@@ -107,7 +107,7 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
 
 When no custom page template is configured, oarepo-ui uses the default page component (`oarepo_ui.pages.DepositCreate` or `oarepo_ui.pages.DepositEdit`). This component declares all context variables in a `{# def #}` block and extends your model's base template.
 
-For example, the default component for `deposit_create` page:
+The `{# def #}` block below is from the `deposit_create` page component (the `deposit_edit` block is identical except it omits `preselectedCommunity` and adds `file_modification = {}`):
 
 ```jinja
 {# def
@@ -119,7 +119,7 @@ For example, the default component for `deposit_create` page:
   community_ui,
   community_use_jinja_header,
   files,
-  preselectedCommunity=None,
+  preselectedCommunity=None,  # create only
   files_locked,
   extra_context,
   ui_links,
@@ -154,7 +154,9 @@ What the nrp-model-copier template generates depends on the `base_model` you cho
 | `base_model` | Generated `forms/index.js` starts from |
 |---|---|
 | `empty` | A single placeholder [`ExampleSection`](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/exampleSection.js) — you build your own sections |
-| `rdm_minimal` / `rdm_basic` / `rdm_complete` | `RDMMinimalSections` / `RDMBasicSections` / `RDMCompleteSections` from `@js/oarepo_rdm/form` |
+| `rdm_minimal` | `RDMMinimalSections` + `RDMMinimalRecordSerializer` from `@js/oarepo_rdm/form` |
+| `rdm_basic` | `RDMBasicSections` from `@js/oarepo_rdm/form` |
+| `rdm_complete` | `RDMCompleteSections` from `@js/oarepo_rdm/form` |
 | `ccmm` | `CCMMSections` + `CCMMDepositRecordSerializer` from `@js/ccmm_invenio/forms` |
 
 All variants render the form with **wizard layout** (`useWizardForm`): the form is an ordered array of **section objects**, one wizard tab each. Customization therefore means composing and extending this section array — for non-empty base models you mostly *reconfigure* (reorder/omit/override preset sections, add your own); for `empty` you *build* the sections yourself.
@@ -243,13 +245,13 @@ Finally pass the array (and an optional record serializer) to the form in the ge
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
 import { mySections } from "./sections";
-// ...
+import { OARepoDepositSerializer } from "@js/oarepo_ui";
 ReactDOM.render(
   <DepositFormApp
     config={config}
     {...rest}
     sections={mySections}
-    recordSerializer={recordSerializer}
+    recordSerializer={OARepoDepositSerializer}
     useWizardForm
   />,
   rootEl,
@@ -267,10 +269,12 @@ Use the components documented in [Deposit Form Components](/customize/model_ui/d
 | `TextField`                | Single-line/multi-line text input | `metadata.title`, `metadata.name`        |
 | `StringArrayField`         | Arrays of plain strings           | `metadata.keywords`                      |
 | `MultilingualTextInput`    | Localized text (array of `{lang, value}`) | `metadata.description`           |
-| `VocabularyField`          | Vocabulary-selected items         | `metadata.resource_type`                 |
+| `VocabularyField` †        | Vocabulary-selected items         | `metadata.resource_type`                 |
 | `EDTFSingleDatePicker`     | EDTF dates                        | `metadata.publication_date`              |
 | `EDTFDaterangePicker`      | EDTF date ranges                  | `metadata.date_range`                    |
 | `CreatibutorsField`        | Persons/organizations with roles  | `metadata.creators`                      |
+
+† `VocabularyField` comes from `@js/oarepo_vocabularies/form` (package `oarepo-vocabularies`), not `@js/oarepo_ui/forms` — see [VocabularyField](/customize/model_ui/deposit_components#vocabularyfield).
 
 <Callout type="info">
   Generic containers (`ArrayField`, `GroupField`, `AccordionField`), plain
@@ -1036,11 +1040,12 @@ Use resource component hooks to modify form configuration or add template contex
 from oarepo_ui.resources.components import UIResourceComponent
 
 class ExtraContextComponent(UIResourceComponent):
-    def before_ui_edit(self, resource, request, extra_context, **kwargs):
-        """Add custom context to edit page."""
-        record = record_from_resource(request)
-        extra_context["record_history"] = self._get_history(record)
+    def before_ui_edit(self, *, record, extra_context, **kwargs):
+        """Add custom context to the edit page."""
+        extra_context["is_published"] = record.get("is_published", False)
 ```
+
+The hook is keyword-only; the resource itself is available as `self.resource`.
 
 Register in your UI resource config:
 
