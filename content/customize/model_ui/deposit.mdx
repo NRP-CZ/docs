@@ -158,6 +158,10 @@ To reorder, extend, or remove parts of preset sections (`CCMMSections`, `RDM*Sec
 
 The form is rendered as a wizard with vertical tabs — the entry point passes `useWizardForm` together with the `sections` array and an optional `componentOverrides` map to `DepositFormApp` (as in [Build Your Form from Sections](#build-your-form-from-sections)). This section is the reference for the wizard's behaviour and the section-object format.
 
+![Deposit form wizard with vertical section tabs](./images/deposit-form-wizard.png)
+
+*Deposit form wizard: section tabs on the left (each with a completion bar and lock/error indicators), the active section's fields on the right.*
+
 ### How the Tab Form Works
 
 - **Free navigation** — users can switch between tabs at any time without being required to complete or validate the current section first. A section can opt out of this and temporarily lock navigation by defining a `lockTabChange` function (see [Locking Tab Navigation](#locking-tab-navigation)).
