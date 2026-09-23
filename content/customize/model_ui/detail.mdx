@@ -1,4 +1,4 @@
-import { Callout, FileTree, Cards, Steps } from "nextra/components";
+import { Callout, Cards, Steps } from "nextra/components";
 import { Card } from "@/components/card";
 
 # Record landing page
@@ -7,8 +7,9 @@ The record landing page (detail page) displays everything about one record: its 
 
 ## Key Concepts
 
-- **Six auto-included partials** — the base template auto-includes up to six model-specific files if they exist (or fall back to defaults): `record_detail/main.html`, `record_detail/banners.html`, `record_detail/css.html`, `record_detail/head_meta.html`, `record_detail/javascript.html`, `record_detail/record_sidebar.html`. Creating the file is enough — no registration, no `templates = {}`, no webpack for plain HTML/CSS.
-- **`metadata` is the friendly copy** — inside `main.html` use `metadata.title`, `metadata.description`, or field paths like `metadata.sample_id`. It's shorthand for the serialized, localized record (`record_ui["metadata"]`), so dates and vocabulary titles are already formatted. Use `record.metadata` only for raw access.
+- **Six auto-included partials** — the page is assembled from six model-specific partial files (body, banners, CSS, JS, meta tags, sidebar; [full list](#partials-cheat-sheet)). The base template picks each one up automatically and falls back to its default when the file doesn't exist.
+- **Creating the file is enough** — no registration, no `templates = {}`, no webpack needed for plain HTML/CSS.
+- **`d` carries value + label + help together** — `d.metadata.sample_id` is a `FieldData` object bundling the raw API value, the UI-serialized value, and the schema metadata (`label`, `help`, `hint`) from your model YAML. Use `ui_value(d.metadata.sample_id)` to render the formatted value and `d.metadata.sample_id.label(...)` for its localized label — see [Pulling labels, help, and values from the model](#pulling-labels-help-and-values-from-the-model). For a plain value dump there's also `metadata` (shorthand for `record_ui["metadata"]`).
 - **Blocks hide or replace** — `main.html` extends the oarepo-ui base, which is one long chain of blocks (`record_header_info`, `record_title`, `record_files`, …). Override a block with `{{ super() }}` inside to augment it; override it without `super()` to hide or replace that section entirely.
 
 ## Partials Cheat Sheet
@@ -22,16 +23,15 @@ Start here. For a model named `mymodel`, these files live at `ui/mymodel/templat
 | `css.html` | Inline `<style>` inside the page `<head>`. Auto-included. | Tweak colors, font sizes |
 | `javascript.html` | Inline/content JS at the end of `<body>`. Register a **webpack entry** instead of inline `<script>` (CSP). | Interactive widgets |
 | `head_meta.html` | OpenGraph / citation meta tags. Auto-included. | Embed Dublin Core / JSON-LD |
-| `record_sidebar.html` | Right-hand sidebar content (replaces the **whole** default). | Custom sidebar; rarely needed |
-| — none (config) | `OAREPO_UI_SIDEBAR_TEMPLATES` in `invenio.cfg` | **Add a sidebar widget** (recommended for the sidebar) |
+| `record_sidebar.html` | Right-hand sidebar content (replaces the **whole** default). To **add a widget** instead of replacing the sidebar, use `OAREPO_UI_SIDEBAR_TEMPLATES` config — see [Add a sidebar widget](#4-add-a-sidebar-widget). | Custom sidebar; rarely needed |
 
 <Callout type="info">
 The generated `main.html` already extends the oarepo-ui base and carries a commented map of every overridable block — read its comment header first. It is the single most important file on this page.
 </Callout>
 
-## The Four Most Common Customizations
+## The Three Most Common Customizations
 
-These four cover the bulk of real-world landing-page work. Each is a small edit, no source-code forking needed.
+These three cover the bulk of real-world landing-page work. Each is a small edit, no source-code forking needed.
 
 ### 1. Hide a default section
 
@@ -56,14 +56,16 @@ Your custom fields live under `metadata`. This block puts a new section *after* 
 
 {%- block additional_record_details -%}
   {{ super() }}
-  {% if metadata.sample_id %}
+  {% if d.metadata.sample_id %}
   <section id="sample-metadata" class="rel-mt-2">
     <h2>{{ _("Sample metadata") }}</h2>
     <dl class="ui list">
-      <dt>{{ _("Sample ID") }}</dt><dd>{{ metadata.sample_id }}</dd>
-      {% if metadata.concentration %}
-      <dt>{{ _("Concentration") }}</dt>
-      <dd>{{ metadata.concentration.value }} {{ metadata.concentration.unit }}</dd>
+      {# label + help come from your model YAML, already localized #}
+      <dt title="{{ d.help(d.metadata.sample_id) }}">{{ d.label(d.metadata.sample_id) }}</dt>
+      <dd>{{ d.metadata.sample_id | ui_value }}</dd>
+      {% if d.metadata.concentration %}
+      <dt title="{{ d.help(d.metadata.concentration) }}">{{ d.label(d.metadata.concentration) }}</dt>
+      <dd>{{ d.metadata.concentration.value | ui_value }} {{ d.metadata.concentration.unit | ui_value }}</dd>
       {% endif %}
     </dl>
   </section>
@@ -71,31 +73,26 @@ Your custom fields live under `metadata`. This block puts a new section *after* 
 {%- endblock additional_record_details -%}
 ```
 
-The `metadata` variable is the UI-serialized record (already localized, `ui_value()` applied). It is the same object available on the [deposit form's section `component` prop](#using-resource-components) — your schema labels/help texts are **not** automatically rendered here; the landing page only shows values.
+#### Pulling labels, help, and values from the model
 
-### 3. Add a banner
+`d` is a `FieldData` object — a per-field wrapper carrying **three** things: the raw API value, the UI-serialized value, and the UI definitions (`label` / `help` / `hint`) extracted from your model's YAML schema (set per-field under `label:` / `help:` / `hint:` keys — see [Model schema customization](/customize/model_backend/model#adding-new-metadata-to-the-model)). `label`, `help`, and `hint` are methods available on **every `FieldData` node**, taking the node as their argument. Index into `d` by field path and call them on `d`, e.g. `d.label(d.metadata.sample_id)`:
 
-Create (or edit) `banners.html`. To add a model-specific banner *and* keep the built-in community / preview / new-version banners, extend the default rather than literally re-including it:
+| Call | Returns |
+|---|---|
+| `d.label(d.metadata.sample_id)` | Field label from the model schema, localized |
+| `d.help(d.metadata.sample_id)` | Help text from the model schema, localized |
+| `d.hint(d.metadata.sample_id)` | Hint text from the model schema, localized |
+| `d.metadata.sample_id \| ui_value` | UI-serialized value (localized dates, vocabulary titles, …); falls back to the raw value |
+| `value(d.metadata.sample_id)` | Raw API value |
+| `d.metadata.sample_id` in an `{% if %}` | Truthy when the field has a non-empty value |
 
-```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/record_detail/banners.html"
-{% extends "oarepo_ui/record_detail/banners.html" %}
+These are the exact calls oarepo-ui's own field components use (see `oarepo_ui/templates/components/datafields/IField.jinja`) — all available in templates without any import. `ui_value` also has a function form (`ui_value(x)`, same thing) while `value` is function-form only, and `label` / `help` / `hint` are node methods, not filters. Labels/help/hint return `"Item does not exist"` when the field isn't defined in the schema — gate the whole section with `{% if d.metadata.field %}` as in the example above.
 
-{%- block banner_preview_header -%}
-  {{ super() }}
-  {% if extra_context.retrieval_warning %}
-  <div class="ui warning message">
-    <i class="exclamation triangle icon"></i>
-    {{ extra_context.retrieval_warning }}
-  </div>
-  {% endif %}
-{%- endblock banner_preview_header -%}
-```
+Simpler alternative when you *don't* need schema metadata: `metadata` is the plain UI-serialized dict (`record_ui["metadata"]` — already localized), so `{{ metadata.sample_id }}` renders the value directly. Reach for `d` when you want the model's labels/help to render with the field.
 
-Here `extra_context.retrieval_warning` is something you set in a [Resource component](#using-resource-components). Omission: to **remove** the community banner entirely, define `{% block banner_community_header %}{% endblock %}` without a `super()` call.
+### 3. Add a sidebar widget
 
-### 4. Add a sidebar widget
-
-The modern way to extend the right sidebar is per-model configuration in `invenio.cfg` — you write a template that renders **one widget**, and oarepo-ui slots it into the sidebar list. This appends your widget *after* the built-in list (versions, keywords, licenses, citations, export, …) while leaving the rest alone:
+To extend the right sidebar for one model, set `OAREPO_UI_SIDEBAR_TEMPLATES` in `invenio.cfg`. You write a template that renders **one widget**, and oarepo-ui slots it into the sidebar list. This appends your widget *after* the built-in list (versions, keywords, licenses, citations, export, …) while leaving the rest alone:
 
 ```python filename="invenio.cfg"
 OAREPO_UI_SIDEBAR_TEMPLATES = {
@@ -130,38 +127,13 @@ OAREPO_UI_SIDEBAR_TEMPLATES = {
 `OAREPO_UI_SIDEBAR_TEMPLATES` is read by the oarepo-ui fallback sidebar template (`oarepo_ui/record_detail/side_bar/record_sidebar.html`). When the config key exists for your `model_name`, the **whole** built-in Invenio sidebar list is replaced by the list you supply — so include the defaults you still want.
 </Callout>
 
-#### The older global config (still works)
+#### Changing it for all models
 
-`APP_RDM_DETAIL_SIDE_BAR_TEMPLATES` still exists in `invenio.cfg` and is honored when `OAREPO_UI_SIDEBAR_TEMPLATES` has no entry for your model. The default value, from invenio-app-rdm, is the same 12-item list shown above. Modify it if you want a global (all-models) change; prefer the per-model config for a single model.
+`APP_RDM_DETAIL_SIDE_BAR_TEMPLATES` sets the same widget list globally, and is used when `OAREPO_UI_SIDEBAR_TEMPLATES` has no entry for your model. Its default, from invenio-app-rdm, is the 12-item list shown above. Override it for a change across all models; prefer `OAREPO_UI_SIDEBAR_TEMPLATES` for a single model.
 
 <Callout type="info">
 Don't confuse the per-widget template list with the `record_sidebar.html` **partial block** — creating a `record_sidebar.html` partial (cheat sheet) replaces the *entire* sidebar HTML, which is rarely what you want. Use the config approach first.
 </Callout>
-
-## File Reference: Default Template Locations
-
-Everything below lives under `ui/mymodel/templates/semantic-ui/mymodel/`. The `record_detail` folder holds the partials; the top-level `record_detail.html` is generated by `nrp-model-copier` for models based on the RDM/CCMM presets.
-
-<FileTree>
-  <FileTree.Folder name="ui/mymodel/templates/semantic-ui/mymodel" defaultOpen>
-    <FileTree.File name="record_detail.html" />
-    <FileTree.Folder name="record_detail" defaultOpen>
-      <FileTree.File name="main.html" />
-      <FileTree.File name="banners.html" />
-      <FileTree.File name="css.html" />
-      <FileTree.File name="javascript.html" />
-      <FileTree.File name="head_meta.html" />
-      <FileTree.File name="record_sidebar.html" />
-      <FileTree.Folder name="side_bar">
-        <FileTree.File name="sample_history.html" />
-      </FileTree.Folder>
-    </FileTree.Folder>
-    <FileTree.File name="not_found.html" />
-    <FileTree.File name="tombstone.html" />
-  </FileTree.Folder>
-</FileTree>
-
-Only `main.html` is created by default for non-`empty` base models; the rest are opt-in.
 
 ## Block Reference: `main.html`
 
@@ -192,7 +164,7 @@ Use `{{ super() }}` inside an override to keep the parent block's output, then a
 
 ## Using Resource Components
 
-A resource component's `before_ui_detail` hook lets you inject arbitrary data into the template context — for the `extra_context.retrieval_warning` and `extra_context.sample_history` examples above, and for anything you'd otherwise have to fetch in the template. The correct hook signature takes the record as both the raw `api_record: RecordItem` and its serialized `record` dict:
+A resource component's `before_ui_detail` hook lets you inject arbitrary data into the template context — for the sidebar widget's `extra_context.sample_history` above, and for anything you'd otherwise have to fetch in the template. The correct hook signature takes the record as both the raw `api_record: RecordItem` and its serialized `record` dict:
 
 ```python filename="ui/mymodel/components.py"
 from oarepo_ui.resources.components import UIResourceComponent
@@ -210,11 +182,10 @@ class MymodelDetailComponent(UIResourceComponent):
         **kwargs,
     ):
         # `record` is the serialized UI dict; `api_record` is the RecordItem
-        extra_context["retrieval_warning"] = "Sample last measured 2025-11-02"
         extra_context["sample_history"] = self._load_history(api_record.id)
 
         # You can also add brand-new top-level template variables:
-        render_kwargs["extra_banner_image"] = "/static/images/sample-banner.png"
+        render_kwargs["hero_image_url"] = "/static/images/sample-hero.png"
 
     def _load_history(self, record_id):
         return []  # fetch from your service layer
@@ -232,7 +203,7 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     components = [MymodelDetailComponent]
 ```
 
-In the template you can read either `extra_context.sample_history` (or the shorthand: `extra_context` keys are *not* unpacked into the top-level context, only into the `extra_context` dict variable itself) or — if you put it in `render_kwargs` — as a top-level variable like `{{ extra_banner_image }}`.
+In the template you can read either `extra_context.sample_history` (note: `extra_context` keys are *not* unpacked into the top-level context — they stay in the `extra_context` dict variable) or — if you put it in `render_kwargs` — as a top-level variable like `{{ hero_image_url }}`.
 
 <Callout type="warning">
 The historical `before_detail(self, resource, request, extra_context, **kwargs)` hook **does not exist** in current oarepo-ui. `record` is also **not** pre-populated into `extra_context` — grab it from the `record` / `api_record` hook arguments.
