@@ -5,273 +5,134 @@ import { Card } from "@/components/card";
 
 The deposit form enables users to create and edit records. It's a React-based form application that provides field validation, dynamic sections, and integration with your record model.
 
-## Request and Application Flow
+## Key Concepts
 
-### Request Flow
+- **Wizard of sections** — the form renders as a wizard with vertical tabs, built from an **ordered array of section objects** (one tab each). You customize the form by composing and extending this array.
+- **Field metadata comes from the model** — labels, hints, help text, and required status are defined in your model's YAML schema and surfaced to React via the `useFieldData` hook. You place field components; you don't re-declare their labels in JSX.
+- **Server renders, React mounts** — the server-side view renders a page with hidden inputs (record, form config) plus an empty `<div id="deposit-form">`; a small webpack entry point mounts the React app onto that div.
 
-When a user accesses the deposit form URL:
-
-```mermaid
-graph TD
-    U[User] -->|GET /mymodel/uploads/new| VR[UI Resource View]
-    VR -->|fetch initial data and form config| SVC[Service Layer]
-    SVC -->|form config initial data| VR
-    VR -->|context variables| GC[Default JinjaX Component]
-    GC -->|extends| BD[mymodel/deposit_create or edit.html]
-    BD -->|embeds JS bundle| PG[Rendered HTML Page]
-    PG -->|mount| RA[React App]
-    PG -->|hidden inputs| RA
-    RA -->|renders form| U
-    RA -->|submit| API[REST APIs]
-    API -->|validation errors| RA
-    API -->|validated data| DB[(Database)]
-```
-
-### Application Layers
-
-The deposit form application is organized into server-side and client-side layers:
-
-```mermaid
-graph TD
-    subgraph ServerSide["Server-Side Python/JinjaX"]
-        VR["RecordsUIResource.deposit_{edit|create}"]
-        RC["UI Resource Components"]
-        GC["Default JinjaX Component"]
-        MT["mymodel/deposit_edit|create.html"]
-        BT["oarepo_ui/deposit_edit|create.html"]
-        ID["invenio_app_rdm/records/deposit.html"]
-        FH["deposit/form.html"]
-    end
-
-    subgraph ClientSide["Client-Side React"]
-        EP["Webpack Entry Point"]
-        DFA["DepositFormApp"]
-        DB["DepositBootstrap"]
-        BFL["BaseFormLayout"]
-        FFC["FormFieldsContainer"]
-    end
-
-    VR -->|auth and permissions| RC
-    RC -->|form_config and context| GC
-    GC -->|extends| MT
-    MT -->|extends| BT
-    BT -->|extends| ID
-    BT -->|includes| FH
-    FH -->|hidden inputs| EP
-    EP -->|mounts React app| DFA
-    DFA -->|renders| DB
-    DB -->|renders| BFL
-    BFL -->|renders| FFC
-```
-
-#### Server-Side Layers
-
-| Layer                 | Component                                                | Source                                                                                                     | Purpose                                                                    |
-| --------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **View**              | `RecordsUIResource.deposit_create/edit()`                | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py)         | Handles HTTP request, authenticates user, fetches record/draft data        |
-| **Components**        | `run_components()`                                       | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)          | Executes component hooks to modify `form_config` and add context variables |
-| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit`                     | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages)             | Pre-defined JinjaX page component with def block                           |
-| **Model Template**    | `model_name/deposit_edit\|create.html`                   | [nrp-model-copier](https://github.com/oarepo/nrp-model-copier)                                             | Model-specific template extending oarepo-ui base                           |
-| **Base Template**     | `invenio_app_rdm/records/deposit.html`                   | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm)                                      | Provides page skeleton (CSS, JS, header, footer blocks)                    |
-| **Form Content**      | `deposit/form.html`                                      | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app        |
-
-#### Client-Side Layers
-
-| Layer                | Component                                                                    | Source                                                                                                                                                                                      | Purpose                                                         |
-| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **Entry Point**      | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js`                | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Webpack entry that mounts React app to `#deposit-form` div      |
-| **Form App**         | `DepositFormApp`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx)                               | Main React form component with providers, router, and context   |
-| **Bootstrap**        | `DepositBootstrap`                                                           | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wraps form with notification providers and service setup        |
-| **Form Layout**      | `BaseFormLayout`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout)                                                  | Generic form layout component with overridable fields container |
-| **Fields Container** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/master/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Your custom component that defines form fields                  |
-
-## Configuration
-
-### UI Resource Routes
-
-The deposit routes are defined in your model's UI resource config:
-
-```python filename="ui/mymodel/__init__.py"
-from oarepo_ui.resources.records.config import RecordsUIResourceConfig
-
-class MymodelUIResourceConfig(RecordsUIResourceConfig):
-    blueprint_name = "mymodel"
-    url_prefix = "/mymodel"
-
-    routes = {
-        "deposit_create": "/uploads/new",
-        "deposit_edit": "/uploads/<pid_value>",
-        # ... other routes
-    }
-```
-
-### Form Configuration
-
-Form field definitions, labels, hints, and validation rules are derived from your record model's YAML schema definition. See [Model schema customization](/customize/model_backend/model) for details on defining field types, labels, hints, and help text.
-
-### Template Context
-
-When no custom page template is configured, oarepo-ui uses the default page component (`oarepo_ui.pages.DepositCreate` or `oarepo_ui.pages.DepositEdit`). This component declares all context variables in a `{# def #}` block and extends your model's base template.
-
-For example, the default component for `deposit_create` page:
-
-```jinja
-{# def
-  theme,
-  forms_config,
-  searchbar_config,
-  record,
-  community,
-  community_ui,
-  community_use_jinja_header,
-  files,
-  preselectedCommunity=None,
-  files_locked,
-  extra_context,
-  ui_links,
-  permissions,
-  webpack_entry,
-#}
-{% extends model_name ~ "/deposit_create.html" %}
-```
-
-The default component extends your model's base template (`mymodel/deposit_create.html` or `mymodel/deposit_edit.html`), which is provided by nrp-model-copier and extends `oarepo_ui/base_deposit.html`.
-
-These context variables are available in your templates:
-
-| Variable           | Description                                         |
-| ------------------ | --------------------------------------------------- |
-| `theme`            | Theme configuration                                 |
-| `forms_config`     | Form configuration                                  |
-| `searchbar_config` | Search bar configuration                            |
-| `record`           | Current record data (for edit mode)                 |
-| `community`        | Community data if applicable                        |
-| `community_ui`     | Community UI data                                   |
-| `files`            | Record files entries                                |
-| `extra_context`    | Additional context from resource components         |
-| `ui_links`         | UI links                                            |
-| `permissions`      | User permissions                                    |
-| `webpack_entry`    | Webpack entry point for the deposit form JavaScript |
+See [How It Works Under the Hood](#how-it-works-under-the-hood) for the full request and application-layer architecture.
 
 ## Building Your Deposit Form
 
-The nrp-model-copier template provides a starting point for your deposit form with **only two example fields**:
+What the nrp-model-copier template generates depends on the `base_model` you chose when creating the model:
 
-1. **Title** - A text field in the "Basic information" section
-2. **File uploads** - A file uploader in the "Files upload" section
+| `base_model` | Generated `forms/index.js` starts from |
+|---|---|
+| `empty` | A single placeholder [`ExampleSection`](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/exampleSection.js) — you build your own sections |
+| `rdm_minimal` | [`RDMMinimalSections`](https://github.com/oarepo/oarepo-rdm/blob/main/oarepo_rdm/ui/theme/assets/semantic-ui/js/oarepo_rdm_ui/form/RDMMinimalSections.js) + [`RDMMinimalRecordSerializer`](https://github.com/oarepo/oarepo-rdm/blob/main/oarepo_rdm/ui/theme/assets/semantic-ui/js/oarepo_rdm_ui/form/RDMMinimalRecordSerializer.js) from `@js/oarepo_rdm/form` |
+| `rdm_basic` | [`RDMBasicSections`](https://github.com/oarepo/oarepo-rdm/blob/main/oarepo_rdm/ui/theme/assets/semantic-ui/js/oarepo_rdm_ui/form/RDMBasicSections.js) from `@js/oarepo_rdm/form` |
+| `rdm_complete` | [`RDMCompleteSections`](https://github.com/oarepo/oarepo-rdm/blob/main/oarepo_rdm/ui/theme/assets/semantic-ui/js/oarepo_rdm_ui/form/RDMCompleteSections.js) from `@js/oarepo_rdm/form` |
+| `ccmm` | [`CCMMSections`](https://github.com/NRP-CZ/ccmm-invenio/blob/main/src/ccmm_invenio/ui/semantic-ui/js/ccmm_invenio/forms/CCMMSections.js) + [`CCMMDepositRecordSerializer`](https://github.com/NRP-CZ/ccmm-invenio/blob/main/src/ccmm_invenio/ui/semantic-ui/js/ccmm_invenio/forms/CCMMDepositRecordSerializer.js) from `@js/ccmm_invenio/forms` |
 
-To create a form for your specific model, you typically need to build your own from this starting point.
+All variants render the form with **wizard layout** (`useWizardForm`): the form is an ordered array of **section objects**, one wizard tab each. Customization therefore means composing and extending this section array — for non-empty base models you mostly *reconfigure* (reorder/omit/override preset sections, add your own); for `empty` you *build* the sections yourself. The recommended pattern is one section file per logical group, assembled in a `sections.js`, mirroring how the preset sections are organized in the source packages.
 
 <Steps>
 
 ### Define Your Fields in the Model Schema
 
-Add your fields to `{{model_name}}/metadata.yaml`. Field metadata (labels, hints, required status) is defined here:
+Add your custom fields to `models/{{model_name}}/metadata.yaml`. This file is for **your** fields only. Standard fields like `title`, `creators`, `resource_type`, `publication_date` are defined by the preset (`rdm_minimal_preset`, `rdm_basic_preset`, `rdm_complete_preset`, `ccmm_production_preset_1_1_0`) configured in `models/{{model_name}}/model.py`, so they are *not* in your YAML — and you must not repeat them here.
 
-```yaml filename="model/{{model_name}}/metadata.yaml"
+```yaml filename="models/{{model_name}}/metadata.yaml"
 # Definition of metadata for {{model_name}}
-
+# Standard RDM/CCMM fields (title, creators, resource_type, ...) are pulled in
+# from the preset configured in model.py — don't redefine them here.
 Metadata:
   properties:
-    title:
-      type: fulltext+keyword
+    sample_id:
+      type: keyword
       label:
-        en: Title
-        cs: Název
+        en: Sample identifier
+        cs: Identifikátor vzorku
       help:
-        en: The title of the record
-        cs: Název záznamu
+        en: Internal identifier of the chemical sample
+        cs: Interní identifikátor chemického vzorku
 
-    # Add your custom fields here
-    description:
-      type: fulltext
+    batch_number:
+      type: keyword
       label:
-        en: Description
-        cs: Popis
+        en: Batch number
+        cs: Číslo šarže
 
-    creators:
-      type: array
-      items:
-        type: vocabulary
-        vocabulary-type: creators
-      label:
-        en: Creators
-        cs: Autoři
+    concentration:
+      type: object
+      properties:
+        value:
+          type: float
+          label:
+            en: Concentration
+            cs: Koncentrace
+        unit:
+          type: keyword
+          label:
+            en: Unit
+            cs: Jednotka
 ```
+
+On **`empty`** models there is no preset, so *every* field (including `title`) has to be declared in this file.
 
 See [Model schema customization](/customize/model_backend/model) for details on defining field types, labels, hints, and help text.
 
-### Build Your Form in FormFieldsContainer
+### Build Your Form from Sections
 
-Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` to define your form fields organized into accordion sections:
+Create a section file per logical group of fields. A section is a plain object — `key` (used in the `?tab=key` URL), `label`, `component` rendering the section (typically its fields), and `includesPaths` (used for error indicators and the per-tab completion bar):
 
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
-import * as React from "react";
-import { useFormConfig, TextField, ArrayField } from "@js/oarepo_ui/forms";
-import { AccordionField } from "react-invenio-forms";
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/SampleInfoSection.js"
+import React from "react";
 import { i18next } from "@translations/i18next";
-import { UppyUploader } from "@js/invenio_rdm_records";
+import { TextField } from "@js/oarepo_ui/forms";
 
-const FormFieldsContainerComponent = ({ record }) => {
-  const formConfig = useFormConfig();
-  const { filesLocked } = formConfig;
-
-  return (
+export const SampleInfoSection = {
+  key: "sample-info",
+  label: i18next.t("Sample information"),
+  component: ({ record, formConfig }) => (
     <React.Fragment>
-      {/* Basic Information Section */}
-      <AccordionField
-        includesPaths={["metadata.title", "metadata.description"]}
-        active
-        label={i18next.t("Basic information")}
-      >
-        <TextField fieldPath="metadata.title" />
-        <TextField
-          fieldPath="metadata.description"
-          // Field metadata (label, hint) comes from model schema
-        />
-      </AccordionField>
-
-      {/* Creators Section - Array Field */}
-      <AccordionField
-        includesPaths={["metadata.creators"]}
-        active
-        label={i18next.t("Creators")}
-      >
-        <ArrayField
-          fieldPath="metadata.creators"
-          addButtonLabel={i18next.t("Add creator")}
-        >
-          {/* Creator subfields */}
-        </ArrayField>
-      </AccordionField>
-
-      {/* Files Upload Section */}
-      <AccordionField
-        includesPaths={["files.enabled"]}
-        active
-        label={
-          <label htmlFor="files.enabled">{i18next.t("Files upload")}</label>
-        }
-        data-testid="filesupload-button"
-      >
-        <UppyUploader
-          isDraftRecord={!record.is_published}
-          config={formConfig}
-          quota={formConfig.quota}
-          filesLocked={filesLocked}
-        />
-      </AccordionField>
+      <TextField fieldPath="metadata.sample_id" required />
+      <TextField fieldPath="metadata.batch_number" />
+      <TextField fieldPath="metadata.concentration.value" />
+      <TextField fieldPath="metadata.concentration.unit" />
     </React.Fragment>
-  );
+  ),
+  includesPaths: [
+    "metadata.sample_id",
+    "metadata.batch_number",
+    "metadata.concentration",
+  ],
 };
 ```
 
-**Key concepts:**
+Field labels, hints and help texts come from the model schema automatically (`useFieldData`) — you only place the components. Collect your sections in one file, composing them with the preset sections shipped with your base model. For a **non-empty base model** the preset sections already cover the standard fields (`metadata.title`, `metadata.creators`, files, community, ...) — your own sections carry only your custom fields:
 
-- **`AccordionField`** - Groups related fields into collapsible sections
-- **`includesPaths`** - Array of field paths that trigger accordion expansion when modified, and ensures field errors display under the correct section
-- **`active`** - Whether section is expanded by default
-- **`fieldPath`** - Dot-separated path to the field in the record data (e.g., `metadata.title`)
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+import { RDMCommunityAndAccess, RDMFiles, RDMGeneralInformationBasic } from "@js/oarepo_rdm/form";
+import { SampleInfoSection } from "./SampleInfoSection";
+
+export const mySections = [
+  RDMGeneralInformationBasic, // preset: metadata.title, creators, ...
+  RDMFiles, // preset: file upload
+  RDMCommunityAndAccess, // preset: community + access
+  SampleInfoSection, // custom: metadata.sample_id, batch_number, concentration
+];
+```
+
+Finally pass the array (and an optional record serializer) to the form in the generated entry point:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { mySections } from "./sections";
+import { OARepoDepositSerializer } from "@js/oarepo_ui";
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    {...rest}
+    sections={mySections}
+    recordSerializer={OARepoDepositSerializer}
+    useWizardForm
+  />,
+  rootEl,
+);
+```
+
+See [Defining Sections](#defining-sections) below for the full section-object reference (auto-save, completion indicator, locking).
 
 ### Choose Field Components
 
@@ -280,125 +141,44 @@ Use the components documented in [Deposit Form Components](/customize/model_ui/d
 | Component                  | Use for                           | Example                                  |
 | -------------------------- | --------------------------------- | ---------------------------------------- |
 | `TextField`                | Single-line/multi-line text input | `metadata.title`, `metadata.name`        |
-| `RichInputField`           | Rich text editor                  | `metadata.description`                   |
-| `ArrayField`               | Arrays of items                   | `metadata.creators`, `metadata.keywords` |
-| `VocabularyField`          | Vocabulary-selected items         | `metadata.resource_type`                 |
-| `EDTFDateRangePickerField` | Date ranges                       | `metadata.publication_date`              |
-| `SelectField`              | Dropdown selections               | Custom enumerations                      |
+| `StringArrayField`         | Arrays of plain strings           | `metadata.keywords`                      |
+| `MultilingualTextInput`    | Localized text (array of `{lang, value}`) | `metadata.description`           |
+| `VocabularyField` †        | Vocabulary-selected items         | `metadata.resource_type`                 |
+| `EDTFSingleDatePicker`     | EDTF dates                        | `metadata.publication_date`              |
+| `EDTFDaterangePicker`      | EDTF date ranges                  | `metadata.date_range`                    |
+| `CreatibutorsField`        | Persons/organizations with roles  | `metadata.creators`                      |
+
+† `VocabularyField` comes from `@js/oarepo_vocabularies/form` (package `oarepo-vocabularies`), not `@js/oarepo_ui/forms` — see [VocabularyField](/customize/model_ui/deposit_components#vocabularyfield).
 
 <Callout type="info">
-  If no suitable field component exists, you can [create custom form
-  components](#create-custom-form-components).
+  Generic containers (`ArrayField`, `GroupField`, `AccordionField`), plain
+  `SelectField` and `RichInputField` are **not** part of `@js/oarepo_ui/forms`
+  — import them from `react-invenio-forms`. If no suitable field component
+  exists, you can [create custom form
+  fields](#create-custom-form-fields).
 </Callout>
 
-### Verify Entry Point Configuration
+</Steps>
 
-The webpack entry point (`index.js`) is automatically configured by the copier template. It registers your `FormFieldsContainer` as an override:
+To reorder, extend, or remove parts of preset sections (`CCMMSections`, `RDM*Sections`) without rewriting them, use `componentOverrides` on `DepositFormApp` — see [Using CCMM sections](#using-ccmm-sections) for worked examples, including adding content below any section and removing individual fields.
 
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
-import { DepositFormApp, parseFormAppConfig } from "@js/oarepo_ui/forms";
-import ReactDOM from "react-dom";
-import { OARepoDepositSerializer } from "@js/oarepo_ui/api";
-import FormFieldsContainer from "./FormFieldsContainer";
+## The Wizard Form
 
-const overridableIdPrefix = "DepositForm";
-const rootElem = document.getElementById("deposit-form");
+The form is rendered as a wizard with vertical tabs — the entry point passes `useWizardForm` together with the `sections` array and an optional `componentOverrides` map to `DepositFormApp` (as in [Build Your Form from Sections](#build-your-form-from-sections)). This section is the reference for the wizard's behaviour and the section-object format.
 
-const config = parseFormAppConfig(rootElem);
+![Deposit form wizard with vertical section tabs](./images/deposit-form-wizard.png)
 
-// Register your custom FormFieldsContainer
-config.overridableComponents = {
-  [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
-};
+*Deposit form wizard: section tabs on the left (each with a completion bar and lock/error indicators), the active section's fields on the right.*
 
-ReactDOM.render(
-  <DepositFormApp config={config} serializer={OARepoDepositSerializer} />,
-  rootElem,
-);
-```
-
-You typically **don't need to modify** the entry point - just update `FormFieldsContainer.jsx` with your form fields.
-
-### Use the Wizard Form Layout (Optional)
-
-For complex forms with many fields, you can enable a wizard-style layout with vertical tabs. Enable wizard mode by adding the `useWizardForm` prop and providing `sections`:
-
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
-ReactDOM.render(
-  <DepositFormApp
-    config={config}
-    {...rest}
-    sections={mySections}
-    recordSerializer={OARepoDepositSerializer}
-    componentOverrides={componentOverrides}
-    useWizardForm // Enable wizard layout
-  />,
-  rootEl,
-);
-```
-
-#### How the Tab Form Works
+### How the Tab Form Works
 
 - **Free navigation** — users can switch between tabs at any time without being required to complete or validate the current section first. A section can opt out of this and temporarily lock navigation by defining a `lockTabChange` function (see [Locking Tab Navigation](#locking-tab-navigation)).
 - **Auto-save on tab switch** — if the form has unsaved changes when switching tabs, it automatically saves the draft. This also triggers a fresh round of validation errors from the backend, so validation feedback is up to date.
 - **URL persistence** — the active tab is reflected in the URL via the `?tab=key` query parameter, so users can bookmark or share a link that opens directly on a specific section.
 
-#### Defining Sections
+### Defining Sections
 
-Each section is a plain JavaScript object. The recommended approach is to define each section in its own file, then assemble them into an ordered array. This mirrors how `ccmm-invenio` organizes its built-in sections.
-
-A single section file looks like this:
-
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FilesSection.js"
-import React from "react";
-import { i18next } from "@translations/i18next";
-import { UppyUploader } from "@js/invenio_rdm_records";
-
-export const FilesSection = {
-  key: "files",
-  label: i18next.t("Upload files"),
-  component: ({ record, formConfig }) => {
-    const { filesLocked } = formConfig.config;
-    return (
-      <UppyUploader
-        isDraftRecord={!record.is_published}
-        config={formConfig}
-        quota={formConfig.quota}
-        filesLocked={filesLocked}
-      />
-    );
-  },
-  includesPaths: ["files.enabled"],
-};
-```
-
-Then collect all sections into an array in one place and pass it to `DepositFormApp`:
-
-```js filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
-import { BasicInformationSection } from "./BasicInformationSection";
-import { CreatorsSection } from "./CreatorsSection";
-import { FilesSection } from "./FilesSection";
-
-export const mySections = [
-  BasicInformationSection,
-  CreatorsSection,
-  FilesSection,
-];
-```
-
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
-import { mySections } from "./sections";
-
-ReactDOM.render(
-  <DepositFormApp
-    config={config}
-    sections={mySections}
-    recordSerializer={OARepoDepositSerializer}
-    useWizardForm
-  />,
-  rootEl,
-);
-```
+A worked example is in [Build Your Form from Sections](#build-your-form-from-sections) above. A section does not have to render fields only — it can render any React content (e.g. the file uploader, a community picker, a custom dashboard).
 
 **Section object properties:**
 
@@ -424,11 +204,11 @@ ReactDOM.render(
 | `back`          | function | Call `back()` to programmatically navigate to the previous tab                                                                                                        |
 | `initialRecord` | object   | The record data as it was when the form first loaded, before any user edits. Useful for comparing current state to the saved state                                    |
 
-#### Using CCMM sections
+### Using CCMM sections
 
 If during model creation you chose ccmm-invenio, your form will already be provided with prepared [sections](https://github.com/NRP-CZ/ccmm-invenio/blob/main/src/ccmm_invenio/ui/semantic-ui/js/ccmm_invenio/forms/CCMMSections.js) for this model.
 
-##### Adding Custom Sections
+#### Adding Custom Sections
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
 import { CCMMSections } from "@js/ccmm_invenio/forms";
@@ -439,14 +219,16 @@ import { i18next } from "@translations/i18next";
 export const mySections = [...CCMMSections, MyNewSection];
 ```
 
-##### Adding Content to Every Section via Override
+#### Adding Content to a Section via Override
 
-To add inputs or content at the bottom of every section (or specific sections), use the Overridable pattern with the section key:
+Below each section's content (and below the "unsaved changes" notice), `TabContent` renders an empty `<Overridable>` slot named `${overridableIdPrefix}.TabForm.TabContent.${section.key}` — see [`TabContent.jsx`](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/TabContent/TabContent.jsx#L132). Registering content for this ID *appends* it under the section's fields — it does not replace the section's own fields, the error boundary, or any part of the tab. To change a field *inside* the section, override its per-field ID instead (next section).
 
 ```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
-import { Overridable } from "react-overridable";
+import { parseFormAppConfig } from "@js/oarepo_ui/forms";
 
-// Override for a specific section
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridableIdPrefix = config.overridableIdPrefix;
+
 const BasicInfoExtra = ({ section, activeStep }) => (
   <div className="ui segment">
     <p>Additional content for {section.label}</p>
@@ -454,12 +236,15 @@ const BasicInfoExtra = ({ section, activeStep }) => (
 );
 
 const componentOverrides = {
-  [`${overridableIdPrefix}.FormFields.container`]: FormFieldsContainer,
   // Add content below the "general-information" section
   [`${overridableIdPrefix}.TabForm.TabContent.general-information`]:
     BasicInfoExtra,
 };
 ```
+
+`config.overridableIdPrefix` is read from the form config embedded in the page by `parseFormAppConfig()` — the same place the other overrides (e.g. `${prefix}.Files`, `${prefix}.TabForm.FormMetadataSummary`) get their prefix.
+
+For the full component-override mechanism (overridable IDs, registration, other slots), see [Component Overrides](/customize/repository_ui/js_assets/react/overrides).
 
 The override component receives these props:
 
@@ -468,7 +253,7 @@ The override component receives these props:
 - `next` - Function to navigate to next step
 - `back` - Function to navigate to previous step
 
-##### Reorganizing CCMM Sections
+#### Reorganizing CCMM Sections
 
 The `CCMMSections` export is a fixed ordered array. If you need a different order, or want to omit some sections, you cannot simply sort or filter the imported array — you need to import the individual section objects and assemble your own array:
 
@@ -495,7 +280,7 @@ export const mySections = [
 ];
 ```
 
-##### Overriding Individual Fields Within a Section
+#### Overriding Individual Fields Within a Section
 
 Each field inside a CCMM section is wrapped in an `<Overridable>` component, which means you can replace or adjust it via `componentOverrides` in your entry point without touching the section file itself.
 
@@ -534,7 +319,6 @@ const componentOverrides = {
       decimalSizeDisplay={formConfig.decimal_size_display}
       allowEmptyFiles={formConfig.allow_empty_files}
       fileUploadConcurrency={formConfig.file_upload_concurrency}
-      showMetadataOnlyToggle={false}
       filesLocked={true} // override: always lock files
     />
   ),
@@ -567,7 +351,7 @@ ReactDOM.render(
   `datasets/metadata.yaml`).
 </Callout>
 
-##### Section Completion Indicator
+#### Section Completion Indicator
 
 Because the wizard form only validates against the server when saving (i.e. when switching tabs), validation errors are not immediately visible while the user is editing. To compensate, each tab displays a real-time **progress bar** that shows how much of the section has been filled in. This gives users continuous feedback on their progress without waiting for a save round-trip.
 
@@ -608,7 +392,7 @@ export const BasicInformationSection = {
   key: "basic-info",
   label: i18next.t("Basic information"),
   component: BasicInfoComponent,
-  includesPaths: ["metadata.title", "metadata.description", "metadata.creators"],
+  includesPaths: ["metadata.sample_id", "metadata.batch_number", "metadata.concentration"],
   sectionCompletionThreshold: 0.6, // turn green at 60% instead of 80%
 };
 ```
@@ -623,7 +407,7 @@ If you want to hide the section completion indicator entirely, add the following
 }
 ```
 
-##### Locking Tab Navigation
+#### Locking Tab Navigation
 
 By default, users can move between tabs freely at any point — see [How the Tab Form Works](#how-the-tab-form-works). For some sections this is undesirable: a file upload may be in progress, a community selection step may need to be committed before continuing, or a particular operation must finish atomically. The `lockTabChange` property lets a section opt into temporarily blocking navigation while a condition holds.
 
@@ -668,7 +452,6 @@ export const FilesSection = {
   stuck on `true` will trap users on the current tab.
 </Callout>
 
-</Steps>
 
 ## Form Metadata Summary
 
@@ -743,6 +526,59 @@ const componentOverrides = {
 
 Prefer `useFormikContext` for anything you want to see change while the user is editing other tabs; fall back to the Redux record when you only care about persisted state (for example whether the record has been saved yet, or its server-assigned id).
 
+## Action Buttons
+
+The action row at the bottom of the wizard (Save / Publish / Preview / Delete / Share Draft) is rendered as a stack of `<Overridable>` slots, one per button — see [`TabForm.jsx`](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/TabForm/TabForm.jsx#L226). Each can be hidden, replaced, or extended independently, and the whole row can be replaced via `${prefix}.TabForm.actions`.
+
+| Override ID | Default |
+|---|---|
+| `${prefix}.TabForm.DeleteButton` | Invenio RDM `DeleteButton` (draft delete) |
+| `${prefix}.TabForm.ShareDraftButton` | Invenio RDM `ShareDraftButton` (grant access to the draft) |
+| `${prefix}.TabForm.PreviewButton` | Invenio RDM `PreviewButton` |
+| `${prefix}.TabForm.SaveButton` | Invenio RDM `SaveButton` |
+| `${prefix}.TabForm.PublishButton` | oarepo-ui `PublishButton` |
+| `${prefix}.TabForm.actions` | Wraps the whole row — replace to reorder or restyle all buttons |
+
+The defaults come from [`@js/invenio_rdm_records`](https://github.com/inveniosoftware/invenio-rdm-records/tree/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/controls) and [`@js/oarepo_ui/forms`](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/PublishButton).
+
+**Hide a button** — return `null`:
+
+```jsx
+const componentOverrides = {
+  // Hide the Preview button entirely
+  [`${overridablePrefix}.TabForm.PreviewButton`]: () => null,
+  // Hide Delete for users without the delete permission
+  [`${overridablePrefix}.TabForm.DeleteButton`]: () => null,
+};
+```
+
+**Replace a button** — render your own component. It receives the same props the default does (`record`, `permissions`, `groupsEnabled`, …, depending on the slot):
+
+```jsx
+const PreviewAsLink = () => {
+  const record = useSelector((state) => state.deposit.record);
+  return (
+    <Button
+      as="a"
+      href={record?.links?.self_html}
+      target="_blank"
+      icon="eye"
+      content={i18next.t("Preview")}
+    />
+  );
+};
+
+const componentOverrides = {
+  [`${overridablePrefix}.TabForm.PreviewButton`]: PreviewAsLink,
+};
+```
+
+**Restyle the whole row** — override the wrapping `TabForm.actions` slot. Its default is an empty fragment containing the per-button slots; replace it to add a header, change alignment, add leading content, etc.
+
+<Callout type="warning">
+Buttons are not "plain labels" — Save, Publish, Preview and Delete each trigger their own backend action (save draft, kick off the publish request, navigate to preview, soft-delete). Replacing one without wiring it to the corresponding Redux action will silently break that flow. Prefer hiding with `() => null` or wrapping the default component rather than rebuilding behaviour. The RDM reference implementation of these buttons is at [`invenio_rdm_records/…/deposit/controls`](https://github.com/inveniosoftware/invenio-rdm-records/tree/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/controls).
+</Callout>
+
 ## useFieldData Helper
 
 The `useFieldData` hook from `oarepo_ui/forms` provides access to field metadata (labels, help text, hints, required status, icon) defined in your model's YAML schema. This metadata is extracted during model compilation and made available to React components.
@@ -794,7 +630,7 @@ const MyField = ({ fieldPath }) => {
 
 All modes return an object with `helpText`, `label`, `placeholder`, `required`, `detail` (plus `labelIcon` in text mode).
 
-## Create Custom Form Components
+## Create Custom Form Fields
 
 If the available form components don't meet your needs, you can create custom fields using these patterns:
 
@@ -964,46 +800,86 @@ export default CustomField;
 
 ### Using Custom Fields
 
-Import and use your custom fields in `FormFieldsContainer.jsx`:
+Import and use the custom field components you created above inside your section components:
 
 ```jsx
+import React from "react";
+import { i18next } from "@translations/i18next";
 import { CustomField } from "./CustomField";
 import { UppercaseField } from "./UppercaseField";
 
-const FormFieldsContainerComponent = ({ record }) => {
-  return (
+export const CustomSection = {
+  key: "custom",
+  label: i18next.t("Custom"),
+  component: ({ record }) => (
     <React.Fragment>
-      <AccordionField includesPaths={["metadata.custom"]} active label="Custom">
-        <CustomField
-          fieldPath="metadata.custom"
-          icon="tag"
-          fieldRepresentation="full"
-          // Override label from schema if needed
-          label="Custom Field Label"
-        />
-        {/* Field that automatically converts input to uppercase */}
-        <UppercaseField
-          fieldPath="metadata.code"
-          fieldRepresentation="compact"
-        />
-      </AccordionField>
+      <CustomField
+        fieldPath="metadata.custom"
+        icon="tag"
+        fieldRepresentation="full"
+        // Override label from schema if needed
+        label="Custom Field Label"
+      />
+      {/* Field that automatically converts input to uppercase */}
+      <UppercaseField
+        fieldPath="metadata.code"
+        fieldRepresentation="compact"
+      />
     </React.Fragment>
-  );
+  ),
+  includesPaths: ["metadata.custom", "metadata.code"],
 };
 ```
 
 ## Optional: Custom Page Templates
 
-Add a **submission deadline banner** that appears when a deadline is approaching:
+Every generated model already ships `ui/mymodel/templates/semantic-ui/mymodel/deposit_{create,edit}.html`. These are *already* in the default inheritance chain — `oarepo_ui.pages.Deposit{Create,Edit}` (JinjaX wrapper) → `mymodel/deposit_{create,edit}.html` → `oarepo_ui/deposit_{create,edit}.html` → `invenio_app_rdm/records/deposit.html` — so your customizations take effect without any JinjaX component or `templates` registration. For the underlying templating model (Jinja vs JinjaX, template lookup, overriding by path), see [Templating in NRP Repositories](/customize/repository_ui/templating).
 
-### Step 1: Create the JinjaX component
+### Customize via Included Partials (Recommended)
 
-```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/DepositCreate.jinja"
-{# def record, extra_context, model_name, ... #}
-{% extends model_name ~ "/deposit_create.html" %}
+The generated `deposit_create.html` / `deposit_edit.html` comment points you at two hot-swappable partials that the parent `oarepo_ui/...` template auto-includes for you:
+
+| Partial | Path (inside `ui/mymodel/templates/semantic-ui/mymodel/`) | Purpose |
+|---|---|---|
+| Form container | `deposit_create/form.html` | Wraps/replaces the React mount div and surrounding markup of the page body |
+| JavaScript hooks | `deposit_create/javascript.html` | Adds model-specific `<script>` tags without touching the parent's `{% block javascript %}` (auto-included via the `ignore missing` fallback) |
+
+The JavaScript partial is the easiest safe override — just create the file. Content Security Policy blocks raw inline `<script>` tags, so the partial's role is to pull in a **webpack bundle** you've registered for the model — not to embed code directly. Register a bundle in your model's `webpack.py` (see [Webpack Configuration](/customize/repository_ui/webpack) for how registration works) and refer to it by name:
+
+```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/deposit_create/javascript.html"
+{{ webpack["mymodel_deposit_custom.js"] }}
 ```
 
-### Step 2: Create the template
+With the corresponding webpack entrypoint and registration, e.g.:
+
+```python filename="ui/mymodel/webpack.py"
+from invenio_assets.webpack import WebpackThemeBundle
+
+theme = WebpackThemeBundle(
+    __name__,
+    "assets",
+    default="semantic-ui",
+    themes={
+        "semantic-ui": {
+            "entry": {
+                # loaded via the deposit_create/javascript.html partial
+                "mymodel_deposit_custom": "./js/mymodel/deposit_custom.js",
+            },
+            # ...
+        },
+    },
+)
+```
+
+The base template's `{% block javascript %}` does `{% include model_name ~ "/deposit_create/javascript.html" ignore missing %}`, so adding the file is enough — no other change needed. (The same applies to a `deposit_edit/javascript.html` for the edit page.) Scripts pulled in this way are loaded from your static bundle, so they are CSP-safe.
+
+<Callout type="warning">
+Do **not** put a bare `<script>…</script>` block in the partial — browsers with strict Content Security Policy (default Invenio config) will refuse to execute it. Always go through `{{ webpack["…"] }}` or `{{ webpack_optional("…") }}`, or use `nonce` if you must inline something.
+</Callout>
+
+### Override a Block from the Parent Template
+
+For larger changes (e.g. an always-visible banner next to the form rather than in the bundle JS), override a block of the parent:
 
 ```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/deposit_create.html"
 {% extends "oarepo_ui/deposit_create.html" %}
@@ -1019,60 +895,27 @@ Add a **submission deadline banner** that appears when a deadline is approaching
 {% endblock %}
 ```
 
-### Step 2: Register the template
-
-Register in your UI resource config using dot notation:
-
-```python filename="ui/mymodel/__init__.py"
-class MymodelUIResourceConfig(RecordsUIResourceConfig):
-    # ...
-    templates = {
-        "deposit_create": "mymodel.DepositCreate",
-        "deposit_edit": "mymodel.DepositEdit",
-    }
-```
+`extra_context` is populated by a [Resource Component](#optional-resource-components) — see the `deadline` example there.
 
 <Callout type="info">
-  Note the dot notation: `mymodel.DepositCreate` refers to the JinjaX component
-  at `mymodel/DepositCreate.jinja`.
-</Callout>
-
-<Callout type="warning">
-**JinjaX Component Required:** When using `templates` configuration, you must create a valid **JinjaX page component** (e.g., `mymodel/DepositCreate.jinja`) with a `{# def #}` block declaring all context variables. The component should extend your model's base template. Without the `{# def #}` block, the template will fail to render.
-</Callout>
-
-## Custom JavaScript
-
-Add model-specific JavaScript to the deposit form without overriding the entire template:
-
-Create `ui/mymodel/templates/semantic-ui/mymodel/deposit_create/javascript.html`:
-
-```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/deposit_create/javascript.html"
-<script>
-  // Custom validation before form submission
-  document.addEventListener('DOMContentLoaded', function() {
-    console.log('Custom deposit form behavior');
-  });
-</script>
-```
-
-<Callout type="info">
-  The base template automatically includes this file if it exists at `
-  {model_name}/deposit_create/javascript.html`.
+The same pattern works in `deposit_edit.html`. The generated template body for an unmodified model is just `{% extends "oarepo_ui/deposit_create.html" %}` plus a comment block; your overrides plug in before the parent's `page_body` block renders.
 </Callout>
 
 ## Optional: Resource Components
 
-Use resource component hooks to modify form configuration or add template context:
+Use resource component hooks to modify form configuration or add template context. This is what supplies values like `extra_context.deadline` consumed by the [submission deadline banner](#override-a-block-from-the-parent-template) example above:
 
 ```python filename="ui/{{model_name}}/components.py"
 from oarepo_ui.resources.components import UIResourceComponent
 
 class ExtraContextComponent(UIResourceComponent):
-    def before_ui_edit(self, resource, request, extra_context, **kwargs):
-        """Add custom context to edit page."""
-        record = record_from_resource(request)
-        extra_context["record_history"] = self._get_history(record)
+    def before_ui_create(self, *, extra_context, **kwargs):
+        """Add submission deadline to the create page (used by a banner in deposit_create.html)."""
+        extra_context["deadline"] = "2026-12-31T23:59:59Z"
+
+    def before_ui_edit(self, *, record, extra_context, **kwargs):
+        """Add custom context to the edit page."""
+        extra_context["deadline"] = "2026-12-31T23:59:59Z"
 ```
 
 Register in your UI resource config:
@@ -1082,6 +925,149 @@ class MymodelUIResourceConfig(RecordsUIResourceConfig):
     # ...
     components = [ExtraContextComponent]
 ```
+
+## How It Works Under the Hood
+
+#### Request Flow
+
+When a user accesses the deposit form URL:
+
+```mermaid
+graph TD
+    U[User] -->|GET /mymodel/uploads/new| VR[UI Resource View]
+    VR -->|fetch initial data and form config| SVC[Service Layer]
+    SVC -->|form config initial data| VR
+    VR -->|context variables| GC[Default JinjaX Component]
+    GC -->|extends| BD[mymodel/deposit_create or edit.html]
+    BD -->|embeds JS bundle| PG[Rendered HTML Page]
+    PG -->|mount| RA[React App]
+    PG -->|hidden inputs| RA
+    RA -->|renders form| U
+    RA -->|submit| API[REST APIs]
+    API -->|validation errors| RA
+    API -->|validated data| DB[(Database)]
+```
+
+#### Application Layers
+
+The deposit form application is organized into server-side and client-side layers:
+
+```mermaid
+graph TD
+    subgraph ServerSide["Server-Side Python/JinjaX"]
+        VR["RecordsUIResource.deposit_{edit|create}"]
+        RC["UI Resource Components"]
+        GC["Default JinjaX Component"]
+        MT["mymodel/deposit_edit|create.html"]
+        BT["oarepo_ui/deposit_edit|create.html"]
+        ID["invenio_app_rdm/records/deposit.html"]
+        FH["deposit/form.html"]
+    end
+
+    subgraph ClientSide["Client-Side React"]
+        EP["Webpack Entry Point"]
+        DFA["DepositFormApp"]
+        DB["DepositBootstrap"]
+        BFL["BaseFormLayout"]
+        SEC["Your sections (wizard)"]
+    end
+
+    VR -->|auth and permissions| RC
+    RC -->|form_config and context| GC
+    GC -->|extends| MT
+    MT -->|extends| BT
+    BT -->|extends| ID
+    BT -->|includes| FH
+    FH -->|hidden inputs| EP
+    EP -->|mounts React app| DFA
+    DFA -->|renders| DB
+    DB -->|renders| BFL
+    BFL -->|renders| SEC
+```
+
+##### Server-Side Layers
+
+| Layer                 | Component                                                | Source                                                                                                     | Purpose                                                                    |
+| --------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **View**              | `RecordsUIResource.deposit_create/edit()`                | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/records/resource.py)         | Handles HTTP request, authenticates user, fetches record/draft data        |
+| **Components**        | `run_components()`                                       | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)          | Executes component hooks to modify `form_config` and add context variables |
+| **Default Component** | `oarepo_ui.pages.DepositCreate/Edit`                     | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/templates/oarepo_ui/pages)             | Pre-defined JinjaX page component with def block                           |
+| **Model Template**    | `model_name/deposit_edit\|create.html`                   | [nrp-model-copier](https://github.com/oarepo/nrp-model-copier)                                             | Model-specific template extending `oarepo_ui/deposit_edit\|create.html`     |
+| **Base Template**     | `invenio_app_rdm/records/deposit.html`                   | [invenio-app-rdm](https://github.com/inveniosoftware/invenio-app-rdm)                                      | Provides page skeleton (CSS, JS, header, footer blocks)                    |
+| **Form Content**      | `deposit/form.html`                                      | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/deposit/form.html) | Renders hidden inputs with config and placeholder div for React app        |
+
+##### Client-Side Layers
+
+| Layer                | Component                                                                    | Source                                                                                                                                                                                      | Purpose                                                         |
+| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Entry Point**      | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js`                | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms))                  | Webpack entry that mounts React app to `#deposit-form` div      |
+| **Form App**         | `DepositFormApp`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/DepositFormApp/DepositFormApp.jsx)                               | Main React form component with providers, router, and context   |
+| **Bootstrap**        | `DepositBootstrap`                                                           | [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/api/DepositBootstrap.js) | Wires the form into redux via `DepositFormSubmitContext` and `BaseForm` (save/publish/preview/delete actions) |
+| **Form Layout**      | `BaseFormLayout`                                                             | [oarepo-ui](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/BaseFormLayout)                                                  | Generic form layout component with overridable fields container |
+| **Sections** | `{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` (+ section files you add) | Model-specific ([nrp-model-copier](https://github.com/oarepo/nrp-model-copier/tree/rdm-14/template/ui/%7B%7Bmodel_name%7D%7D/semantic-ui/js/%7B%7Bmodel_name%7D%7D/forms)) | Your custom sections composing the wizard form |
+
+#### UI Resource Routes
+
+The deposit routes that trigger this flow are defined in your model's UI resource config:
+
+```python filename="ui/mymodel/__init__.py"
+from oarepo_ui.resources.records.config import RecordsUIResourceConfig
+
+class MymodelUIResourceConfig(RecordsUIResourceConfig):
+    blueprint_name = "mymodel"
+    url_prefix = "/mymodel"
+
+    routes = {
+        "deposit_create": "/uploads/new",
+        "deposit_edit": "/uploads/<pid_value>",
+        # ... other routes
+    }
+```
+
+#### Template Context
+
+When no custom page template is configured, oarepo-ui uses the default page component (`oarepo_ui.pages.DepositCreate` or `oarepo_ui.pages.DepositEdit`). This component declares all context variables in a `{# def #}` block and extends your model's base template.
+
+The `{# def #}` block below is from the `deposit_create` page component (the `deposit_edit` block is identical except it omits `preselectedCommunity` and adds `file_modification = {}`):
+
+```jinja
+{# def
+  theme,
+  forms_config,
+  searchbar_config,
+  record,
+  community,
+  community_ui,
+  community_use_jinja_header,
+  files,
+  preselectedCommunity=None,  # create only
+  files_locked,
+  extra_context,
+  ui_links,
+  permissions,
+  webpack_entry,
+#}
+{% extends model_name ~ "/deposit_create.html" %}
+```
+
+The default component extends your model's base template (`mymodel/deposit_create.html` or `mymodel/deposit_edit.html`), which is provided by nrp-model-copier and extends `oarepo_ui/deposit_create.html` / `oarepo_ui/deposit_edit.html`.
+
+These context variables are available in your templates:
+
+| Variable           | Description                                         |
+| ------------------ | --------------------------------------------------- |
+| `theme`            | Theme configuration                                 |
+| `forms_config`     | Form configuration                                  |
+| `searchbar_config` | Search bar configuration                            |
+| `record`           | Current record data (for edit mode)                 |
+| `community`        | Community data if applicable                        |
+| `community_ui`     | Community UI data                                   |
+| `files`            | Record files entries                                |
+| `extra_context`    | Additional context from resource components         |
+| `ui_links`         | UI links                                            |
+| `permissions`      | User permissions                                    |
+| `webpack_entry`    | Webpack entry point for the deposit form JavaScript |
+
 
 ## Further Reading
 

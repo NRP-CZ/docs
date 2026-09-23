@@ -29,7 +29,7 @@ Automatically applies field metadata from your model YAML, XSS protection, and F
 |------|------|---------|-------------|
 | `fieldPath` | string | (required) | Dot-separated path to field in form state |
 | `fieldRepresentation` | string | `"full"` | Label display mode passed to `useFieldData`: `"full"`, `"compact"`, `"text"` |
-| `icon` | string | `"pencil"` | Icon to display with field (passed to `useFieldData`) |
+| `icon` | string | `""` | Icon to display with field (passed to `useFieldData`) |
 | `optimized` | boolean | true | Use `FastField` for performance (only re-renders this field) |
 
 ### StringArrayField
@@ -66,26 +66,26 @@ import { StringArrayField } from "@js/oarepo_ui/forms";
 
 ### Date Fields
 
-Extended Date/Time Format (EDTF) compliant date pickers:
+Extended Date/Time Format (EDTF) compliant date pickers. The exported component names are `EDTFSingleDatePicker` and `EDTFDaterangePicker` (no `Field` suffix):
 
 ```jsx
 import {
-  EDTFSingleDatePickerField,
-  EDTFDateRangePickerField,
+  EDTFSingleDatePicker,
+  EDTFDaterangePicker,
 } from "@js/oarepo_ui/forms";
 
 // Single date
-<EDTFSingleDatePickerField fieldPath="metadata.publication_date" />
+<EDTFSingleDatePicker fieldPath="metadata.publication_date" />
 
 // Date range with single/range toggle
-<EDTFDateRangePickerField fieldPath="metadata.date_range" />
+<EDTFDaterangePicker fieldPath="metadata.date_range" />
 ```
 
 **Source:** [oarepo-ui/forms/components/EDTFDatePickerField](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/EDTFDatePickerField)
 
 **Based on:** Formik `useField`, `react-datepicker`
 
-#### EDTFSingleDatePickerField
+#### EDTFSingleDatePicker
 
 **Props:**
 
@@ -100,7 +100,7 @@ import {
 | `customInputProps` | object | `{}` | Props passed to custom input element |
 | `icon` | string | `"calendar"` | Icon displayed next to label |
 
-#### EDTFDateRangePickerField
+#### EDTFDaterangePicker
 
 **Props:**
 
@@ -153,7 +153,7 @@ import { I18nRichInputField } from "@js/oarepo_ui/forms";
 
 <I18nRichInputField
   fieldPath="metadata.description"
-  editorConfig={{ minHeight: 150 }}
+  usedLanguages={["en", "cs"]}
 />
 ```
 
@@ -167,7 +167,6 @@ import { I18nRichInputField } from "@js/oarepo_ui/forms";
 |------|------|---------|-------------|
 | `fieldPath` | string | (required) | Base path for the multilingual field |
 | `optimized` | boolean | true | Enable form-level optimizations |
-| `editorConfig` | object | `{}` | Configuration for rich-text editor |
 | `lngFieldWidth` | number | 3 | Width of language selector (columns) |
 | `usedLanguages` | array | `[]` | Already used language codes to exclude |
 
@@ -199,7 +198,7 @@ import { MultilingualTextInput } from "@js/oarepo_ui/forms";
 | `defaultNewValue` | object | `{lang:"", value:""}` | Default for new language entry |
 | `rich` | boolean | false | Use rich-text editor instead of plain text |
 | `addButtonLabel` | string | _(i18n)_ | Label for "add language" button |
-| `lngFieldWidth` | number | _(from config)_ | Width of language selector |
+| `lngFieldWidth` | number | 3 | Width of language selector |
 | `showEmptyValue` | boolean | false | Show empty input when no values |
 | `prefillLanguageWithDefaultLocale` | boolean | false | Prefill new language with default locale |
 | `removeButtonLabelClassName` | string | `""` | CSS class for remove button label |
@@ -269,7 +268,7 @@ import { CreatibutorsField } from "@js/oarepo_ui/forms";
 | `autocompleteNames` | `"search"` \| `"search_only"` \| `"off"` | `"search"` | Name autocomplete behavior |
 | `roleOptions` | array | _(from config)_ | Options for role dropdown |
 
-**Role options** are typically loaded from form config at `vocabularies.contributor-types`.
+**Role options** are typically loaded from form config at `vocabularies.contributors.role`.
 
 #### IdentifiersField
 
@@ -319,7 +318,7 @@ InvenioRDM provides two file upload UI options:
 | **FileUploader** | `APP_RDM_DEPOSIT_NG_FILES_UI_ENABLED = False` |
 | **UppyUploader** | `APP_RDM_DEPOSIT_NG_FILES_UI_ENABLED = True` (enable in `invenio.cfg`) |
 
-**Note:** The nrp-model-copier template uses `UppyUploader` by default in `FormFieldsContainer.jsx`. To use the standard uploader used by InvenioRDM, import `FileUploader` instead.
+**Note:** The current nrp-model-copier template (`rdm-14`) wires `UppyUploader` through the RDM/CCMM `files` section. To use the standard uploader used by InvenioRDM, import `FileUploader` instead.
 
 **CSP Configuration:** When using Uppy, add to your application configuration (`invenio.cfg`):
 ```python filename="invenio.cfg"
@@ -364,9 +363,9 @@ import { FileUploader } from "@js/invenio_rdm_records";
 | `config` | object | no | UI configuration or overrides |
 | `dragText` | string | _(i18n)_ | Text shown in drop-zone when dragging files |
 | `files` | object | no | Map of file identifiers → file metadata |
-| `isDraftRecord` | boolean | yes | `true` when editing a draft |
-| `hasParentRecord` | boolean | yes | Whether previous version exists (for import) |
-| `quota` | object | yes | `{maxStorage, maxFiles}` limits |
+| `isDraftRecord` | boolean | no (`true`) | `true` when editing a draft |
+| `hasParentRecord` | boolean | no (`false`) | Whether previous version exists (for import) |
+| `quota` | object | no | `{maxStorage, maxFiles}` limits |
 | `record` | object | no | Full record object |
 | `uploadButtonIcon` | string | `"upload"` | Icon for upload button |
 | `uploadButtonText` | string | _(i18n)_ | Upload button label |
@@ -376,10 +375,10 @@ import { FileUploader } from "@js/invenio_rdm_records";
 | `importParentFiles` | func | yes | Callback to import files from parent |
 | `uploadFiles` | func | yes | Callback to upload files: `(draft, files[]) => void` |
 | `deleteFile` | func | yes | Callback to delete a file |
-| `decimalSizeDisplay` | boolean | yes | Show file sizes with decimal units |
-| `filesLocked` | boolean | yes | Disable drop-zone (after publish) |
+| `decimalSizeDisplay` | boolean | no (`true`) | Show file sizes with decimal units |
+| `filesLocked` | boolean | no (`false`) | Disable drop-zone (after publish) |
 | `permissions` | object | no | Permission flags (`can_new_version`, etc.) |
-| `allowEmptyFiles` | boolean | yes | Allow zero-byte files |
+| `allowEmptyFiles` | boolean | no (`true`) | Allow zero-byte files |
 | `fileModification` | object | no | File modification settings for published records |
 
 **Features:**
@@ -404,7 +403,6 @@ import { UppyUploader } from "@js/invenio_rdm_records";
   decimalSizeDisplay={formConfig.decimal_size_display}
   allowEmptyFiles={formConfig.allow_empty_files}
   fileUploadConcurrency={formConfig.file_upload_concurrency}
-  showMetadataOnlyToggle={false}
   filesLocked={filesLocked}
 />
 ```
@@ -417,16 +415,17 @@ import { UppyUploader } from "@js/invenio_rdm_records";
 
 **Props:**
 
+The component is redux-connected; the upload/state callbacks (`importParentFiles`, `initializeFileUpload`, `finalizeUpload`, `uploadPart`, `setUploadProgress`, `saveAndFetchDraft`, `deleteFile`) are injected from the store and not normally passed by hand. The configurable props are:
+
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `isDraftRecord` | boolean | yes | Whether current record is a draft (allows uploads) |
-| `config` | object | yes | Form configuration object from deposit form |
-| `quota` | object | yes | Upload quota limits and remaining space |
-| `decimalSizeDisplay` | boolean | (from config) | Show file sizes with decimal or whole numbers |
-| `allowEmptyFiles` | boolean | (from config) | Allow uploading empty files |
-| `fileUploadConcurrency` | number | (from config) | Number of concurrent file uploads |
-| `showMetadataOnlyToggle` | boolean | false | Show metadata-only file toggle |
-| `filesLocked` | boolean | yes | Whether file uploads are disabled (published records) |
+| `isDraftRecord` | boolean | no | Whether current record is a draft (allows uploads); default `true` |
+| `config` | object | no | Form configuration object from deposit form |
+| `quota` | object | no | Upload quota limits and remaining space |
+| `decimalSizeDisplay` | boolean | no | Show file sizes with decimal units; default `true` |
+| `allowEmptyFiles` | boolean | no | Allow uploading empty files; default `true` |
+| `fileUploadConcurrency` | number | no | Number of concurrent file uploads; default `3` |
+| `filesLocked` | boolean | no | Whether file uploads are disabled (published records); default `false` |
 
 **Features:**
 - Drag-and-drop or picker for files/folders
@@ -653,9 +652,9 @@ import { i18next } from "@translations/i18next";
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `includesPaths` | array | (required) | Field paths triggering accordion expansion |
-| `active` | boolean | false | Whether section is expanded by default |
-| `label` | string/node | (required) | Section label |
+| `includesPaths` | array | `[]` | Field paths triggering the error badge on the accordion |
+| `active` | boolean | `true` | Whether the section starts expanded (default expanded) |
+| `label` | string/node | `""` | Section label |
 
 ### RichInputField
 

@@ -16,8 +16,12 @@ The nrp-model-copier template provides starter files that you **edit directly** 
 | Component | Purpose | Starter File | Documentation |
 |-----------|---------|--------------|----------------|
 | **Record detail** | Displays individual record | `ui/{{model_name}}/templates/semantic-ui/{{model_name}}/record_detail/main.html` | [Record landing page](/customize/model_ui/detail) |
-| **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` | [Deposit form](/customize/model_ui/deposit) |
+| **Deposit form** | Form for creating/editing records | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` (plus section files you add yourself) | [Deposit form](/customize/model_ui/deposit) |
 | **Search result** | How records appear in search | `ui/{{model_name}}/semantic-ui/js/{{model_name}}/search/ResultsListItem.jsx` | [Search page](/customize/model_ui/search) |
+
+<Callout type="warning">
+**No `FormFieldsContainer.jsx` is generated.** The current `nrp-model-copier` template (`rdm-14`) generates only `forms/index.js`, wiring preset section arrays (`CCMMSections`, `RDMMinimalSections`/`RDMBasicSections`, or `ExampleSection` for `empty` base models) into `DepositFormApp` with `useWizardForm`. Depending on the answers you gave during model creation, your generated `index.js` may even reference a ready-made section set from `@js/ccmm_invenio/forms` or `@js/oarepo_rdm/form`. Deposit forms are customized by defining **section objects** and, where needed, `componentOverrides` — see [Deposit form](/customize/model_ui/deposit#defining-sections). `FormFieldsContainer`-centric snippets elsewhere on this page predate the sections-based template.
+</Callout>
 
 <Callout type="info">
 For JavaScript file changes (deposit form, search result), run the assets watcher in a separate terminal to automatically rebuild on file changes:
@@ -98,63 +102,94 @@ Visit a record detail page at `https://127.0.0.1:5000/mymodel/your-record-id`
 
 ## 2. Customize Deposit Form
 
-Modify the deposit form starter component to match your record's metadata schema.
+Adapt the generated deposit form to your model's metadata schema.
 
 <Steps>
 
-### Step 1: Edit the starter form component
+### Step 1: Review the generated entry point
 
-Edit `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx` and add form fields that match your model's metadata schema:
+The copier template generated `ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js` for you. Its content depends on the `base_model` you chose — e.g. an `rdm_minimal` model starts from:
 
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { DepositFormApp, parseFormAppConfig } from "@js/oarepo_ui/forms";
+import { RDMMinimalSections, RDMMinimalRecordSerializer } from "@js/oarepo_rdm/form";
 import React from "react";
-import { Accordion, Form } from "semantic-ui-react";
-import { TextField, RichInputField, ArrayField } from "@js/oarepo_ui/forms";
+import ReactDOM from "react-dom";
 
-export const FormFieldsContainer = (props) => {
-  return (
-    <Accordion fluid className="pr-1 ml-0">
-      <Accordion.Content id="general" activeTitle="General">
-        <Form.Field required>
-          <label>Title</label>
-          <TextField
-            fieldPath="metadata.title"
-            label="Title"
-            required
-            {...props}
-          />
-        </Form.Field>
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const recordSerializer = new RDMMinimalRecordSerializer(
+  config.default_locale,
+  config.custom_fields.vocabularies,
+);
 
-        <Form.Field>
-          <label>Description</label>
-          <RichInputField
-            fieldPath="metadata.description"
-            label="Description"
-            {...props}
-          />
-        </Form.Field>
-
-        <Form.Field>
-          <label>Authors</label>
-          <ArrayField
-            fieldPath="metadata.authors"
-            label="Authors"
-            {...props}
-          >
-            <ArrayInput.Item>
-              <TextField fieldPath="" label="Author" required />
-            </ArrayInput.Item>
-          </ArrayField>
-        </Form.Field>
-      </Accordion.Content>
-    </Accordion>
-  );
-};
-
-export default FormFieldsContainer;
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    {...rest}
+    sections={RDMMinimalSections}
+    recordSerializer={recordSerializer}
+    useWizardForm
+  />,
+  rootEl,
+);
 ```
 
-For more on deposit form structure, see [Building Your Deposit Form](/customize/model_ui/deposit#building-your-deposit-form).
+### Step 2: Add a section with your fields
+
+First declare the fields in `model/{{model_name}}/metadata.yaml` (labels, hints and help texts live there — form components pick them up automatically via `useFieldData`). Then create a section file using [Deposit form components](/customize/model_ui/deposit_components):
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/BasicInformationSection.js"
+import React from "react";
+import { i18next } from "@translations/i18next";
+import { TextField } from "@js/oarepo_ui/forms";
+
+export const BasicInformationSection = {
+  key: "basic-information",
+  label: i18next.t("Basic information"),
+  component: () => (
+    <React.Fragment>
+      <TextField fieldPath="metadata.title" required />
+      <TextField fieldPath="metadata.description" />
+    </React.Fragment>
+  ),
+  includesPaths: ["metadata.title", "metadata.description"],
+};
+```
+
+For array fields use `StringArrayField` / `ArrayField`, for vocabularies `VocabularyField`, for EDTF dates the `EDTFSingleDatePicker` / `EDTFDaterangePicker` components.
+
+### Step 3: Compose your sections and pass them to the form
+
+Collect the sections in one place and swap them into `index.js`:
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/sections.js"
+import { BasicInformationSection } from "./BasicInformationSection";
+// Compose with or replace preset sections, e.g.
+// import { RDMCommunityAndAccess, RDMFiles } from "@js/oarepo_rdm/form";
+
+export const mySections = [
+  // RDMCommunityAndAccess,
+  // RDMFiles,
+  BasicInformationSection,
+];
+```
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { mySections } from "./sections";
+// ...
+ReactDOM.render(
+  <DepositFormApp
+    config={config}
+    {...rest}
+    sections={mySections}
+    recordSerializer={recordSerializer}
+    useWizardForm
+  />,
+  rootEl,
+);
+```
+
+For more on the section object format (auto-save on tab switch, completion indicators, locking), see [Defining Sections](/customize/model_ui/deposit#defining-sections) and [Building Your Deposit Form](/customize/model_ui/deposit#building-your-deposit-form).
 
 ### Step 2: View changes
 
@@ -348,82 +383,41 @@ For more detail page customization options, see [Record landing page](/customize
 
 ### Deposit Form
 
-```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/FormFieldsContainer.jsx"
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/CustomFieldsSection.js"
 import React from "react";
-import { Accordion, Form } from "semantic-ui-react";
-import { TextField, RichInputField, DateField, ArrayField } from "@js/oarepo_ui/forms";
+import { i18next } from "@translations/i18next";
+import { TextField, StringArrayField, EDTFSingleDatePicker } from "@js/oarepo_ui/forms";
 
-export const FormFieldsContainer = (props) => {
-  return (
-    <Accordion fluid className="pr-1 ml-0">
-      <Accordion.Content id="general" activeTitle="General">
-        <Form.Field required>
-          <TextField
-            fieldPath="metadata.title"
-            label="Title"
-            required
-            {...props}
-          />
-        </Form.Field>
-        <Form.Field>
-          <TextField
-            fieldPath="metadata.subtitle"
-            label="Subtitle"
-            {...props}
-          />
-        </Form.Field>
-        <Form.Field>
-          <TextField
-            fieldPath="metadata.isbn"
-            label="ISBN"
-            {...props}
-          />
-        </Form.Field>
-        <Form.Field>
-          <TextField
-            fieldPath="metadata.publisher"
-            label="Publisher"
-            {...props}
-          />
-        </Form.Field>
-        <Form.Field>
-          <DateField
-            fieldPath="metadata.published_date"
-            label="Published date"
-            {...props}
-          />
-        </Form.Field>
-      </Accordion.Content>
-
-      <Accordion.Content id="authors">
-        <Form.Field>
-          <ArrayField
-            fieldPath="metadata.authors"
-            label="Authors"
-            {...props}
-          >
-            <ArrayInput.Item>
-              <TextField fieldPath="" label="Author" required />
-            </ArrayInput.Item>
-          </ArrayField>
-        </Form.Field>
-      </Accordion.Content>
-
-      <Accordion.Content id="abstract">
-        <Form.Field>
-          <RichInputField
-            fieldPath="metadata.abstract"
-            label="Abstract"
-            {...props}
-          />
-        </Form.Field>
-      </Accordion.Content>
-    </Accordion>
-  );
+export const CustomFieldsSection = {
+  key: "custom-fields",
+  label: i18next.t("Publication"),
+  component: () => (
+    <React.Fragment>
+      <TextField fieldPath="metadata.title" required />
+      <TextField fieldPath="metadata.subtitle" />
+      <TextField fieldPath="metadata.isbn" />
+      <TextField fieldPath="metadata.publisher" />
+      <EDTFSingleDatePicker fieldPath="metadata.published_date" />
+      <StringArrayField
+        fieldPath="metadata.authors"
+        addButtonLabel="Add author"
+      />
+    </React.Fragment>
+  ),
+  includesPaths: [
+    "metadata.title",
+    "metadata.subtitle",
+    "metadata.isbn",
+    "metadata.publisher",
+    "metadata.published_date",
+    "metadata.authors",
+  ],
 };
-
-export default FormFieldsContainer;
 ```
+
+Register the section in `forms/sections.js` and pass the composed array as
+`sections={mySections}` to `DepositFormApp` in `forms/index.js` (see
+[Step 3](#step-3-compose-your-sections-and-pass-them-to-the-form) above).
 
 ### Search Result Item
 
