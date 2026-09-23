@@ -1,3 +1,5 @@
+import { Callout } from "nextra/components";
+
 # Configuration Reference
  
 This page provides a reference of configuration helpers available in NRP-based repositories through the `oarepo.config` module.
@@ -28,7 +30,7 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 - Sets `APP_ALLOWED_HOSTS` to allow local access (`0.0.0.0`, `localhost`, `127.0.0.1`).
 
 #### Security
-- Configures **default security headers** (`APP_DEFAULT_SECURE_HEADERS`) including `Content-Security-Policy`, HTTPS enforcement, frame options, and cookie security.
+- Constructs the **baseline** `APP_DEFAULT_SECURE_HEADERS` dictionary — CSP defaults, HTTPS enforcement, frame options, cookie security, HSTS. Appends the S3 endpoint to `default-src` when S3 storage is configured. The value is then **extended** by [`configure_ui`](#configure_ui) (license badges, Matomo). See [Security headers](#security-headers-app_default_secure_headers) for the full defaults and how to customize them.
 - Enables secure cookies (`SESSION_COOKIE_SECURE=True`) and sets sane `Strict-Transport-Security` defaults.
 - Enables local login and fine-grained security features (registration, password recovery, confirmation) via environment toggles (`INVENIO_SECURITY_*`).
 - Configures rate limits for guest and authenticated users (`RATELIMIT_GUEST_USER`, `RATELIMIT_AUTHENTICATED_USER`).
@@ -124,6 +126,7 @@ _Defined in `oarepo/config/ui.py`._
 | `use_default_frontpage` | `bool` | `False` | If `True`, uses the standard default front page layout instead of a custom one. |
 | `show_frontpage_intro` | `bool` | `True` | Controls whether the front-page introduction (hero/intro section) is displayed. |
 | `analytics` | `bool` | `False` | Enables analytics integration. Set to `"matomo"` to enable Matomo tracking (requires additional environment vars). |
+| `csp` | `CSP \| None` | `None` | Optional Content-Security-Policy additions, declared as a `config.CSP` instance. Merged with the `APP_DEFAULT_SECURE_HEADERS` baseline via `CSP.apply_defaults()` following CSP's fallback rules, so adding e.g. `connect_src` doesn't drop the existing `default-src` sources. See [Security headers](#security-headers-app_default_secure_headers). |
 
 ---
 
@@ -148,7 +151,9 @@ Calling `configure_ui()` populates numerous **UI- and frontend-related configura
 - If `analytics="matomo"` and the deployment is **not local**, adds Matomo tracking:
   - `MATOMO_ANALYTICS_TEMPLATE = "oarepo_ui/matomo_analytics.html"`
   - Reads `INVENIO_MATOMO_ANALYTICS_URL` and `INVENIO_MATOMO_ANALYTICS_SITE_ID` from environment.
-  - Extends the `Content-Security-Policy` to allow Matomo endpoint URLs.
+  - Appends the Matomo endpoint URL to `default-src` of `APP_DEFAULT_SECURE_HEADERS`'s
+    `Content-Security-Policy` (the helper also always appends `https://licensebuttons.net/`
+    for license badge images). See [Security headers](#security-headers-app_default_secure_headers).
 
 #### Frontend Build Configuration
 - Configures frontend build pipeline defaults:
@@ -169,6 +174,9 @@ config.configure_ui(
     analytics="matomo",
     use_default_frontpage=False,
     show_frontpage_intro=True,
+    csp=config.CSP(
+        connect_src=["https://api.example.org"],
+    ),
 )
 ```
 
@@ -410,3 +418,124 @@ config.register_workflow(
      "oarepo_workflows.requests.policy.WorkflowRequestPolicy",
 )
 ```
+
+---
+
+## Common configuration topics
+
+The helpers above are the building blocks; this section expands on a few cross-cutting
+configuration values they manage, so you can adjust them safely when needed.
+
+### Security headers (`APP_DEFAULT_SECURE_HEADERS`)
+
+NRP repositories configure HTTP security headers through the standard Invenio
+[`APP_DEFAULT_SECURE_HEADERS`](https://inveniordm.docs.cern.ch/install/configuration/#security)
+variable. Invenio applies these headers to every response it serves.
+
+Two of the configuration helpers collaborate to build the dictionary:
+
+1. [`configure_generic_parameters`](#configure_generic_parameters) sets the **baseline** —
+   a full security-header dictionary with the CSP, HTTPS enforcement, cookie, and HSTS
+   defaults listed below, plus the `S3_ENDPOINT_URL` appended to `default-src` when S3
+   storage is used.
+2. [`configure_ui`](#configure_ui) then **extends** the value prepared by
+   `configure_generic_parameters` — it appends `https://licensebuttons.net/` to
+   `default-src` so license badge images load, and, when `analytics="matomo"` is used on a
+   non-local deployment, appends the Matomo endpoint URL from `INVENIO_MATOMO_ANALYTICS_URL`.
+
+The baseline produced by `configure_generic_parameters()` looks like this:
+
+```python filename="invenio.cfg (defaults set by configure_generic_parameters)"
+APP_DEFAULT_SECURE_HEADERS = {
+    "content_security_policy": {
+        "default-src": [
+            "'self'",
+            "fonts.googleapis.com",  # for fonts
+            "*.gstatic.com",         # for fonts
+            "data:",                 # for fonts
+            "'unsafe-inline'",       # for inline scripts and styles
+            "blob:",                 # for pdf preview
+        ],
+        "script-src": [
+            "'self'",
+            "blob:",
+            "'wasm-unsafe-eval'",    # checksum Web Worker (hash-wasm) for multipart uploads
+        ],
+    },
+    "content_security_policy_report_only": False,
+    "content_security_policy_report_uri": None,
+    "force_file_save": False,
+    "force_https": True,
+    "force_https_permanent": False,
+    "frame_options": "sameorigin",
+    "frame_options_allow_from": None,
+    "session_cookie_http_only": True,
+    "session_cookie_secure": True,
+    "strict_transport_security": True,
+    "strict_transport_security_include_subdomains": True,
+    "strict_transport_security_max_age": 31556926,  # one year, in seconds
+    "strict_transport_security_preload": False,
+}
+```
+
+#### Customizing the CSP
+
+Do **not** edit `APP_DEFAULT_SECURE_HEADERS` by hand for routine CSP changes — pass a
+[`config.CSP`](https://github.com/oarepo/oarepo-config/blob/main/oarepo_config/ui.py) instance
+to `configure_ui()` via its `csp=` argument instead. The helper merges your directives with
+the already-configured defaults, following the CSP specification's own fallback rules, so
+you don't accidentally drop sources the application still needs:
+
+```python filename="invenio.cfg"
+from oarepo import config
+
+config.configure_generic_parameters()
+
+config.configure_ui(
+    code="myrepo",
+    name=_("My NRP Repository"),
+    csp=config.CSP(
+        # let the deposit form call an external vocabulary API from the browser
+        connect_src=["https://api.example.org"],
+        # allow embedding this repository in an iframe on the same origin
+        frame_ancestors=["'self'"],
+    ),
+)
+```
+
+`CSP` is a dataclass with one field per directive — `default_src`, `script_src`,
+`script_src_elem`, `style_src`, `img_src`, `font_src`, `connect_src`, `object_src`,
+`media_src`, `frame_src`, `frame_ancestors`, `child_src`, `worker_src`, `manifest_src`,
+`form_action`, `base_uri`, `report_to` — plus `report_uri`, `report_only`, and `nonce_in`
+for Flask-Talisman's reporting options. Each directive field takes a list of sources.
+
+When `configure_ui()` applies your `CSP`, it resolves each directive against whatever was
+already configured:
+
+- **A directive you set** is merged with the sources already configured for it, or — if
+  none — with the sources of the directive it would fall back to (`script-src` for
+  `script-src-elem`, `child-src` for `frame-src`/`worker-src`, otherwise `default-src`).
+  This is what lets `csp=CSP(connect_src=["https://api.example.org"])` add to the existing
+  `default-src` sources instead of replacing them.
+- **`base_uri`, `form_action`, `frame_ancestors`, `report_to`** never inherit `default-src`,
+  matching the CSP spec — setting one only adds the sources you pass in.
+- **A directive you leave unset** keeps whatever was already configured, unchanged.
+
+For non-CSP keys (`force_https`, `frame_options`, `strict_transport_security_*`, etc.),
+no helper API exists — override them after both helpers, before `set_constants_in_caller`
+publishes the value:
+
+```python filename="invenio.cfg"
+config.configure_generic_parameters()
+config.configure_ui(code="myrepo", name=_("My NRP Repository"))
+
+# non-CSP overrides come after both helpers
+APP_DEFAULT_SECURE_HEADERS["frame_options"] = "deny"
+```
+
+<Callout type="info">
+You only need to extend CSP when the **browser** talks to an additional origin — external
+vocabulary autocomplete endpoints, analytics providers, embedded media, additional CDNs,
+and so on. If the call goes through your repository backend instead, no CSP change is
+needed and cross-origin restrictions do not apply.
+</Callout>
