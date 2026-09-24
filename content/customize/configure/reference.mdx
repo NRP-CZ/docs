@@ -504,9 +504,10 @@ config.configure_ui(
 ```
 
 `CSP` is a dataclass with one field per directive — `default_src`, `script_src`,
-`script_src_elem`, `style_src`, `img_src`, `font_src`, `connect_src`, `object_src`,
-`media_src`, `frame_src`, `frame_ancestors`, `child_src`, `worker_src`, `manifest_src`,
-`form_action`, `base_uri`, `report_to` — plus `report_uri`, `report_only`, and `nonce_in`
+`script_src_elem`, `script_src_attr`, `style_src`, `style_src_elem`, `style_src_attr`,
+`img_src`, `font_src`, `connect_src`, `object_src`, `media_src`, `frame_src`,
+`frame_ancestors`, `child_src`, `worker_src`, `manifest_src`, `prefetch_src`,
+`form_action`, `base_uri`, `report_to` — plus `report_uri` and `report_only`
 for Flask-Talisman's reporting options. Each directive field takes a list of sources.
 
 When `configure_ui()` applies your `CSP`, it resolves each directive against whatever was
@@ -514,12 +515,23 @@ already configured:
 
 - **A directive you set** is merged with the sources already configured for it, or — if
   none — with the sources of the directive it would fall back to (`script-src` for
-  `script-src-elem`, `child-src` for `frame-src`/`worker-src`, otherwise `default-src`).
+  `script-src-elem`/`script-src-attr`, `style-src` for `style-src-elem`/`style-src-attr`,
+  `child-src` for `frame-src`/`worker-src`, otherwise `default-src`).
   This is what lets `csp=CSP(connect_src=["https://api.example.org"])` add to the existing
   `default-src` sources instead of replacing them.
 - **`base_uri`, `form_action`, `frame_ancestors`, `report_to`** never inherit `default-src`,
   matching the CSP spec — setting one only adds the sources you pass in.
-- **A directive you leave unset** keeps whatever was already configured, unchanged.
+- **A directive you leave unset** keeps whatever was already configured, unchanged —
+  including directives the `CSP` class does not model (e.g. `upgrade-insecure-requests`).
+- **Your sources come first** in the merged source list, followed by the inherited ones,
+  deduplicated.
+
+A `report_uri` you set **overrides** one already configured in
+`APP_DEFAULT_SECURE_HEADERS["content_security_policy_report_uri"]`; if you don't set one,
+the configured value is kept as-is. `report_only=True` switches the policy to
+report-only mode (violations are logged, not blocked) and requires a `report_uri` —
+either on the `CSP` instance or already configured, otherwise `apply_defaults()` raises
+`ValueError`.
 
 For non-CSP keys (`force_https`, `frame_options`, `strict_transport_security_*`, etc.),
 no helper API exists — override them after both helpers, before `set_constants_in_caller`
