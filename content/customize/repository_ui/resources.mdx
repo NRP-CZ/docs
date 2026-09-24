@@ -63,9 +63,10 @@ Following options may be typically present and configurable:
 - `blueprint_name` - name of Flask blueprint
 - `url_prefix` - prefix applied to all routes handled by a resource
 - `routes` — route map configuration for Flask
-- `templates` - maps route names to specific Jinja templates
+- `templates` - maps route/view names to JinjaX components (dot notation, e.g. `"articles.custom_page"`)
+- `template_folder` - path to the folder containing the resource's Jinja/JinjaX templates
 - `components` — list of registered resource components
-- `search_component` - declares the React component used to render search result items of that specific record model.
+- `error_handlers` — maps exceptions to error templates or handler callables
 
 Example:
 
@@ -76,7 +77,10 @@ from .components import ArticleContextComponent
 class ArticleUIResourceConfig(UIResourceConfig):
     blueprint_name = "articles"
     url_prefix = "/articles"
-    template = "articles/detail.html"
+    template_folder = "templates"
+    templates = {
+        "detail": "articles.Detail",
+    }
     components = [ArticleContextComponent]
     #...
 ```
@@ -142,17 +146,15 @@ Components extend the behavior of a UI resource via lifecycle hooks:
 from oarepo_ui.resources.components import UIResourceComponent
 
 class ArticleContextComponent(UIResourceComponent):
-    def before_detail(self, resource, request, extra_context, **kwargs):
-        extra_context["publisher_highlight_color"] = "red"        
+    def before_ui_detail(self, *, api_record, record, identity, extra_context, **kwargs):
+        extra_context["publisher_highlight_color"] = "red"
 ```
 
-Common rendering lifecycle hooks include:
-- `before_detail`
-- `after_detail`
-- `before_search`
-- `before_render_template`
-- `before_ui_edit`
-- `before_ui_create`
+The hooks defined on the base `UIResourceComponent` (see [`components/base.py`](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/resources/components/base.py)) are:
+- `before_ui_detail(api_record, record, identity, ui_links, extra_context, render_kwargs, ...)` — before the record landing page renders
+- `before_ui_search(identity, search_options, ui_links, extra_context, ...)` — before the search page renders
+- `form_config(...)` — modify form configuration for deposit pages
+- `before_ui_edit(...)` / `before_ui_create(...)` — before the deposit edit/create pages render
 
 More hooks can be found or created by defining them in the `UIResource`-based class view methods.
 
@@ -160,12 +162,12 @@ E.g. to define a `before_my_custom_page` hook:
 ```python filename="ui/articles/__init__.py" copy {16-19}
 from oarepo_ui.resources.base import UIResource, UIResourceConfig
 from .components import ArticleContextComponent
-from flask import current_oarepo_ui
+from oarepo_ui.proxies import current_oarepo_ui
 
 class ArticleUIResourceConfig(UIResourceConfig):
     blueprint_name = "articles"
     url_prefix = "/articles"
-    template = "articles/detail.html"
+    template_folder = "templates"
     components = [ArticleContextComponent]
 
     # Bind view method to URL route

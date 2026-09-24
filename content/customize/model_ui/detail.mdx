@@ -8,7 +8,7 @@ The record landing page (detail page) displays everything about one record: its 
 ## Key Concepts
 
 - **Six auto-included partials** — the page is assembled from six model-specific partial files (body, banners, CSS, JS, meta tags, sidebar; [full list](#partials-cheat-sheet)). The base template picks each one up automatically and falls back to its default when the file doesn't exist.
-- **Creating the file is enough** — no registration, no `templates = {}`, no webpack needed for plain HTML/CSS.
+- **Creating the file is enough** — no registration, no [`templates`](/customize/repository_ui/resources#resource-configuration) map, no webpack needed for plain HTML/CSS.
 - **`d` carries value + label + help together** — `d.metadata.sample_id` is a `FieldData` object bundling the raw API value, the UI-serialized value, and the schema metadata (`label`, `help`, `hint`) from your model YAML. Use `ui_value(d.metadata.sample_id)` to render the formatted value and `d.metadata.sample_id.label(...)` for its localized label — see [Pulling labels, help, and values from the model](#pulling-labels-help-and-values-from-the-model). For a plain value dump there's also `metadata` (shorthand for `record_ui["metadata"]`).
 - **Blocks hide or replace** — `main.html` extends the oarepo-ui base, which is one long chain of blocks (`record_header_info`, `record_title`, `record_files`, …). Override a block with `{{ super() }}` inside to augment it; override it without `super()` to hide or replace that section entirely.
 
@@ -285,7 +285,7 @@ Notice the block being overridden is `record_body` — the oarepo-ui middle-temp
 
 ### Optionally point the route at a custom JinjaX component
 
-If you build your own page component (a `.jinja` file with a `{# def ... #}` block listing every variable the template uses), register it in the resource config:
+If you build your own page component (a [JinjaX](/customize/repository_ui/templating/jinjax) `.jinja` file with a `{# def ... #}` block declaring the context variables it accepts), register it in the resource config:
 
 ```python filename="ui/mymodel/__init__.py"
 class MymodelUIResourceConfig(RecordsUIResourceConfig):
@@ -311,14 +311,13 @@ You almost never need this. The six auto-included partials plus `before_ui_detai
 
 ## Error Pages
 
-`not_found` (404) and `tombstone` (410, deleted record) pages are also overridable. Both flow through the same `templates = {}` resource-config mechanism as the detail page — their default page components are `oarepo_ui.pages.NotFound` and `oarepo_ui.pages.Tombstone`, each of which `{% extends "oarepo_ui/(not_found|tombstone).html" %}`.
+The 404 (`not_found`) and 410 (`tombstone`, deleted record) pages work the same way as the record detail page: the default page components `{% extends model_name ~ "/not_found.html" %}` (and `.../tombstone.html`), so **your model's own template is already in the chain** — just edit it, no `templates = {}` registration needed.
 
-### Custom Not-Found Page
+`nrp-model-copier` generates both files at `ui/mymodel/templates/semantic-ui/mymodel/`, each extending its oarepo-ui base (`oarepo_ui/not_found.html` / `oarepo_ui/tombstone.html`).
 
-```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/NotFound.jinja"
-{# def pid, model_name #}
-{% extends model_name ~ "/not_found.html" %}
-```
+### Not-Found Page (404)
+
+Override blocks of the base template in the generated `not_found.html`:
 
 ```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/not_found.html"
 {% extends "oarepo_ui/not_found.html" %}
@@ -334,12 +333,11 @@ You almost never need this. The six auto-included partials plus `before_ui_detai
 {%- endblock page_body -%}
 ```
 
-### Custom Tombstone Page
+Available blocks (see [`oarepo_ui/not_found.html`](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/not_found.html)): `page_body`, `pid_info`.
 
-```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/Tombstone.jinja"
-{# def pid, tombstone, model_name #}
-{% extends model_name ~ "/tombstone.html" %}
-```
+### Tombstone Page (410)
+
+A tombstone page shows for deleted records whose metadata is kept for archival. Override in the generated `tombstone.html`:
 
 ```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/tombstone.html"
 {% extends "oarepo_ui/tombstone.html" %}
@@ -352,21 +350,17 @@ You almost never need this. The six auto-included partials plus `before_ui_detai
 {%- endblock tombstone_content -%}
 ```
 
-Register both in the resource config:
+Available blocks (see [`oarepo_ui/tombstone.html`](https://github.com/oarepo/oarepo-ui/blob/main/oarepo_ui/templates/oarepo_ui/tombstone.html)): `page_body`, `tombstone_content`.
 
-```python filename="ui/mymodel/__init__.py"
-class MymodelUIResourceConfig(RecordsUIResourceConfig):
-    templates = {
-        "not_found": "mymodel.NotFound",
-        "tombstone": "mymodel.Tombstone",
-    }
-```
+### Template Context
 
-<Callout type="warning">
-Each override must be a JinjaX component (`.jinja` file with a `{# def ... #}` block listing every context variable it uses), not just a plain `.html` template — the resource config's `templates` map resolves to JinjaX macro names, and missing variables raise a rendering error.
-</Callout>
+| Variable | Pages | Contents |
+|---|---|---|
+| `pid` | both | The requested PID |
+| `model_name` | both | Your model name |
+| `tombstone` | tombstone only | Dict with `Removal reason`, `Note`, `Citation text`, `URL` |
 
-The default tombstone context gives you `pid` and `tombstone` (a dict of removal reason, removal date, etc.); the not-found context gives you `pid`.
+The `tombstone` dict is assembled by the error handler from the record's tombstone metadata — its keys are display labels, not identifiers.
 
 ## How It Works Under the Hood
 
