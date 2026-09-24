@@ -1823,6 +1823,12 @@ location:
 
 Data type for arbitrary geometric shapes. The value is stored as given, either as a WKT string (`POLYGON ((...))`) or as a GeoJSON geometry object, and is validated on load with [shapely](https://shapely.net/): WKT must parse, GeoJSON must use one of the geometry types OpenSearch accepts (Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon, GeometryCollection). Coordinates in both forms are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. Arrays of shapes are supported. Maps to OpenSearch's [`geo_shape`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-shape/) field with `coerce` (unclosed polygon rings are closed), `ignore_malformed` (a shape that passes local validation but is rejected by OpenSearch is skipped from the geo index instead of failing the whole record) and `doc_values` disabled (required for arrays of shapes).
 
+#### UI Rendering (CCMM Locations)
+When used for geographic locations in the CCMM model (e.g., `metadata.locations` based on `CCMMLocation`), this field powers the spatial presentation on the dataset landing page:
+* **Interactive Map:** Valid geometries—including standard WKT strings, valid WKT envelopes, GeoJSON, and GML-envelope bounding boxes—are automatically rendered on an interactive Leaflet map. The view adjusts automatically (`fitBounds`) to display all features.
+* **Text Fallback:** A compact text list displaying the location label/place and a coordinate link (e.g., Google Maps) acts as a fallback for missing/malformed geometries and complements the map view. Empty or malformed geometries silently fall back to this text list.
+* **Empty State:** If no locations are provided in the dataset metadata, the entire spatial block is omitted from the UI.
+
 | Property | Description |
 |----------|-------------|
 | source code | [spherical.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/spherical.py) |
