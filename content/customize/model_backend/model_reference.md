@@ -40,7 +40,7 @@ This file describes the data types supported by the model builder for defining r
 
 ### boolean
 
-Data type for storing true/false values. Essential for research metadata like peer review status, open access availability, data availability, embargo status, and publication flags. In the UI, boolean fields are typically rendered as checkboxes. The data type includes internationalization support, automatically translating boolean values to localized "true"/"false" text for display purposes. The OpenSearch mapping stores boolean values efficiently and supports boolean queries for filtering and aggregations in research discovery interfaces.
+Data type for storing true/false values. Essential for research metadata like peer review status, open access availability, data availability, embargo status, and publication flags. In the UI, boolean fields are typically rendered as checkboxes. Only JSON `true`/`false` (and the numbers `1`/`0`) are accepted; strings such as `"true"` or `"false"` are rejected. For display, the UI serialization adds a sibling `<field>_i18n` key with the localized "true"/"false" text; the original value is kept unchanged. The OpenSearch mapping stores boolean values efficiently and supports boolean queries for filtering and aggregations in research discovery interfaces.
 
 | Property | Description |
 |----------|-------------|
@@ -51,7 +51,7 @@ Data type for storing true/false values. Essential for research metadata like pe
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Boolean` |
-| ui_marshmallow_field_class | FormatBoolean |
+| ui_marshmallow_field_class | FormatBoolean (emitted as `<field>_i18n`) |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -85,7 +85,7 @@ open_access:
 
 ### int
 
-Data type for 32-bit signed integers, supporting values from -2,147,483,648 to 2,147,483,647. Perfect for citation counts, sample sizes, publication years, version numbers, dataset entry counts, and other whole number values within this range. The type includes built-in validation for range constraints and supports localized number formatting in the UI. OpenSearch stores integers efficiently and provides fast numerical queries, aggregations, and sorting for research metrics and filtering. Use `strict_validation` to ensure the input is exactly an integer and not a string representation.
+Data type for 32-bit signed integers, supporting values from -2,147,483,648 to 2,147,483,647. Perfect for citation counts, sample sizes, publication years, version numbers, dataset entry counts, and other whole number values within this range. The type includes built-in validation for range constraints and supports localized number formatting in the UI. OpenSearch stores integers efficiently and provides fast numerical queries, aggregations, and sorting for research metrics and filtering. Validation is strict by default: only JSON integers are accepted, and strings like `"5"` or floats like `5.0` are rejected (set `strict_validation: false` to accept them). Values outside the 32-bit range are always rejected.
 
 | Property | Description |
 |----------|-------------|
@@ -101,7 +101,7 @@ Data type for 32-bit signed integers, supporting values from -2,147,483,648 to 2
 | max_inclusive | Maximum allowed value (inclusive) |
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
-| strict_validation | Make sure that the value is exactly an integer, not a string containing an integer |
+| strict_validation | Accept only JSON integers (default `true`). Set to `false` to also accept strings containing an integer (`"5"`) and floats (`5.0`) |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -135,7 +135,7 @@ sample_size:
 
 ### long
 
-Data type for 64-bit signed integers, supporting values from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807. Essential for large numerical values like timestamps, file sizes in bytes, unique identifiers, or any integer that exceeds the 32-bit range. Uses the same marshmallow Integer field but maps to OpenSearch's `long` type for extended range support. Includes the same validation and formatting features as the `int` type but with a much larger value range.
+Data type for 64-bit signed integers, supporting values from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807. Essential for large numerical values like timestamps, file sizes in bytes, unique identifiers, or any integer that exceeds the 32-bit range. Uses the same marshmallow Integer field but maps to OpenSearch's `long` type for extended range support. Includes the same validation and formatting features as the `int` type (including strict validation by default) but with a much larger value range; values outside the 64-bit range are rejected.
 
 | Property | Description |
 |----------|-------------|
@@ -151,7 +151,7 @@ Data type for 64-bit signed integers, supporting values from -9,223,372,036,854,
 | max_inclusive | Maximum allowed value (inclusive) |
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
-| strict_validation | Make sure that the value is exactly an integer, not a string containing an integer |
+| strict_validation | Accept only JSON integers (default `true`). Set to `false` to also accept strings containing an integer (`"5"`) and floats (`5.0`) |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -185,7 +185,7 @@ dataset_entries:
 
 ### float
 
-Data type for single precision floating-point numbers (32-bit IEEE 754). Supports decimal values with approximately 7 decimal digits of precision, ranging from -3.4×10³⁸ to 3.4×10³⁸. Ideal for measurements, prices, ratings, percentages, and other decimal values where moderate precision is sufficient. The type provides localized number formatting and supports range validation. OpenSearch stores floats efficiently for numerical operations, but be aware of potential precision limitations for financial calculations or high-precision scientific data.
+Data type for single precision floating-point numbers (32-bit IEEE 754). Supports decimal values with approximately 7 decimal digits of precision, ranging from -3.4×10³⁸ to 3.4×10³⁸. Ideal for measurements, prices, ratings, percentages, and other decimal values where moderate precision is sufficient. The type provides localized number formatting and supports range validation; values outside the single-precision range are always rejected. Strings containing a number (e.g. `"3.5"`) are accepted and converted to a number. OpenSearch stores floats efficiently for numerical operations, but be aware of potential precision limitations for financial calculations or high-precision scientific data.
 
 | Property | Description |
 |----------|-------------|
@@ -201,7 +201,6 @@ Data type for single precision floating-point numbers (32-bit IEEE 754). Support
 | max_inclusive | Maximum allowed value (inclusive) |
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
-| strict_validation | Make sure that the value is exactly a float, not a string containing a float |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -237,7 +236,7 @@ confidence_level:
 
 ### double
 
-Data type for double precision floating-point numbers (64-bit IEEE 754). Provides approximately 15-17 decimal digits of precision with a range from -1.8×10³⁰⁸ to 1.8×10³⁰⁸. Essential for high-precision calculations, scientific measurements, geographic coordinates, financial calculations requiring precision, and any decimal values where single precision is insufficient. Uses the same marshmallow Float field but maps to OpenSearch's `double` type for extended precision and range. Recommended for most decimal number use cases due to its superior precision.
+Data type for double precision floating-point numbers (64-bit IEEE 754). Provides approximately 15-17 decimal digits of precision with a range from -1.8×10³⁰⁸ to 1.8×10³⁰⁸. Essential for high-precision calculations, scientific measurements, geographic coordinates, financial calculations requiring precision, and any decimal values where single precision is insufficient. Uses the same marshmallow Float field (strings containing a number are accepted and converted) but maps to OpenSearch's `double` type for extended precision and range. Recommended for most decimal number use cases due to its superior precision.
 
 | Property | Description |
 |----------|-------------|
@@ -253,7 +252,6 @@ Data type for double precision floating-point numbers (64-bit IEEE 754). Provide
 | max_inclusive | Maximum allowed value (inclusive) |
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
-| strict_validation | Make sure that the value is exactly a float, not a string containing a float |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
@@ -295,7 +293,7 @@ measurement_value:
 
 ### keyword
 
-Data type for exact-match text fields that are not analyzed (not broken into tokens). Perfect for IDs, status values, categories, tags, and structured data where you need precise matching and efficient aggregations. OpenSearch stores keywords as-is, enabling fast exact searches, sorting, and faceting. Limited to 256 characters by default (`ignore_above: 256`). Supports pattern validation with regular expressions, enumerated value lists, and length constraints. Use this for dropdown options, and any text that should match exactly.
+Data type for exact-match text fields that are not analyzed (not broken into tokens). Perfect for IDs, status values, categories, tags, and structured data where you need precise matching and efficient aggregations. OpenSearch stores keywords as-is, enabling fast exact searches, sorting, and faceting. The mapping uses `ignore_above: 256`: longer values are stored in the record but are not indexed, so they cannot be found or aggregated. This is not a validation limit; use `max_length` to limit the value length. Supports pattern validation with regular expressions, enumerated value lists, and length constraints. A `required` field without `min_length` also rejects empty strings. Use this for dropdown options, and any text that should match exactly.
 
 | Property | Description |
 |----------|-------------|
@@ -350,7 +348,7 @@ subject_classification:
 
 ### fulltext
 
-Data type for analyzed text content that supports full-text search capabilities. OpenSearch breaks the text into tokens using analyzers, enabling sophisticated search features like stemming, synonyms, and relevance scoring. Ideal for descriptions, abstracts, comments, article content, and any text where users need to search within the content rather than match exactly. Unlike `keyword` fields, fulltext fields are optimized for search relevance but cannot be used efficiently for sorting or aggregations. No character limit by default.
+Data type for analyzed text content that supports full-text search capabilities. OpenSearch breaks the text into tokens using analyzers, enabling sophisticated search features like stemming, synonyms, and relevance scoring. Ideal for descriptions, abstracts, comments, article content, and any text where users need to search within the content rather than match exactly. Unlike `keyword` fields, fulltext fields are optimized for search relevance but cannot be used for sorting or aggregations, so no facet is generated for them. No character limit by default. As with `keyword`, a `required` field without `min_length` rejects empty strings.
 
 | Property | Description |
 |----------|-------------|
@@ -404,7 +402,7 @@ technical_info:
 
 ### fulltext+keyword
 
-Data type that combines both full-text search and exact-match capabilities in a single field. OpenSearch creates a multi-field mapping with the main field analyzed for full-text search and a `.keyword` sub-field for exact matching, sorting, and aggregations. Perfect for titles, names, and other text that needs both search functionality and precise filtering/faceting. This is the most versatile text type - use it for fields like article titles, author names, or any text where you want both search and exact-match capabilities. The keyword sub-field respects the 256-character limit.
+Data type that combines both full-text search and exact-match capabilities in a single field. OpenSearch creates a multi-field mapping with the main field analyzed for full-text search and a `.keyword` sub-field for exact matching, sorting, and aggregations. Perfect for titles, names, and other text that needs both search functionality and precise filtering/faceting. This is the most versatile text type - use it for fields like article titles, author names, or any text where you want both search and exact-match capabilities. The keyword sub-field uses `ignore_above: 256`, so longer values are searchable as text but not through `.keyword`. The generated facet uses the `.keyword` sub-field. As with `keyword`, a `required` field without `min_length` rejects empty strings.
 
 | Property | Description |
 |----------|-------------|
@@ -461,7 +459,7 @@ author_name:
 
 ### i18n
 
-Data type for a single localized text entry as a `{lang, value}` pair. `lang` is a reference to the *languages* vocabulary (entered as `{"id": "en"}`, expanded with the vocabulary `title` on output), `value` holds the text. Both sub-fields are predefined, there is nothing to configure. The type is mostly used as the item type of [`multilingual`](#multilingual), but can be used directly for fields that hold text in exactly one language. Sub-fields are searchable but intentionally not exposed as facets.
+Data type for a single localized text entry as a `{lang, value}` pair. `lang` is a reference to the *languages* vocabulary (entered as `{"id": "en"}`, expanded with the vocabulary `title` on output), `value` holds the text. Both sub-fields are predefined, there is nothing to configure. The type is mostly used as the item type of [`multilingual`](#multilingual), but can be used directly for fields that hold text in exactly one language. Sub-fields are searchable but intentionally not exposed as facets: the built-in definition marks both `lang` and `value` with `searchable: false`.
 
 | Property | Description |
 |----------|-------------|
@@ -502,7 +500,7 @@ alternative_title:
 
 ### multilingual
 
-Data type for text provided in several languages: a list of [`i18n`](#i18n) entries with at most one entry per language - duplicate language codes are rejected on load. The item type is fixed, otherwise the field behaves like an ordinary [`array`](#array). Entries are indexed as flattened objects, so conditions on `lang` and `value` are not guaranteed to match within the same entry (use [`nested`](#nested) items if you need that). Sub-fields are searchable but intentionally not exposed as facets.
+Data type for text provided in several languages: a list of [`i18n`](#i18n) entries with at most one entry per language - duplicate language codes are rejected on load. `items` defaults to `{type: i18n}`; it can be replaced with another item type, which must keep the `{lang: {id}, value}` shape because the language-uniqueness check reads `lang.id`. Otherwise the field behaves like an ordinary [`array`](#array). Entries are indexed as flattened objects, so conditions on `lang` and `value` are not guaranteed to match within the same entry (use [`nested`](#nested) items if you need that). Sub-fields are searchable but intentionally not exposed as facets.
 
 | Property | Description |
 |----------|-------------|
@@ -514,6 +512,7 @@ Data type for text provided in several languages: a list of [`i18n`](#i18n) entr
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.List` (of `Nested` i18n items) |
 | ui_marshmallow_field_class | `marshmallow.fields.List` (with item UI field) |
+| items | Item type definition, defaults to `{type: i18n}` (see above) |
 | min_items | Minimum number of language entries |
 | max_items | Maximum number of language entries |
 | unique_items | Whether the entries must be unique (duplicate language codes are rejected regardless) |
@@ -622,7 +621,7 @@ subject_headings:
 
 ### date
 
-Data type for date-only values (year-month-day) without time information. Stores dates in ISO 8601 format (YYYY-MM-DD) and supports various input formats through OpenSearch's date parsing. Perfect for publication dates, birth dates, deadlines, and any date-centric information. The UI provides localized date formatting in multiple styles (long, medium, short, full) for different display contexts. Supports date range validation and efficient date-based queries, sorting, and aggregations in OpenSearch.
+Data type for date-only values (year-month-day) without time information. Stores dates in ISO 8601 format (YYYY-MM-DD) and supports various input formats through OpenSearch's date parsing. Perfect for publication dates, birth dates, deadlines, and any date-centric information. For display, the UI serialization adds four sibling keys with the localized date: `<field>_l10n_long`, `<field>_l10n_medium`, `<field>_l10n_short` and `<field>_l10n_full`; the original value is kept unchanged. Supports date range validation and efficient date-based queries, sorting, and aggregations in OpenSearch.
 
 | Property | Description |
 |----------|-------------|
@@ -674,7 +673,7 @@ data_collection_start:
 
 ### datetime
 
-Data type for complete date and time information including timezone support. Stores timestamps in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ) with support for various input formats including milliseconds and timezone variations. Essential for created/modified timestamps, event scheduling, logging, and any time-sensitive data. OpenSearch automatically handles timezone conversions and provides powerful time-based queries, range filtering, and time-series aggregations. The UI offers localized datetime formatting for different presentation needs.
+Data type for complete date and time information including timezone support. Stores timestamps in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ) with support for various input formats including milliseconds and timezone variations. Essential for created/modified timestamps, event scheduling, logging, and any time-sensitive data. OpenSearch automatically handles timezone conversions and provides powerful time-based queries, range filtering, and time-series aggregations. For display, the UI serialization adds four sibling keys with the localized datetime: `<field>_l10n_long`, `<field>_l10n_medium`, `<field>_l10n_short` and `<field>_l10n_full`; the original value is kept unchanged.
 
 | Property | Description |
 |----------|-------------|
@@ -725,7 +724,7 @@ submission_timestamp:
 
 ### time
 
-Data type for time-only values (hours, minutes, seconds) without date information. Stores time in ISO 8601 time format (HH:MM:SS) with support for various input formats including milliseconds. Ideal for opening hours, duration timestamps, recurring event times, and any time-of-day information. OpenSearch maps this as a date field with time-specific formatting, enabling time-based queries and aggregations. The UI provides localized time formatting and supports time range validation for business rules.
+Data type for time-only values (hours, minutes, seconds) without date information. Stores time in ISO 8601 time format (HH:MM:SS) with support for various input formats including milliseconds. Ideal for opening hours, duration timestamps, recurring event times, and any time-of-day information. OpenSearch maps this as a date field with time-specific formatting, enabling time-based queries and aggregations. Supports time range validation for business rules. For display, the UI serialization adds four sibling keys with the localized time: `<field>_l10n_long`, `<field>_l10n_medium`, `<field>_l10n_short` and `<field>_l10n_full`; the original value is kept unchanged.
 
 | Property | Description |
 |----------|-------------|
@@ -1278,7 +1277,7 @@ user_defined_fields:
 
 ### polymorphic
 
-Data type for discriminated union types where a field can represent different object types based on a discriminator field (typically "type"). Each variant in the `oneof` array specifies both a discriminator value and its corresponding schema. At runtime, the discriminator field determines which schema to use for validation and serialization. OpenSearch merges all possible properties into a single object mapping. Perfect for modeling heterogeneous entities like different types of creators (person vs organization), various content types, or flexible configuration options where the structure depends on a type field.
+Data type for discriminated union types where a field can represent different object types based on a discriminator field (typically "type"). Each variant in the `oneof` array specifies both a discriminator value and its corresponding schema. At runtime, the discriminator field determines which schema to use for validation and serialization; a value with a missing or unknown discriminator is rejected. The `type` of a variant is either `object` with inline `properties` or the name of a type defined elsewhere in the model (e.g., `Person`). OpenSearch merges all possible properties into a single object mapping. The discriminator is added automatically to the mapping (as `keyword`) and to the JSON Schema (as a required `const` per variant). Polymorphic fields do not generate facets, and relations (`pid-relation`, `vocabulary`, ...) inside the variants are not resolved. Perfect for modeling heterogeneous entities like different types of creators (person vs organization), various content types, or flexible configuration options where the structure depends on a type field.
 
 | Property | Description |
 |----------|-------------|
@@ -1291,7 +1290,8 @@ Data type for discriminated union types where a field can represent different ob
 | marshmallow_field_class | PolymorphicField |
 | ui_marshmallow_field_class | PolymorphicField |
 | discriminator | Field name used to determine schema variant (defaults to "type") |
-| oneof | Array of schema variants with discriminator values |
+| oneof | Array of schema variants; each has a `discriminator` value and a `type` (`object` with `properties`, or the name of another type) |
+| marshmallow_field | Ready-made marshmallow field instance (import path) used instead of the generated polymorphic field |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Important:**
@@ -1488,7 +1488,7 @@ After the record is saved, `RelationDumperExt` dereferences each relation, so th
 
 ### lazy-pid-relation
 
-Variant of [`pid-relation`](#pid-relation) for relations whose target model cannot be introspected eagerly at build time: self-references (a record pointing to another record of the same model) and circular references (model A references model B, which references back to model A). Everything about the relation - the OpenSearch mapping, the JSON Schema, the marshmallow schemas (API and UI), and any relations nested inside the cached `keys` - is resolved lazily the first time the target model is actually available in the runtime registry, by which point the whole model graph has finished building. The generated JSON Schema and OpenSearch mapping are `object`s whose sub-properties come from the target model's own schema (or the explicit definition you provide per key), with `unevaluatedProperties: false` and `dynamic: strict`. Facets are intentionally skipped for this type's `keys` (facet names must be known synchronously, and they cannot be, for a self-reference).
+Variant of [`pid-relation`](#pid-relation) for relations whose target model cannot be introspected eagerly at build time: self-references (a record pointing to another record of the same model) and circular references (model A references model B, which references back to model A). Everything about the relation - the OpenSearch mapping, the JSON Schema, the marshmallow schemas (API and UI), and any relations nested inside the cached `keys` - is resolved lazily the first time the target model is actually available in the runtime registry, by which point the whole model graph has finished building. The generated JSON Schema and OpenSearch mapping are `object`s whose sub-properties come from the target model's own schema (or the explicit definition you provide per key), with `unevaluatedProperties: false` and `dynamic: strict`. Facets are generated only for `keys` with an explicit definition; keys given as plain strings get no facet, because facet names must be known when the model is built and the target cannot be introspected at that point.
 
 | Property | Description |
 |----------|-------------|
@@ -1583,7 +1583,7 @@ After the record is saved, `RelationDumperExt` dereferences each relation, so th
 
 Relation to a part of the *same* record: a self-referencing relation whose target is a sub-path of the current model rather than the model's root. Structurally a [`lazy-pid-relation`](#lazy-pid-relation) (with all the same lazy machinery for mapping, JSON Schema, marshmallow and UI schema), except that the target is always a path inside the record the field is declared on, and the target's PID is not consulted - resolution happens at runtime through an `InternalRelations` lookup table the record exposes as `record.internal_relations`, keyed by each entry's dot-separated path within the record. The lookup table auto-discovers every dict with an `id` anywhere in the record, so any sub-object with an `id` can be pointed at.
 
-To actually resolve at runtime, the model must also include `presets.internal_relations.internal_relations_preset` (from [oarepo-model/presets/internal_relations](https://github.com/oarepo/oarepo-model/tree/main/src/oarepo_model/presets/internal_relations)); without it the field builds but never resolves. Like `lazy-pid-relation`, facets are skipped for the relation's `keys` and any nested relations inside the target are discovered lazily (on first `record.relations` access), not at build time.
+To actually resolve at runtime, the model must also include `presets.internal_relations.internal_relations_preset` (from [oarepo-model/presets/internal_relations](https://github.com/oarepo/oarepo-model/tree/main/src/oarepo_model/presets/internal_relations)); without it the field builds but never resolves. Like `lazy-pid-relation`, facets are generated only for `keys` with an explicit definition, and any nested relations inside the target are discovered lazily (on first `record.relations` access), not at build time.
 
 | Property | Description |
 |----------|-------------|
@@ -1676,7 +1676,7 @@ On save, `RelationDumperExt` dereferences each relation against its `target`, so
 
 ### vocabulary
 
-Data type for references to controlled vocabularies, extending pid-relation with vocabulary-specific functionality. Automatically configures appropriate fields and schemas based on the `vocabulary-type` (languages, affiliations, funders, awards, subjects). Each vocabulary type has predefined field sets (e.g., affiliations include identifiers and name fields). Provides seamless integration with Invenio's vocabulary system, automatic PID field resolution, and specialized marshmallow schemas. Essential for maintaining data consistency and enabling faceted search across standardized terms and entities.
+Data type for references to controlled vocabularies, extending pid-relation with vocabulary-specific functionality. Any vocabulary type can be used in `vocabulary-type`. The types `affiliations`, `funders`, `awards` and `subjects` have their own schemas and predefined keys (e.g., affiliations include `identifiers` and `name`). All other ("generic") vocabulary types, such as `languages` or `resourcetypes`, cache the term's `title` (a multilingual dictionary) and are serialized for the UI as `{id, title_l10n}`. The PID field of the vocabulary is determined from `vocabulary-type` automatically. A facet is generated on `<field>.id`, with value labels taken from the vocabulary.
 
 | Property | Description |
 |----------|-------------|
@@ -1688,10 +1688,10 @@ Data type for references to controlled vocabularies, extending pid-relation with
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Nested` |
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema from ObjectDataType) |
-| vocabulary-type | Type of vocabulary (e.g., `"languages"`, `"affiliations"`, `"funders"`, `"awards"`, `"subjects"`) |
-| keys | List of keys to include (auto-populated based on vocabulary type if not specified) |
-| record_cls | (inherited from pid-relation, auto-determined from vocabulary-type) |
-| pid_field | (inherited from pid-relation, auto-determined from vocabulary-type) |
+| vocabulary-type | Id of the vocabulary type (e.g., `"languages"`, `"resourcetypes"`, `"affiliations"`, `"funders"`, `"awards"`, `"subjects"`) |
+| keys | Additional keys to cache; the predefined keys of the vocabulary type are always included |
+| record_cls | not configurable, determined from `vocabulary-type` |
+| pid_field | not configurable, determined from `vocabulary-type` |
 | cache_key | (inherited from pid-relation, defaults to vocabulary-type if not specified) |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
@@ -1787,7 +1787,11 @@ Note that the dereferenced keys are not uniform across vocabulary types: `langua
 
 ### geo_point
 
-Data type for geographic points (latitude/longitude). The value is an object with numeric `lat` and `lon` properties. Maps to OpenSearch's [`geo_point`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-point/) field. It can be queried with: `geo_distance:<field>`, `geo_bounding_box:<field>` and `geo_shape:<field>` (see sample queries below). A place name (e.g. `Prague, Czechia`) can be used instead of coordinates and is resolved via OpenStreetMap Nominatim geocoding. Coordinates are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. In the search queries below the coordinates are given longitude-first (`[lon, lat, …]`, the GeoJSON order), unlike the stored value's `{lat, lon}` keys. 
+Data type for geographic points (latitude/longitude). The value must be an object with numeric `lat` and `lon` properties; the other forms OpenSearch accepts for `geo_point` (a `"lat,lon"` string, a `[lon, lat]` array, a geohash) are rejected. The ranges of `lat` and `lon` are not validated. Maps to OpenSearch's [`geo_point`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-point/) field.
+
+It can be queried with the `geo_distance:<field>`, `geo_bounding_box:<field>` and `geo_shape:<field>` search parameters (see sample queries below). These are **URL query-string parameters** of the search API, not part of the `q` query, e.g. `GET /api/<model>/?geo_distance:metadata.location=[14.4213,50.0875,10km]`. They can be combined with `q` and with each other.
+
+A place name (e.g. `Prague, Czechia`) can be used instead of coordinates and is resolved via [OpenStreetMap Nominatim](https://nominatim.org/) geocoding. The repository server sends the place name to the public Nominatim service; configure it with `NOMINATIM_USER_AGENT` (default: a user agent derived from `SITE_UI_URL`) and `NOMINATIM_MIN_DELAY_SECONDS` (minimum delay between requests, default `1`). Production deployments should set their own user agent, as required by the Nominatim usage policy. Coordinates are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. In the search queries below the coordinates are given longitude-first (`[lon, lat, …]`, the GeoJSON order), unlike the stored value's `{lat, lon}` keys. 
 
 | Property | Description |
 |----------|-------------|
@@ -1819,9 +1823,9 @@ location:
 }
 ```
 
-**Sample search queries:**
+**Sample search parameters** (URL query string):
 
-| Query | Description |
+| Parameter | Description |
 |-------|-------------|
 | `geo_distance:metadata.location=[14.4213,50.0875,10km]` | Records within 10 km of the point `[lon,lat,distance]` (longitude first), closer ones boosted in relevance |
 | `geo_distance:metadata.location=[Prague, Czechia,50km]` | Same, with the centre resolved from a place name via geocoding |
@@ -1830,7 +1834,7 @@ location:
 
 ### geo_shape
 
-Data type for arbitrary geometric shapes. The value is stored as given, either as a WKT string (`POLYGON ((...))`) or as a GeoJSON geometry object, and is validated on load with [shapely](https://shapely.net/): WKT must parse, GeoJSON must use one of the geometry types OpenSearch accepts (Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon, GeometryCollection). Coordinates in both forms are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. Arrays of shapes are supported. Maps to OpenSearch's [`geo_shape`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-shape/) field with `coerce` (unclosed polygon rings are closed), `ignore_malformed` (a shape that passes local validation but is rejected by OpenSearch is skipped from the geo index instead of failing the whole record) and `doc_values` disabled (required for arrays of shapes).
+Data type for arbitrary geometric shapes. The value is stored as given, either as a WKT string (`POLYGON ((...))`) or as a GeoJSON geometry object, and is validated on load with [shapely](https://shapely.net/): WKT must parse, GeoJSON must use one of the geometry types OpenSearch accepts (Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon, GeometryCollection). Coordinates in both forms are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. Arrays of shapes are supported. Shapes are searched with the `geo_shape:<field>` URL query-string parameter (not the `q` query), see [geo_point](#geo_point) for how the search parameters and place-name geocoding work. Maps to OpenSearch's [`geo_shape`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-shape/) field with `coerce` (unclosed polygon rings are closed), `ignore_malformed` (a shape that passes local validation but is rejected by OpenSearch is skipped from the geo index instead of failing the whole record) and `doc_values` disabled (required for arrays of shapes).
 
 | Property | Description |
 |----------|-------------|
@@ -1866,9 +1870,9 @@ survey_route:
 }
 ```
 
-**Sample search queries:**
+**Sample search parameters** (URL query string):
 
-| Query | Description |
+| Parameter | Description |
 |-------|-------------|
 | `geo_shape:metadata.spatial_coverage=INTERSECTS POINT (14.4213 50.0875)` | Shapes intersecting the point, WKT coordinates as `lon lat` pairs (`INTERSECTS` is the default relation) |
 | `geo_shape:metadata.survey_route=WITHIN POLYGON ((14.0 49.0, 14.5 49.0, 14.5 51.0, 14.0 51.0, 14.0 49.0))` | Relation can be `INTERSECTS`, `DISJOINT`, `WITHIN` or `CONTAINS` |
@@ -1876,7 +1880,7 @@ survey_route:
 
 ### icrs
 
-Data type for celestial positions in the ICRS (International Celestial Reference System), given as right ascension and declination in degrees. The value is an object with numeric `ra` and `dec` properties (predefined, `double`). Records keep the coordinates as they were entered; when indexing, a dumper extension added automatically by the `records_resources` preset rewrites them into a `geo_point` field (declination becomes latitude, right ascension is folded from `[0, 360)` to `[-180, 180]`) and converts them back when search results are built. This makes OpenSearch's geo machinery usable for sky positions; the `icrs_distance:<field>` parameter expresses the radius as an angular distance in degrees rather than a surface distance. See the [ICRS documentation](https://aa.usno.navy.mil/faq/ICRS_doc) or the [Wikipedia article on ICRS](https://en.wikipedia.org/wiki/International_Celestial_Reference_System_and_its_realizations).
+Data type for celestial positions in the ICRS (International Celestial Reference System), given as right ascension and declination in degrees. The value must be an object with numeric `ra` and `dec` properties (predefined, `double`); their ranges are not validated. Records keep the coordinates as they were entered; when indexing, a dumper extension added automatically by the `records_resources` preset rewrites them into a `geo_point` field (declination becomes latitude, right ascension is folded from `[0, 360)` to `[-180, 180]`) and converts them back when search results are built. This makes OpenSearch's geo machinery usable for sky positions; the `icrs_distance:<field>` parameter expresses the radius as an angular distance in degrees rather than a surface distance. Like the geo parameters, `icrs_distance:`, `icrs_bounding_box:` and `icrs_shape:` are URL query-string parameters of the search API (e.g. `GET /api/<model>/?icrs_distance:metadata.position=[83.6331,22.0145,5]`), not part of the `q` query. See the [ICRS documentation](https://aa.usno.navy.mil/faq/ICRS_doc) or the [Wikipedia article on ICRS](https://en.wikipedia.org/wiki/International_Celestial_Reference_System_and_its_realizations).
 
 | Property | Description |
 |----------|-------------|
@@ -1909,9 +1913,9 @@ position:
 }
 ```
 
-**Sample search queries:**
+**Sample search parameters** (URL query string):
 
-| Query | Description |
+| Parameter | Description |
 |-------|-------------|
 | `icrs_distance:metadata.position=[83.6331,22.0145,5]` | Records within 5 degrees of the position (distance in degrees, no unit suffix), closer ones boosted |
 | `icrs_bounding_box:metadata.position=[80.0,20.0,90.0,25.0]` | Records within a box given by two opposite corners in `[ra,dec,ra,dec]` order; the first corner must be the lower-declination one |
@@ -1948,9 +1952,9 @@ field_of_view:
 }
 ```
 
-**Sample search queries:**
+**Sample search parameters** (URL query string):
 
-| Query | Description |
+| Parameter | Description |
 |-------|-------------|
 | `icrs_shape:metadata.field_of_view=INTERSECTS POINT (83.6331 22.0145)` | Shapes intersecting the position, WKT coordinates read as ra/dec |
 | `icrs_shape:metadata.field_of_view=WITHIN POLYGON ((80 20, 90 20, 90 25, 80 25, 80 20))` | Relation can be `INTERSECTS`, `DISJOINT`, `WITHIN` or `CONTAINS` |
