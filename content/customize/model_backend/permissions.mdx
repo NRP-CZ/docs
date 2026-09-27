@@ -1,100 +1,136 @@
+import { Callout } from "nextra/components";
 import {Difficulty} from '@/components/difficulty'
 
 # Permissions
 
-## Pre-defined permission presets <Difficulty level="easy" />
+Every model has a permission policy: a class that says who can perform which action
+(search, read, create, publish, upload files, ...) on the model's records, drafts and files.
+The record service and the file services of the model use this policy.
 
-When you create a new repository metadata schema, or extend an existing one,
-you can use pre-defined permission presets to quickly set up the permissions for the schema.
+<Callout type="info">
+If your model uses [workflows](/customize/workflows), the permissions are defined per workflow
+in the workflow's permission policy. See [Create workflow](/customize/workflows/create).
+The rest of this page applies to models that set their permission policy directly.
+</Callout>
 
-To use a pre-defined permission preset, set the `XXXXX_PERMISSIONS_PRESETS` environment variable
-to a list of presets that should be used. The `XXXXX` part of the environment variable name should be
-the uppercase name of the schema. For example, if the schema is called `theses`, the environment variable
-should be called `THESES_PERMISSIONS_PRESETS`.
+## Default policy
 
-**TODO: RDM 12 version, update to RDM14**
-**TODO: remove this section completely when workflows are ported to RDM14**
+Unless something else sets a policy, the model uses
+`oarepo_runtime.services.config.EveryonePermissionPolicy`. This policy lets **anyone,
+including anonymous users, perform every action**, so it is only suitable for development.
 
-Example:
+<Callout type="warning">
+Always set a permission policy (or use workflows) before exposing the repository to users.
+</Callout>
 
-```python
-# invenio.cfg
+## Setting the permission policy <Difficulty level="easy" />
 
-THESES_PERMISSIONS_PRESETS = ["read_only", UCTThesisUploaderPermissionPolicy]
+Pass the `SetPermissionPolicy` customization to the `model()` call in your model's `model.py`:
+
+```python filename="equipment/model.py"
+from oarepo_model.api import model
+from oarepo_model.customizations import SetPermissionPolicy
+
+from .permissions import EquipmentPermissionPolicy
+
+equipment_model = model(
+    "equipment",
+    # ... presets, types, metadata_type etc. as generated for your model
+    customizations=[
+        SetPermissionPolicy(EquipmentPermissionPolicy),
+    ],
+)
 ```
 
-Permissions are evaluated as "OR" - that is, if any permission preset matches the current user, the user
-will be granted the permissions. You can specify either the name of a pre-defined permission preset, or a
-custom permission policy class.
+`SetPermissionPolicy(permission_policy, keep_mixins=False)` makes `permission_policy` the base
+class of the model's `PermissionPolicy` class.
 
-The following pre-defined permission presets are available:
-
-| Name | Description |
-|------|-------------|
-| `read_only` | No one can modify the records, everyone has read-only access |
-| `authenticated` | Authenticated users can modify the records |
-| `everyone` | Everyone can modify the records |
-| `community` | The community to which the record belongs defines the access rules |
+| Argument | Description |
+|----------|-------------|
+| `permission_policy` | The policy class, a subclass of `invenio_records_permissions.policies.records.RecordPermissionPolicy` |
+| `keep_mixins` | By default, mixins that presets or other customizations added to the `PermissionPolicy` class are removed, so your class is used exactly as written. Set to `True` to keep them. |
 
 ## Custom permission policy <Difficulty level="intermediate" />
 
-You can also define your own permission policy. To do this, you need to create a new class that
-inherits from `invenio_records_permissions.policies.records.RecordPermissionPolicy`:
+To define your own policy, create a class that inherits from
+`invenio_records_permissions.policies.records.RecordPermissionPolicy`:
 
-```python
-class UCTThesisUploaderPermissionPolicy(RecordPermissionPolicy):
-    """record policy for read only repository"""
+```python filename="equipment/permissions.py"
+from invenio_rdm_records.services.generators import RecordOwners
+from invenio_records_permissions.generators import (
+    AnyUser,
+    AuthenticatedUser,
+    SystemProcess,
+)
+from invenio_records_permissions.policies.records import RecordPermissionPolicy
 
-    can_search = [UCTUploader(), AnyUser()]
-    can_read = [UCTUploader(), AnyUser()]
-    can_create = [UCTUploader()]
-    can_update = [UCTUploader()]
-    can_delete = [UCTUploader()]
-    can_manage = [UCTUploader()]
 
-    can_create_files = [UCTUploader()]
-    can_set_content_files = [UCTUploader()]
-    can_get_content_files = [UCTUploader(), AnyUser()]
-    can_commit_files = [UCTUploader()]
-    can_read_files = [UCTUploader(), AnyUser()]
-    can_update_files = [UCTUploader()]
-    can_delete_files = [UCTUploader()]
+class EquipmentPermissionPolicy(RecordPermissionPolicy):
+    """Anyone can read, authenticated users can deposit, owners can edit."""
 
-    can_edit = [UCTUploader()]
-    can_new_version = [UCTUploader()]
-    can_search_drafts = [UCTUploader()]
-    can_read_draft = [UCTUploader()]
-    can_update_draft = [UCTUploader()]
-    can_delete_draft = [UCTUploader()]
-    can_publish = [UCTUploader()]
-    can_draft_create_files = [UCTUploader()]
-    can_draft_set_content_files = [UCTUploader()]
-    can_draft_get_content_files = [UCTUploader()]
-    can_draft_commit_files = [UCTUploader()]
-    can_draft_read_files = [UCTUploader()]
-    can_draft_update_files = [UCTUploader()]
+    can_search = [SystemProcess(), AnyUser()]
+    can_read = [SystemProcess(), AnyUser()]
+    can_create = [SystemProcess(), AuthenticatedUser()]
+    can_update = [SystemProcess(), RecordOwners()]
+    can_delete = [SystemProcess()]
+    can_manage = [SystemProcess(), RecordOwners()]
+
+    can_create_files = [SystemProcess(), RecordOwners()]
+    can_set_content_files = [SystemProcess(), RecordOwners()]
+    can_get_content_files = [SystemProcess(), AnyUser()]
+    can_commit_files = [SystemProcess(), RecordOwners()]
+    can_read_files = [SystemProcess(), AnyUser()]
+    can_update_files = [SystemProcess(), RecordOwners()]
+    can_delete_files = [SystemProcess(), RecordOwners()]
+
+    can_edit = [SystemProcess(), RecordOwners()]
+    can_new_version = [SystemProcess(), RecordOwners()]
+    can_search_drafts = [SystemProcess(), AuthenticatedUser()]
+    can_read_draft = [SystemProcess(), RecordOwners()]
+    can_update_draft = [SystemProcess(), RecordOwners()]
+    can_delete_draft = [SystemProcess(), RecordOwners()]
+    can_publish = [SystemProcess(), RecordOwners()]
+    can_draft_create_files = [SystemProcess(), RecordOwners()]
+    can_draft_set_content_files = [SystemProcess(), RecordOwners()]
+    can_draft_get_content_files = [SystemProcess(), RecordOwners()]
+    can_draft_commit_files = [SystemProcess(), RecordOwners()]
+    can_draft_read_files = [SystemProcess(), RecordOwners()]
+    can_draft_update_files = [SystemProcess(), RecordOwners()]
 ```
 
-The names of the fields in the class are the names of the actions that can be performed on the records
-prefixed with `can_`. The values of the fields are lists of permission checkers. The following can be used:
+The names of the attributes are the names of the actions prefixed with `can_`. An action that
+neither your class nor `RecordPermissionPolicy` defines is denied. Note that `RecordPermissionPolicy`
+has its own defaults for some actions (e.g., `can_search` allows anyone), so define every action you
+rely on explicitly. The values are lists of permission generators; the action is allowed if any of them matches
+the current user. Commonly used generators:
 
-| Name | Description |
-|------|-------------|
-| AnyUser() | any user |
-| AuthenticatedUser() | any authenticated user |
-| SystemProcess() | the system process or superuser |
-| SystemProcessWithoutSuperUser() | just system processes |
-| RecordOwners() | people owning the record |
-| AnyUserIfPublic() | any authenticated user if the record is public |
-| UserWithRole("role") | any user with the specified role |
+| Generator | Import | Description |
+|-----------|--------|-------------|
+| `AnyUser()` | `invenio_records_permissions.generators` | Any user, including anonymous users |
+| `AuthenticatedUser()` | `invenio_records_permissions.generators` | Any authenticated user |
+| `SystemProcess()` | `invenio_records_permissions.generators` | The system process or a superuser |
+| `SystemProcessWithoutSuperUser()` | `invenio_records_permissions.generators` | Only the system process |
+| `AnyUserIfPublic()` | `invenio_records_permissions.generators` | Any user if the record is public |
+| `RecordOwners()` | `invenio_rdm_records.services.generators` | Owner of the record (read from `parent.access`, so the model must be based on the RDM templates) |
 
-## Custom permission checkers <Difficulty level="advanced" />
+Include `SystemProcess()` in every action, otherwise background tasks and command-line
+tools (such as fixtures loading or reindexing) are denied as well.
 
-You can also define your own permission checkers. To do this, you need to create a new class that
-inherits from `invenio_records_permissions.generators.Generator` and provides needs and query filters:
+## Custom permission generators <Difficulty level="advanced" />
 
-```python
+You can also define your own permission generators. Create a class that inherits from
+`invenio_records_permissions.generators.Generator` and provides the needs (who is allowed)
+and a query filter (which records the user can find in search):
+
+```python filename="equipment/permissions.py"
+from flask_principal import RoleNeed
+from invenio_records_permissions.generators import Generator
+from invenio_search.engine import dsl
+
+
 class UserWithRole(Generator):
+    """Allows users that have any of the given roles."""
+
     def __init__(self, *roles):
         self.roles = roles
 
@@ -109,3 +145,5 @@ class UserWithRole(Generator):
                 return dsl.Q("match_all")
         return dsl.Q("match_none")
 ```
+
+Use it in a policy like the built-in generators, e.g. `can_create = [SystemProcess(), UserWithRole("uploader")]`.

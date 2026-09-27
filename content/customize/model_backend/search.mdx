@@ -67,26 +67,30 @@ The merged mapping includes base fields:
 
 ## Customizations
 
-Add these customizations in your model's `model/model_config.py` to modify search behavior without overriding base classes.
+Customizations are passed to the `model()` call in your model's `model.py` (e.g., `equipment/model.py`) through the `customizations` argument. They modify search behavior without overriding base classes.
 
 ### Basic Search Customizations
 
-```python filename="model/model_config.py"
+```python filename="equipment/model.py"
+from oarepo_model.api import model
 from oarepo_model.customizations import (
     SetDefaultSearchFields,
     SetIndexTotalFieldsLimit,
     SetIndexNestedFieldsLimit,
 )
 
-class ModelConfig:
-    customizations = [
+equipment_model = model(
+    "equipment",
+    # ... presets, types, metadata_type etc. as generated for your model
+    customizations=[
         # Set default text search fields for Full Text Search
         SetDefaultSearchFields("metadata.title", "metadata.description"),
 
         # Increase field limits for complex metadata models
         SetIndexTotalFieldsLimit(5000),
         SetIndexNestedFieldsLimit(500),
-    ]
+    ],
+)
 ```
 
 ### Custom Analyzers and Multi-Field Mappings
@@ -94,54 +98,71 @@ class ModelConfig:
 For advanced search scenarios like people names with diacritics, you can add custom analyzers and multi-field mappings:
 
 ```python filename="datasets/model.py" copy
+from oarepo_model.api import model
 from oarepo_model.customizations import (
     PatchIndexSettings,
     PatchIndexPropertyMapping,
     AddFacetGroup,
 )
 
-customizations = [
-    # Define custom analyzers for name search
-    PatchIndexSettings({
-        "analysis": {
-            "people_analyzer": {
-                "tokenizer": "people_tokenizer",
+datasets_model = model(
+    "datasets",
+    # ... presets, types, metadata_type etc.
+    customizations=[
+        # Define custom analyzers for name search
+        PatchIndexSettings({
+            "analysis": {
+                "analyzer": {
+                    "people_analyzer": {
+                        "type": "custom",
+                        "tokenizer": "people_tokenizer",
+                    },
+                    "asciifolded_people_analyzer": {
+                        "type": "custom",
+                        "tokenizer": "people_tokenizer",
+                        "filter": ["asciifolding"],
+                    },
+                },
+                "tokenizer": {
+                    "people_tokenizer": {
+                        "type": "pattern",
+                        "pattern": "\\s*[,.]\\s*",
+                    },
+                },
             },
-            "asciifolded_people_analyzer": {
-                "tokenizer": "people_tokenizer",
-                "filter": ["asciifolding"],
-            },
-        },
-        "tokenizer": {
-            "people_tokenizer": {
-                "type": "pattern",
-                "pattern": "\\s*[,.]\\s*",
-            },
-        },
-    }),
+        }),
 
-    # Add multi-field mappings for creator/contributor names
-    PatchIndexPropertyMapping("metadata.creators.person_or_org.name", {
-        "type": "text",
-        "fields": {
-            "_search": {
-                "type": "text",
-                "analyzer": "people_analyzer",
+        # Add multi-field mappings for creator/contributor names
+        PatchIndexPropertyMapping("metadata.creators.person_or_org.name", {
+            "type": "text",
+            "fields": {
+                "_search": {
+                    "type": "text",
+                    "analyzer": "people_analyzer",
+                },
+                "_ascii_search": {
+                    "type": "text",
+                    "analyzer": "asciifolded_people_analyzer",
+                },
             },
-            "_ascii_search": {
-                "type": "text",
-                "analyzer": "asciifolded_people_analyzer",
-            },
-        },
-    }),
+        }),
 
-    # Add facet groups for organizing filters
-    AddFacetGroup(
-        "default",
-        ["metadata.publisher", "metadata.resource_type", "metadata.languages"],
-    ),
-]
+        # Add facet groups for organizing filters
+        AddFacetGroup(
+            "default",
+            ["metadata.publisher", "metadata.resource_type", "metadata.languages"],
+        ),
+    ],
+)
 ```
+
+<Callout type="warning">
+  `PatchIndexSettings` merges settings only one level deep: when the same
+  top-level key (such as `analysis`) is patched twice, the second patch
+  replaces the nested values (e.g., the whole `analysis.analyzer` dictionary)
+  instead of merging into them. Keep all analysis settings in a single
+  `PatchIndexSettings` call.
+</Callout>
 
 This allows:
 - Searching for names with diacritics (e.g., "Černý") while also matching ASCII-folded versions (e.g., "Cerny")
@@ -189,21 +210,56 @@ This allows:
 
 ## Facet Configuration in Model Schema
 
-Facets are automatically generated from fields that define facet behavior in your model schema. For vocabulary fields and custom types, facets are built by calling `get_facet()` on the datatype.
+Facets are generated automatically for every field whose data type supports them. You don't need to enable them:
 
-### Example: Adding Facet to a Field
+| Data type | Facet |
+|-----------|-------|
+| `keyword`, `int`, `long`, `float`, `double`, `boolean` | Terms facet on the field |
+| `fulltext+keyword` | Terms facet on the `.keyword` sub-field |
+| `date`, `datetime`, `time`, `edtf`, `edtf-time` | Date facet on the field |
+| `vocabulary` | Terms facet on `.id`, with value labels taken from the vocabulary |
+| `object`, `nested`, `array` | No facet of their own; facets are generated for their properties / items (inside `nested`, as nested facets) |
 
-To make a field facetable, the datatype must implement the `get_facet()` method that returns facet configuration. Most built-in types already support facets.
+No facets are generated for `fulltext`, `edtf-interval`, `edtf-date-or-interval`, `polymorphic`, or the sub-fields of `i18n` / `multilingual`. For `pid-relation`, `lazy-pid-relation` and `internal-relation`, facets are generated for the cached `keys` according to their types, except for `id`. For `lazy-pid-relation`, only keys with an explicit definition in `keys` get a facet.
 
-```yaml filename="model/{{model_name}}/metadata.yaml"
-publishers:
-  type: vocabulary
-  vocabulary-type: institutions
-  label:
-    en: Publisher
-  facets:
-    aggregation: publisherfacet
+The facet label is taken from the field's `label`.
+
+### Controlling facets of a field
+
+Use these properties on a field in the metadata YAML:
+
+| Property | Description |
+|----------|-------------|
+| `searchable: false` | Do not generate a facet for this field. The field is still indexed and can be searched. |
+| `facet-def` | Replace the generated facet definition. A dictionary with the facet class in `facet` and its constructor arguments (e.g., `field`, `label`). |
+
+```yaml filename="equipment/metadata.yaml"
+Metadata:
+  properties:
+    internal_note:
+      type: keyword
+      searchable: false        # no facet for this field
+
+    publisher:
+      type: vocabulary
+      vocabulary-type: institutions
+      label:
+        en: Publisher
+      # generated automatically: terms facet on metadata.publisher.id
+
+    acquisition_date:
+      type: date
+      facet-def:               # replaces the generated facet definition
+        facet: oarepo_runtime.services.facets.date.DateFacet
+        field: metadata.acquisition_date
+        label:
+          en: Acquisition date
 ```
+
+<Callout type="info">
+  Facets are produced by the `get_facet()` method of each data type. You only
+  need it when writing a custom data type.
+</Callout>
 
 ## Further Reading
 

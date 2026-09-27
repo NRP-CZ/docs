@@ -777,7 +777,7 @@ embargo_lift_time:
 
 ### edtf-time
 
-Data type for Extended Date/Time Format (EDTF) supporting flexible and imprecise date/time representations. EDTF handles uncertain dates, approximate dates, date ranges, and incomplete dates commonly found in historical, cultural, or scientific contexts. Examples include "1984?", "1984~", "1984/1985", "198X". Uses cached validation for performance and supports both standard dates and EDTF-specific notations. Essential for digital humanities, archives, museums, and any domain dealing with imprecise temporal information.
+Data type for an [EDTF](https://www.loc.gov/standards/datetime/) date, optionally with a time. Accepts a full date and time ("2023-03-15T10:30:00Z"), a full date ("2023-03-15"), or a reduced-precision date: year and month ("1945-05") or year only ("1984"). Intervals ("1984/1985") and uncertainty or approximation qualifiers ("1984?", "1984~") are rejected; use [`edtf-interval`](#edtf-interval) or [`edtf-date-or-interval`](#edtf-date-or-interval) for intervals. Strict `YYYY-MM-DD` values are validated by a fast path; everything else goes through the EDTF parser.
 
 | Property | Description |
 |----------|-------------|
@@ -794,13 +794,13 @@ Data type for Extended Date/Time Format (EDTF) supporting flexible and imprecise
 **Example:**
 
 ```yaml
-manuscript_date:
+observation_time:
   type: edtf-time
 
 historical_event_date:
   type: edtf-time
 
-archaeological_dating:
+manuscript_date:
   type: edtf-time
 ```
 
@@ -808,9 +808,9 @@ archaeological_dating:
 
 ```json
 {
-  "manuscript_date": "1984?",
-  "historical_event_date": "1945-05~",
-  "archaeological_dating": "198X"
+  "observation_time": "2023-03-15T10:30:00Z",
+  "historical_event_date": "1945-05",
+  "manuscript_date": "1984"
 }
 ```
 
@@ -818,14 +818,13 @@ archaeological_dating:
 
 | Query | Description |
 |-------|-------------|
-| `manuscript_date:"1984?"` | Search for manuscripts with uncertain 1984 dating |
-| `historical_event_date:"1945-05~"` | Search for events approximately in May 1945 |
-| `archaeological_dating:198*` | Search for archaeological finds from 1980s |
-| `manuscript_date:[1980 TO 1990]` | Search for manuscripts from 1980s decade |
+| `observation_time:[2023-03-15T00:00:00Z TO 2023-03-15T23:59:59Z]` | Search for observations made on a specific day |
+| `historical_event_date:[1945-01 TO 1945-12]` | Search for events in 1945 |
+| `manuscript_date:[1980 TO 1990]` | Search for manuscripts from the 1980s |
 
 ### edtf
 
-Data type for Extended Date/Time Format (EDTF) focused on date values without time components. Supports uncertain dates ("1984?"), approximate dates ("1984~"), date ranges ("1984/1985"), decades ("198X"), centuries ("19XX"), and other flexible date representations. Ideal for historical records, archaeological data, manuscript dating, and any scholarly work requiring nuanced temporal expressions. The implementation optimizes for common date formats while supporting the full EDTF specification for complex cases.
+Data type for an [EDTF](https://www.loc.gov/standards/datetime/) date without a time component. Accepts a full date ("2023-06-12") or a reduced-precision date: year and month ("1945-05") or year only ("1450"). Values with a time, intervals ("1984/1985") and uncertainty or approximation qualifiers ("1984?", "1984~") are rejected; use [`edtf-time`](#edtf-time) for values with a time and [`edtf-interval`](#edtf-interval) or [`edtf-date-or-interval`](#edtf-date-or-interval) for intervals. Useful for historical records and any data where the full date is not always known.
 
 | Property | Description |
 |----------|-------------|
@@ -856,9 +855,9 @@ specimen_collection_date:
 
 ```json
 {
-  "artifact_dating": "1450~",
-  "cultural_period": "15XX",
-  "specimen_collection_date": "2023-06?"
+  "artifact_dating": "1450",
+  "cultural_period": "1945-05",
+  "specimen_collection_date": "2023-06-12"
 }
 ```
 
@@ -866,14 +865,13 @@ specimen_collection_date:
 
 | Query | Description |
 |-------|-------------|
-| `artifact_dating:"1450~"` | Search for artifacts dated approximately 1450 |
-| `cultural_period:"15XX"` | Search for 15th century cultural periods |
-| `specimen_collection_date:"2023-06?"` | Search for specimens possibly collected in June 2023 |
-| `cultural_period:1[45]*` | Search for 14th or 15th century periods |
+| `artifact_dating:[1400 TO 1499]` | Search for artifacts dated to the 15th century |
+| `cultural_period:[1945-01 TO 1945-12]` | Search for periods in 1945 |
+| `specimen_collection_date:"2023-06-12"` | Search for specimens collected on a specific day |
 
 ### edtf-interval
 
-Data type for EDTF interval representations, specifically designed for date ranges and temporal spans. Supports complex interval notations like "1984/1985", "1984-01/1985-12", and open-ended intervals ("1984/.."). Maps to OpenSearch's `date_range` field type, enabling efficient range queries and interval-based aggregations. Perfect for project durations, historical periods, employment terms, and any time spans that may have uncertain or flexible boundaries typical in scholarly and archival contexts.
+Data type for a closed [EDTF](https://www.loc.gov/standards/datetime/) interval: two dates separated by `/`, each a full date, year and month, or year only ("1984/1985", "2022-06/2023-12", "1984-06-19/1985"). The start must not be after the end. Single dates, open or unknown ends ("1984/..", "..1985") and uncertainty or approximation qualifiers are rejected; use [`edtf-date-or-interval`](#edtf-date-or-interval) if a field can hold either a date or an interval. Maps to OpenSearch's `date_range` field type. Useful for project durations, historical periods, and other time spans.
 
 | Property | Description |
 |----------|-------------|
@@ -906,7 +904,7 @@ funding_period:
 {
   "research_period": "2022/2024",
   "data_collection_period": "2022-06/2023-12",
-  "funding_period": "2022/.."
+  "funding_period": "2022-01-01/2025"
 }
 ```
 
@@ -916,12 +914,11 @@ funding_period:
 |-------|-------------|
 | `research_period:"2022/2024"` | Search for research conducted from 2022 to 2024 |
 | `data_collection_period:"2022-06/2023-12"` | Search for data collected in specific period |
-| `funding_period:"2022/.."` | Search for funding starting 2022 with open end |
 | `research_period:[2022 TO 2025]` | Search for research periods overlapping with range |
 
 ### edtf-date-or-interval
 
-Data type for a single EDTF date or interval, accepting notations like "1984", "1984-06", "1984-06-19", "1984/1985", "1984-01/.." and "..1985". In addition to the original value, the record is indexed with a hidden sibling field `<field>_range` holding the {gte, lte} bounds of the date or interval, so it can be used in date range queries while the original notation stays intact. In the UI schema the value is exposed as localized text in four formats (`<field>_l10n_long`, `_medium`, `_short`, `_full`). Also works as an array item, where all generated ranges are merged into the array's sibling field.
+Data type for a single EDTF date or interval, accepting notations like "1984", "1984-06", "1984-06-19", "1984/1985" and "1984-06/1985". Open or unknown interval ends ("1984-01/..", "..1985") and uncertainty or approximation qualifiers ("1984?", "1984~") are rejected. In addition to the original value, the record is indexed with a hidden sibling field `<field>_range` holding the {gte, lte} bounds of the date or interval, so it can be used in date range queries while the original notation stays intact. In the UI schema the value is exposed as localized text in four formats (`<field>_l10n_long`, `_medium`, `_short`, `_full`). Also works as an array item, where all generated ranges are merged into the array's sibling field.
 
 | Property | Description |
 |----------|-------------|
@@ -1400,30 +1397,42 @@ Data type for creating relationships between records using Persistent Identifier
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Nested` |
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema from ObjectDataType) |
-| keys | List of keys to include in the relation (e.g., `["id", "metadata.title"]`) |
+| keys | List of dotted field paths to cache locally (e.g., `["id", "metadata.title"]`). Each entry is either a plain string (definition is looked up in the schema of the target `model`) or a single-key mapping `"<dotted.path>": {<type definition>}` (definition provided explicitly) |
+| model | Name of the target model (as registered). Used to look up the definitions of plain-string `keys` in the target's schema. Required if `keys` contains plain strings other than `id` |
 | record_cls | Target record class (e.g., `"my_other_model.records:record"`) |
 | pid_field | PID field getter function or PID field instance |
 | cache_key | Optional cache key for caching the resolved record |
 | relation_field_kwargs | Additional kwargs for the relation field |
 | marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
+Either `record_cls` or `pid_field` must be provided to resolve the target PID. The definitions of the cached `keys` come from `model` or from explicit definitions; without `model`, a plain-string key other than `id` fails when the model is built with `Model name is not available, cannot determine target properties for '...'`.
+
 The `id` field is always part of the relation, whether or not it is listed in `keys` (it is what the relation actually stores, keyed by the target's PID). A hidden `@v` field is added to the OpenSearch mapping and JSON Schema (dump-only) and skipped on marshmallow load.
+
+The target must be a **published** record. A record that exists only as a draft does not resolve and is rejected with `InvalidRelationValue`.
 
 **Example:**
 
 ```yaml
+# key definitions looked up in the "publications" model
 cited_publication:
   type: pid-relation
+  model: publications
   keys: ["id", "metadata.title", "metadata.doi"]
   record_cls: "publications.records:PublicationRecord"
 
+# key definitions provided explicitly
 related_dataset:
   type: pid-relation
-  keys: ["id", "metadata.title", "metadata.resource_type"]
+  keys:
+    - id
+    - metadata.title: {type: fulltext+keyword}
+    - metadata.resource_type: {type: keyword}
   record_cls: "datasets.records:DatasetRecord"
 
 parent_collection:
   type: pid-relation
+  model: collections
   keys: ["id", "metadata.title"]
   record_cls: "collections.records:CollectionRecord"
 ```
@@ -1833,7 +1842,7 @@ Data type for arbitrary geometric shapes. The value is stored as given, either a
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Raw` (stores the shape as given) |
 | ui_marshmallow_field_class | (no UI transformation - returns empty dict) |
-| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+| marshmallow_validate | not supported - the field always uses the built-in shapely validator, so any validators listed here are ignored |
 
 **Example:**
 
@@ -1921,7 +1930,7 @@ Data type for celestial areas, the sky counterpart of [geo_shape](#geo_shape): a
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Raw` (stores the shape as given) |
 | ui_marshmallow_field_class | (no UI transformation - returns empty dict) |
-| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+| marshmallow_validate | not supported - the field always uses the built-in shapely validator, so any validators listed here are ignored |
 | properties | not configurable, a shape has no sub-properties |
 
 **Example:**
@@ -1950,7 +1959,7 @@ Unlike `geo_shape:`, `icrs_shape:` accepts WKT only, never a place name. The dis
 
 ## Custom validators
 
-`marshmallow_validate` attaches additional validation to a field whose marshmallow field is generated from the model schema, i.e. every data type listed in this reference. It is a list of validators that run on load, in addition to - not instead of - the built-in validation options such as `min_length`, `enum` or `min_inclusive`.
+`marshmallow_validate` attaches additional validation to a field whose marshmallow field is generated from the model schema, i.e. every data type listed in this reference except `i18ndict`, `geo_shape` and `icrs_shape`, which always use their own fixed validation. It is a list of validators that run on load, in addition to - not instead of - the built-in validation options such as `min_length`, `enum` or `min_inclusive`.
 
 Each item of the list declares one validator, in one of two forms:
 
