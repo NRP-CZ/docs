@@ -6,7 +6,7 @@ in various standard formats for interoperability with other systems or data exch
 
 This guide explains how to add custom export and import formats for metadata schemas.
 We assume that you have already created a custom metadata schema as described in the
-[model customization guide](./model.md).
+[model customization guide](/customize/model_backend/model).
 
 ## DataCite export
 
@@ -35,6 +35,40 @@ my_model = model(
 To add a new export format for your metadata schema, you need to create a serializer class
 that converts the internal JSON representation to the desired export format. Then register
 the class as shown in the example above.
+
+`AddMetadataExport` accepts the following arguments:
+
+| Argument | Description |
+|----------|-------------|
+| `code` | Code of the export format, used to identify the format (e.g., in URLs) |
+| `name` | Human-readable name of the format, shown in the UI |
+| `mimetype` | MIME type of the format. The REST API returns this format when a client sends it in the `Accept` header |
+| `serializer` | Serializer instance that converts the record to the format |
+| `display` | Whether the format is offered in the UI (default `True`). Set to `False` for formats that should only be available through the API |
+| `oai_metadata_prefix`, `oai_schema`, `oai_namespace` | OAI-PMH metadata prefix, schema URL and namespace. The format can be served over OAI-PMH only if all three are set |
+| `about_serializer` | Optional serializer for the `about` section of OAI-PMH records |
+| `description` | Optional human-readable description of the format |
+| `extension` | File extension used when the export is downloaded (e.g., `.json`). Guessed from `mimetype` if not set |
+
+For example, to make the export available over OAI-PMH:
+
+```python
+AddMetadataExport(
+    code="oai_dc",
+    name=_("Dublin Core"),
+    mimetype="application/x-dc+xml",
+    serializer=MyDublinCoreSerializer(),  # your serializer producing oai_dc XML
+    oai_metadata_prefix="oai_dc",
+    oai_schema="http://www.openarchives.org/OAI/2.0/oai_dc.xsd",
+    oai_namespace="http://www.openarchives.org/OAI/2.0/oai_dc/",
+)
+```
+
+To download an export from the REST API, request the record with the export's MIME type:
+
+```bash
+curl -H "Accept: application/vnd.datacite.datacite+json" https://<repository>/api/<model>/<record id>
+```
 
 ### Creating a serializer class
 
@@ -147,4 +181,83 @@ my_model = model(
 
 ## Adding custom import formats
 
-TODO
+Import formats let clients create or update records by sending metadata in a format other than
+the internal JSON. The REST API picks the import format by the `Content-Type` header of the
+request: the request body is passed to the format's deserializer, and the result is then
+processed as if it had been sent as JSON.
+
+A JSON import (`application/json`) is always registered, so the internal JSON format works
+without any configuration.
+
+### Creating a deserializer class
+
+A deserializer inherits from `flask_resources.deserializers.DeserializerMixin` and implements
+`deserialize(data)`. It receives the raw request body (`bytes`) and returns a dictionary in the
+internal JSON format of the record, i.e. the same structure a client would send as JSON:
+
+```python filename="equipment/deserializers.py"
+import csv
+from io import StringIO
+
+from flask_resources.deserializers import DeserializerMixin
+
+
+class CSVDeserializer(DeserializerMixin):
+    """Create a record from a CSV file with a header and a single data row."""
+
+    def deserialize(self, data: bytes) -> dict:
+        reader = csv.DictReader(StringIO(data.decode("utf-8")))
+        row = next(reader, {})
+        return {
+            "metadata": {
+                "name": row.get("name"),
+                "serial_number": row.get("serial_number"),
+                "manufacturer": row.get("manufacturer"),
+            },
+        }
+```
+
+The returned dictionary is validated by the model's schema in the same way as JSON input,
+so the deserializer does not need to validate the values itself.
+
+### Registering the custom deserializer
+
+Register the deserializer in your model's customization section with `AddMetadataImport`:
+
+```python filename="equipment/model.py"
+from invenio_i18n import lazy_gettext as _
+from oarepo_model.customizations import AddMetadataImport
+
+from .deserializers import CSVDeserializer
+
+my_model = model(
+    # ...
+    customizations=[
+        AddMetadataImport(
+            code="csv",
+            name=_("CSV"),
+            mimetype="text/csv",
+            deserializer=CSVDeserializer(),
+            description=_("A CSV file with a header and a single data row"),
+        ),
+    ],
+)
+```
+
+| Argument | Description |
+|----------|-------------|
+| `code` | Code of the import format |
+| `name` | Human-readable name of the format |
+| `mimetype` | MIME type of the format; the format is used for requests with this `Content-Type` |
+| `deserializer` | Deserializer instance that converts the request body to the internal JSON |
+| `description` | Human-readable description of the format (**required**) |
+| `oai_name` | Optional `(namespace, local name)` of the metadata element in OAI-PMH XML records; the format can be used for OAI-PMH harvesting only if set |
+
+Any other keyword arguments are accepted but ignored.
+
+A client can then create a record by sending the data with the matching content type:
+
+```bash
+curl -X POST -H "Content-Type: text/csv" --data-binary @equipment.csv \
+     https://<repository>/api/<model>/
+```
