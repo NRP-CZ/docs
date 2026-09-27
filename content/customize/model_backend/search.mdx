@@ -1,69 +1,11 @@
 import { Cards, Callout } from 'nextra/components';
 import { Card } from "@/components/card";
+import {Difficulty} from '@/components/difficulty'
 
 
 # Search configuration
 
 This page covers how to customize search behavior for your model using oarepo-model's preset system and customizations.
-
-## Presets
-
-The oarepo-model framework uses presets to dynamically generate search configuration at build time. These presets scan your model schema and create the necessary service classes, facets, and OpenSearch mappings.
-
-| Preset | Generated | Description |
-|--------|-----------|-------------|
-| `RecordSearchOptionsPreset` | `RecordSearchOptions` class | Adds grouped facets (`GroupedFacetsParam`) and query parsing with `SearchQueryValidator` |
-| `RecordFacetsPreset` | `RecordFacets` dict | Generates facets from model's record fields |
-| `MetadataFacetsPreset` | facet modules | Generates facets from model's metadata fields |
-| `RecordMappingPreset` | Elasticsearch mapping | Creates JSON mapping for the index |
-
-### How Facets Are Generated
-
-The `get_facets()` function scans your model's schema types through the type registry:
-
-1. **Schema Type Discovery** - Each datatype in the type registry implements `get_facet()`
-2. **Facet Building** - `build_facet()` converts facet definitions into facet objects
-3. **Module Generation** - Facets are added to the `facets` module with `AddToModule`
-4. **Dictionary Collection** - All facets are collected into `RecordFacets` dictionary
-
-### How Mappings Are Generated
-
-The `get_mapping()` function creates OpenSearch mappings from your model metadata:
-
-1. **Type Resolution** - Datatype is retrieved from the type registry
-2. **Mapping Creation** - `create_mapping()` generates base mapping from the schema
-3. **Type Removal** - The top-level `"type"` key is removed from the mapping
-4. **Merge with Defaults** - Final mapping is merged with default fields (id, created, pid, etc.)
-5. **File Output** - Mapping is written to `mappings/os-v2/<base_name>/metadata-v<version>.json`
-
-The merged mapping includes base fields:
-
-```json
-{
-  "mappings": {
-    "dynamic": "strict",
-    "properties": {
-      "$schema": {"type": "keyword"},
-      "id": {"type": "keyword"},
-      "created": {"type": "date"},
-      "updated": {"type": "date"},
-      "expires_at": {"type": "date"},
-      "indexed_at": {"type": "date"},
-      "uuid": {"type": "keyword"},
-      "version_id": {"type": "integer"},
-      "pid": {
-        "properties": {
-          "obj_type": {"type": "keyword", "index": false},
-          "pid_type": {"type": "keyword", "index": false},
-          "pk": {"type": "long", "index": false},
-          "status": {"type": "keyword", "index": false}
-        }
-      },
-      "metadata": { /* your model's fields */ }
-    }
-  }
-}
-```
 
 ## Customizations
 
@@ -177,8 +119,10 @@ This allows:
 | `PatchIndexSettings(settings)` | Modifies OpenSearch index settings (analyzers, tokenizers, filters, etc.) |
 | `SetIndexTotalFieldsLimit(limit)` | Sets the maximum number of top-level fields in mapping |
 | `SetIndexNestedFieldsLimit(limit)` | Sets the maximum number of nested object fields |
-| `PatchIndexPropertyMapping(field, mapping)` | Modifies or adds OpenSearch mapping for a specific field |
-| `AddFacetGroup(name, facets, exists_ok=False)` | Adds a facet group for organizing related filters |
+| `PatchIndexPropertyMapping(field, mapping)` | Modifies or adds OpenSearch mapping for a specific field (dotted path, e.g. `metadata.title`); the snippet is deep-merged into the field's generated mapping |
+| `PatchIndexMapping(mapping)` | Deep-merges a snippet into the whole `mappings` section of the index (e.g., `{"properties": {...}}` or `{"dynamic_templates": [...]}`); `None` values remove keys |
+| `AddFacetGroup(name, facets, exists_ok=False, *, draft_facets=None)` | Adds a facet group for organizing related filters, see [Facet groups](#facet-groups) |
+| `AddParamInterpreterCls(cls)` | Adds a custom search parameter interpreter (a subclass of `invenio_records_resources.services.records.params.base.ParamInterpreter`), see [Geo search](#geo-search) |
 
 <Callout type="warning">
   **All `search_fields` must be text fields.** Due to how OpenSearch works
@@ -189,23 +133,21 @@ This allows:
   `failed to create query: For input string: "..."`.
 
   If other types, for example integers, need to be searchable, they must
-  first expose a text subfield using the `fields` option in the field
-  mapping:
+  first expose a keyword sub-field. Add it to the generated mapping with
+  `PatchIndexPropertyMapping`:
 
-  ```yaml
-  recid:
-    type: int
-    label:
-      en: Record ID
-    mapping:
-      type: integer
-      fields:
-        keyword:
-          type: keyword
+  ```python
+  PatchIndexPropertyMapping("metadata.recid", {
+      "type": "integer",
+      "fields": {
+          "keyword": {"type": "keyword"},
+      },
+  }),
   ```
 
   Then use the `metadata.recid.keyword` field for searching (not just
-  `metadata.recid`).
+  `metadata.recid`). A `mapping` property in the metadata YAML is not
+  supported and is ignored.
 </Callout>
 
 ## Facet Configuration in Model Schema
@@ -220,7 +162,7 @@ Facets are generated automatically for every field whose data type supports them
 | `vocabulary` | Terms facet on `.id`, with value labels taken from the vocabulary |
 | `object`, `nested`, `array` | No facet of their own; facets are generated for their properties / items (inside `nested`, as nested facets) |
 
-No facets are generated for `fulltext`, `edtf-interval`, `edtf-date-or-interval`, `polymorphic`, or the sub-fields of `i18n` / `multilingual`. For `pid-relation`, `lazy-pid-relation` and `internal-relation`, facets are generated for the cached `keys` according to their types, except for `id`. For `lazy-pid-relation`, only keys with an explicit definition in `keys` get a facet.
+No facets are generated for `fulltext`, `edtf-interval`, `edtf-date-or-interval`, `polymorphic`, or the sub-fields of `i18n` / `multilingual`. For `pid-relation`, `lazy-pid-relation` and `internal-relation`, facets are generated for the cached `keys` according to their types, except for `id`. For `lazy-pid-relation` and `internal-relation`, only keys with an explicit definition in `keys` get a facet.
 
 The facet label is taken from the field's `label`.
 
@@ -260,6 +202,151 @@ Metadata:
   Facets are produced by the `get_facet()` method of each data type. You only
   need it when writing a custom data type.
 </Callout>
+
+### Facet groups
+
+Facet groups select which facets are shown together, e.g. on the search page. Add them with
+`AddFacetGroup` in the model's `customizations`. The facets are referenced by their names, which
+are the dotted paths of the fields (e.g., `metadata.publisher`):
+
+```python filename="equipment/model.py"
+from oarepo_model.customizations import AddFacetGroup
+
+customizations=[
+    AddFacetGroup(
+        "default",
+        ["metadata.publisher", "metadata.resource_type", "metadata.languages"],
+    ),
+    # a different set of facets on the drafts search
+    AddFacetGroup(
+        "curator",
+        ["metadata.publisher", "metadata.acquisition_date"],
+        draft_facets=["metadata.publisher"],
+    ),
+]
+```
+
+| Argument | Description |
+|----------|-------------|
+| `name` | Name of the group |
+| `facets` | Facets of the group on the search of published records |
+| `exists_ok` | If `True`, adding a group that already exists is not an error |
+| `draft_facets` | Facets of the group on the drafts search. If omitted, the drafts search uses `facets`; pass `[]` to show no facets of this group on the drafts search |
+
+## Geo search
+
+Models with [`geo_point`](/customize/model_backend/model_reference#geo_point),
+[`geo_shape`](/customize/model_backend/model_reference#geo_shape),
+[`icrs`](/customize/model_backend/model_reference#icrs) or
+[`icrs_shape`](/customize/model_backend/model_reference#icrs_shape) fields can be filtered by location.
+The following search parameters are registered automatically. They are **URL query-string parameters**
+of the search API, not part of the `q` query, and the field path is part of the parameter name:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `geo_distance:<field>` | `[lon,lat,distance]` or `[place name,distance]` | Records within the distance (e.g. `10km`) of the point; closer records rank higher |
+| `geo_bounding_box:<field>` | `[west,south,east,north]` | Records within the rectangle |
+| `geo_shape:<field>` | `[RELATION] <WKT>` or `[RELATION] <place name>` | Records whose shape relates to the geometry; the relation is `INTERSECTS` (default), `DISJOINT`, `WITHIN` or `CONTAINS` |
+| `icrs_distance:<field>` | `[ra,dec,degrees]` | Records within the angular distance of a sky position |
+| `icrs_bounding_box:<field>` | `[ra,dec,ra,dec]` | Records within a box given by two opposite corners |
+| `icrs_shape:<field>` | `[RELATION] <WKT>` | Like `geo_shape:`, with WKT coordinates read as right ascension/declination; place names are not supported |
+
+Example:
+
+```
+GET /api/equipment/?q=microscope&geo_distance:metadata.location=[14.4213,50.0875,10km]
+```
+
+Place names are resolved with OpenStreetMap Nominatim. See the
+[metadata reference](/customize/model_backend/model_reference#geo_point) for the configuration
+options and more examples.
+
+### Custom search parameters <Difficulty level="advanced" />
+
+The geo parameters are implemented as search parameter interpreters. You can add your own with
+`AddParamInterpreterCls`. Extra interpreters run before the facets interpreter, so they can read
+their own query-string parameters, which are otherwise collected together with the facet filters:
+
+```python filename="equipment/model.py"
+from invenio_records_resources.services.records.params.base import ParamInterpreter
+from oarepo_model.customizations import AddParamInterpreterCls
+
+
+class OnlyWithFilesParam(ParamInterpreter):
+    """Filter records with files when ?with_files=true is passed (models with files)."""
+
+    def apply(self, identity, search, params):
+        facets = params.get("facets", {})
+        value = params.pop("with_files", None) or facets.pop("with_files", None)
+        if value and value[0] == "true":
+            search = search.filter("term", **{"files.enabled": True})
+        return search
+
+
+customizations=[
+    AddParamInterpreterCls(OnlyWithFilesParam),
+]
+```
+
+## How search configuration is generated
+
+This section describes the internals; you do not need it to configure search. The oarepo-model framework uses presets to dynamically generate search configuration at build time. These presets scan your model schema and create the necessary service classes, facets, and OpenSearch mappings.
+
+| Preset | Generated | Description |
+|--------|-----------|-------------|
+| `RecordSearchOptionsPreset` | `RecordSearchOptions` class | Adds grouped facets (`GroupedFacetsParam`), extra search parameter interpreters and query parsing with `SearchQueryValidator` |
+| `GeoPreset` | search parameter interpreters | Registers the `geo_*` and `icrs_*` search parameters |
+| `RecordFacetsPreset` | `RecordFacets` dict | Generates facets from model's record fields |
+| `MetadataFacetsPreset` | facet modules | Generates facets from model's metadata fields |
+| `RecordMappingPreset` | OpenSearch mapping | Creates JSON mapping for the index |
+
+### How facets are generated
+
+The `get_facets()` function scans your model's schema types through the type registry:
+
+1. **Schema Type Discovery** - Each datatype in the type registry implements `get_facet()`
+2. **Facet Building** - `build_facet()` converts facet definitions into facet objects
+3. **Module Generation** - Facets are added to the `facets` module with `AddToModule`
+4. **Dictionary Collection** - All facets are collected into `RecordFacets` dictionary
+
+### How mappings are generated
+
+The `get_mapping()` function creates OpenSearch mappings from your model metadata:
+
+1. **Type Resolution** - Datatype is retrieved from the type registry
+2. **Mapping Creation** - `create_mapping()` generates base mapping from the schema
+3. **Type Removal** - The top-level `"type"` key is removed from the mapping
+4. **Merge with Defaults** - Final mapping is merged with default fields (id, created, pid, etc.)
+5. **File Output** - Mapping is written to `mappings/os-v2/<base_name>/metadata-v<version>.json`
+
+The merged mapping includes base fields:
+
+```json
+{
+  "mappings": {
+    "dynamic": "strict",
+    "properties": {
+      "$schema": {"type": "keyword"},
+      "id": {"type": "keyword"},
+      "created": {"type": "date"},
+      "updated": {"type": "date"},
+      "expires_at": {"type": "date"},
+      "indexed_at": {"type": "date"},
+      "uuid": {"type": "keyword"},
+      "version_id": {"type": "long"},
+      "pid": {
+        "properties": {
+          "obj_type": {"type": "keyword", "index": false},
+          "pid_type": {"type": "keyword", "index": false},
+          "pk": {"type": "long", "index": false},
+          "status": {"type": "keyword", "index": false}
+        }
+      },
+      "metadata": { /* your model's fields */ }
+    }
+  }
+}
+```
 
 ## Further Reading
 

@@ -36,6 +36,61 @@ This file describes the data types supported by the model builder for defining r
 | [icrs](#icrs) | Celestial position (right ascension/declination) |
 | [icrs_shape](#icrs_shape) | Celestial area (WKT or GeoJSON in ICRS coordinates) |
 
+## Common properties
+
+The following properties can be used on a field of any data type. The sections below list only the
+properties specific to each type.
+
+| Property | Description |
+|----------|-------------|
+| `required` | The field must be present on input |
+| `allow_none` | `null` is accepted as a value |
+| `dump_only` | The field is returned by the API but ignored on input |
+| `load_only` | The field is accepted on input but not returned by the API |
+| `label`, `help`, `hint` | Multilingual texts (`{en: ..., cs: ...}`) for the UI: the field label, a longer help text, and a short hint. `label` is also used as the facet label |
+| `input` | Name of the UI input used for the field in the generated UI model. Defaults to the name of the data type |
+| `searchable` | `false` disables the facet for this field. The field is still indexed and searchable. See [Search configuration](/customize/model_backend/search#controlling-facets-of-a-field) |
+| `facet-def` | Custom facet definition that replaces the generated one, see [Search configuration](/customize/model_backend/search#controlling-facets-of-a-field) |
+| `marshmallow_validate` | Additional validators, see [Custom validators](#custom-validators) |
+| `marshmallow_field_class` | Import path of a marshmallow field class used instead of the default one; it is instantiated with the generated arguments |
+| `marshmallow_field` | Import path of a ready-made marshmallow field *instance* used as-is instead of generating one |
+| `ui_marshmallow_field_class` | Import path of a marshmallow field class used for the UI serialization. The per-type tables below show the default class |
+
+Some data types don't support all of them; this is noted in the type's section (for example,
+[`i18ndict`](#i18ndict) always uses its fixed field). For `object`, `nested` and `array` fields,
+`ui_marshmallow_field` (import path of a ready-made UI field instance) is also supported, and a
+property of an `object` can be marked with `skip_marshmallow: true` to leave it out of the
+marshmallow schema while keeping it in the mapping and JSON Schema.
+
+### Unknown fields are rejected
+
+The generated schemas accept only the declared properties. Input with a property that is not
+defined in the model fails validation with an `Unknown field.` error, and the search index mapping
+is `dynamic: strict`, so undeclared fields are not indexed either. Use
+[`dynamic-object`](#dynamic-object) for parts of the metadata whose structure is not known in advance.
+
+### YAML shortcuts
+
+* **Array shortcut** - a property name ending with `[]` defines an array of the given item type.
+  The `[]` is not part of the field name:
+
+  ```yaml
+  keywords[]:
+    type: keyword
+  # is the same as
+  keywords:
+    type: array
+    items:
+      type: keyword
+  ```
+
+* **Omitted type** - `type` can be left out when it is clear from the definition: an element with
+  `properties` is an `object`, and an element with `items` is an `array`.
+
+* **Named types** - every top-level name in a YAML file defines a type that can be used as `type:`
+  elsewhere, with properties merged at the place of use. See
+  [Reusing named types](/customize/model_backend/model#reusing-named-types).
+
 ## Boolean data types
 
 ### boolean
