@@ -20,7 +20,14 @@ export default {
       "display": "hidden"
     },
     "oarepo_glitchtip_link": {
-      "title": "OARepo CHECKS",
+      "title": "OARepo Glitchtip",
       "href": "/modules/oarepo_glitchtip"
+    },
+    "oarepo_model": {
+      "display": "hidden"
+    },
+    "oarepo_model_link": {
+      "title": "OARepo Model",
+      "href": "/modules/oarepo_model"
     }
   }
