@@ -159,7 +159,7 @@ Facets are generated automatically for every field whose data type supports them
 | `keyword`, `url`, `int`, `long`, `float`, `double`, `boolean` | Terms facet on the field |
 | `fulltext+keyword` | Terms facet on the `.keyword` sub-field |
 | `date`, `datetime`, `time`, `edtf`, `edtf-time` | Date facet on the field |
-| `vocabulary` | Terms facet on `.id`, with value labels taken from the vocabulary |
+| `vocabulary` | Terms facet on `.id`, with value labels taken from the vocabulary; additional `keys` (e.g. `props.<name>`) get their own facets, see [Caching vocabulary props](/customize/model_backend/model_reference#caching-vocabulary-props) |
 | `object`, `nested`, `array` | No facet of their own; facets are generated for their properties / items (inside `nested`, as nested facets) |
 
 No facets are generated for `fulltext`, `edtf-interval`, `edtf-date-or-interval`, `polymorphic`, or the sub-fields of `i18n` / `multilingual`. For `pid-relation`, `lazy-pid-relation` and `internal-relation`, facets are generated for the cached `keys` according to their types, except for `id`. For `lazy-pid-relation` and `internal-relation`, only keys with an explicit definition in `keys` get a facet.

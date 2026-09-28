@@ -1789,7 +1789,7 @@ On save, `RelationDumperExt` dereferences each relation against its `target`, so
 
 ### vocabulary
 
-Data type for references to controlled vocabularies, extending pid-relation with vocabulary-specific functionality. Any vocabulary type can be used in `vocabulary-type`. The types `affiliations`, `funders`, `awards` and `subjects` have their own schemas and predefined keys (e.g., affiliations include `identifiers` and `name`). All other ("generic") vocabulary types, such as `languages` or `resourcetypes`, cache the term's `title` (a multilingual dictionary) and are serialized for the UI as `{id, title_l10n}`. The PID field of the vocabulary is determined from `vocabulary-type` automatically. A facet is generated on `<field>.id`, with value labels taken from the vocabulary.
+Data type for references to controlled vocabularies, extending pid-relation with vocabulary-specific functionality. Any vocabulary type can be used in `vocabulary-type`. The types `affiliations`, `funders`, `awards` and `subjects` have their own schemas and predefined keys (e.g., affiliations include `identifiers` and `name`). All other ("generic") vocabulary types, such as `languages` or `resourcetypes`, cache the term's `title` (a multilingual dictionary) and are serialized for the UI as `{id, title_l10n}`. The PID field of the vocabulary is determined from `vocabulary-type` automatically. A facet is generated on `<field>.id`, with value labels taken from the vocabulary. Keys added in `keys` (other than the predefined ones) get facets according to their types, e.g. `props.<name>`, see [Caching vocabulary props](#caching-vocabulary-props).
 
 | Property | Description |
 |----------|-------------|
@@ -1802,7 +1802,7 @@ Data type for references to controlled vocabularies, extending pid-relation with
 | marshmallow_field_class | `marshmallow.fields.Nested` |
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema from ObjectDataType) |
 | vocabulary-type | Id of the vocabulary type (e.g., `"languages"`, `"resourcetypes"`, `"affiliations"`, `"funders"`, `"awards"`, `"subjects"`) |
-| keys | Additional keys to cache; the predefined keys of the vocabulary type are always included |
+| keys | Additional keys to cache; the predefined keys of the vocabulary type are always included. `props` and `props.<name>` can be listed without a type definition, see [Caching vocabulary props](#caching-vocabulary-props) |
 | record_cls | not configurable, determined from `vocabulary-type` |
 | pid_field | not configurable, determined from `vocabulary-type` |
 | cache_key | (inherited from pid-relation, defaults to vocabulary-type if not specified) |
@@ -1883,6 +1883,59 @@ After the record is saved, the relation is dereferenced against the vocabulary, 
 ```
 
 Note that the dereferenced keys are not uniform across vocabulary types: `languages` expose a multilingual `title`, while `affiliations` and `funders` expose `name`, and `identifiers` is a list of `{scheme, identifier}` objects (not a mapping keyed by scheme).
+
+#### Caching vocabulary props
+
+Vocabulary terms can carry additional values in `props`, a dictionary of strings (e.g., the three-letter code of a language in `props.alpha3`). To copy them into the record, list them in `keys`; no type definition is needed:
+
+| Key | What is cached | Mapping |
+|-----|----------------|---------|
+| `props` | The whole `props` dictionary | `object` with `dynamic: true` (each value is indexed with a dynamically created mapping, like in the vocabulary's own index) |
+| `props.<name>` | A single value from `props` | `keyword` inside a strict `props` object |
+
+Use `props.<name>` when you know which values you need to search; use `props` to copy everything. For `subjects`, `props` is already one of the predefined keys.
+
+```yaml
+language:
+  type: vocabulary
+  vocabulary-type: languages
+  keys: ["id", "props.alpha3"]
+```
+
+After the record is saved, the cached value is part of the record and of the search index:
+
+```json
+{
+  "language": {
+    "id": "en",
+    "title": { "en": "English", "cs": "Angličtina" },
+    "props": { "alpha3": "eng" }
+  }
+}
+```
+
+It can then be searched with `metadata.language.props.alpha3:eng`.
+
+Each `props.<name>` key also gets its own terms facet, `metadata.language.props.alpha3` in the example above, in addition to the facet on `metadata.language.id`. Copying the whole `props` does not create a facet. The label of the props facet is taken from translations (the message id is the field path, e.g. `metadata/language/props/alpha3.label`); to set it directly or to turn the facet off, write the key with an explicit definition:
+
+```yaml
+language:
+  type: vocabulary
+  vocabulary-type: languages
+  keys:
+    - id
+    - props.alpha3:
+        type: keyword
+        label:
+          en: ISO 639-2 code
+    - props.alpha2:
+        type: keyword
+        searchable: false   # cached and searchable, but no facet
+```
+
+`searchable: false` on the vocabulary field itself turns off only the `<field>.id` facet, not the facets of its props. For `subjects`, whose predefined keys already include `props`, `props.<name>` keys do not get a facet.
+
+For generic vocabulary types, the UI serialization contains only `{id, title_l10n}`, so the props are available in the API response but not in the UI representation.
 
 **Sample search queries:**
 
