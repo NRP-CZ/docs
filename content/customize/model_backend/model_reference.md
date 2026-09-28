@@ -12,6 +12,7 @@ This file describes the data types supported by the model builder for defining r
 | [keyword](#keyword) | Keyword field for exact matching |
 | [fulltext](#fulltext) | Full-text searchable field |
 | [fulltext+keyword](#fulltextkeyword) | Full-text field with keyword validation |
+| [url](#url) | Absolute URL (http, https, ftp, ftps) |
 | [i18n](#i18n) | Single localized text entry (language reference + value) |
 | [multilingual](#multilingual) | One i18n entry per language for multilingual content |
 | [i18ndict](#i18ndict) | Simple multilingual dictionary (language code keys) |
@@ -511,6 +512,63 @@ author_name:
 | `journal_name:"Journal of Computational Biology"` | Search for specific journal |
 | `author_name:Smith` | Search for authors with surname Smith |
 | `title:bioinformatics AND journal_name:"Computational Biology"` | Combined search across fields |
+
+### url
+
+Data type for an absolute URL, such as a link to a landing page, a dataset download or a project website. The value must be an absolute URL with the `http`, `https`, `ftp` or `ftps` scheme; a bare domain (`example.org`), a relative path, and other schemes such as `mailto:` or `doi:` are rejected (store DOIs and other identifiers in a `keyword` field instead). Host names, `localhost` and IP addresses are accepted. The value is stored exactly as entered. It is indexed as a keyword, like [`keyword`](#keyword), but with `ignore_above: 2048` because URLs are often longer than 256 characters; longer URLs are stored but not indexed. It supports the same validation options as `keyword`, and a facet is generated for it.
+
+| Property | Description |
+|----------|-------------|
+| source code | [strings.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/strings.py) |
+| jsonschema type | `string` with `format: uri` |
+| mapping | [`keyword`](https://docs.opensearch.org/latest/field-types/supported-field-types/keyword/) with `ignore_above: 2048` |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Url` |
+| ui_marshmallow_field_class | no special serialization for UI |
+| min_length | Minimum string length |
+| max_length | Maximum string length |
+| enum | List of allowed values |
+| pattern | Regular expression pattern for validation (in addition to the URL check) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+**Example:**
+
+```yaml
+landing_page:
+  type: url
+  required: true
+
+download_links:
+  type: array
+  items:
+    type: url
+
+project_website:
+  type: url
+  pattern: "^https://"
+```
+
+**Valid input json example:**
+
+```json
+{
+  "landing_page": "https://example.org/datasets/1234",
+  "download_links": [
+    "https://data.example.org/files/measurements.csv",
+    "ftp://ftp.example.org/pub/raw-data.zip"
+  ],
+  "project_website": "https://project.example.org"
+}
+```
+
+**Sample search queries:**
+
+| Query | Description |
+|-------|-------------|
+| `landing_page:"https://example.org/datasets/1234"` | Exact match of the URL |
+| `download_links:https\:\/\/data.example.org*` | URLs starting with the given prefix (`:` and `/` must be escaped) |
 
 ### i18n
 
