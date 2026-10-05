@@ -21,7 +21,7 @@ Breaking changes for custom UI code in that window:
 2. **oarepo-communities v12** removed its custom invitation/membership UI, falling back to upstream invenio-communities (step 3).
 3. **oarepo-ui 13.5.2/13.5.3** re-based the deposit page's **`files_locked`** state on the draft file-bucket lock ([PR #494](https://github.com/oarepo/oarepo-ui/pull/494)): files on a *published* record no longer appear locked, and deposit-page UI tests need updating.
 
-React did **not** change between 6.3.0 and 7.0.3 (`react@^16.13`, `semantic-ui-react@^2.1`, Formik `^2`), and `oarepo-theme` stays at 6.0.0. Upstream 14.0 items (Node 24+, pnpm/rspack, database upgrade, stock-vocabulary changes) are covered by the official [v13→v14 upgrade guide](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/) and not repeated here.
+Upstream 14.0 items (Node 24+, pnpm/rspack, database upgrade, stock-vocabulary changes) are covered by the official [v13→v14 upgrade guide](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/) and not repeated here.
 
 <MigrationAffected>
 
@@ -60,7 +60,7 @@ Test the production Alembic procedure against a database copy first. Local devel
 
 **2. Migrate removed vocabulary form components (only if you imported them)**
 
-oarepo-vocabularies v10 removed all deposit-form React components: `LocalVocabularySelectField`, `VocabularySelectField`, `VocabularyRemoteSelectField` (+modal/search pieces), `VocabularyPickerField`, `VocabularyTreeSelectField` (+ `HierarchyColumn`, `TreeSelectFieldModal`, `TreeSelectValues`), `SelectedVocabularyValues`, `OptionsLoadingSkeleton`, and the Python `oarepo_vocabularies/ui/resources/components/deposit.py`. Replace direct imports with `VocabularyField` (see the generated `forms/index.js` in your model); labels/help/required come from `metadata.yaml` via `useFieldData()`/`getFieldData()`, initial options from the record's UI serialization as `{id, title_l10n}`. Webpack entry points and aliases are unchanged between v9 and v10.
+oarepo-vocabularies v10 removed all deposit-form React components: `LocalVocabularySelectField`, `VocabularySelectField`, `VocabularyRemoteSelectField` (+modal/search pieces), `VocabularyPickerField`, `VocabularyTreeSelectField` (+ `HierarchyColumn`, `TreeSelectFieldModal`, `TreeSelectValues`), `SelectedVocabularyValues`, `OptionsLoadingSkeleton`, and the Python `oarepo_vocabularies/ui/resources/components/deposit.py`. Replace direct imports with `VocabularyField` (see the generated `forms/index.js` in your model); labels/help/required come from `metadata.yaml` via `useFieldData()`/`getFieldData()`, initial options from the record's UI serialization as `{id, title_l10n}`.
 
 **3. Remove oarepo-communities invitation UI references (only if you customized it)**
 
