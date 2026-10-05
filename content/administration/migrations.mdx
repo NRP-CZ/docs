@@ -66,11 +66,7 @@ oarepo-vocabularies v10 removed all deposit-form React components: `LocalVocabul
 
 v12 removed the custom invitation/membership UI: the `CommunityInvitationsModal` React component, the six `InvenioCommunities.CommunityMembersSearch.*.InvitationsModal.container` `UIComponentOverride` registrations, and the template overrides `details/members/base.html`, `details/members/invitations.html`, `details/settings/base.html` — pages now fall back to the upstream invenio-communities UI. Also remove, if present, any `@js/oarepo_communities/components/CommunityInvitationsModal` import, the `RDM_RECORDS_COMMUNITY_RECORDS_SERVICE_CLASS` variable / `oarepo_communities.services.community_records.CommunityRecordsService` import, and any reference to `oarepo_communities.config.community_members_recipient` (replaced by `CommunityRoleEmailRecipient` / `CommunityRecipient` in v12's `NOTIFICATION_RECIPIENTS_RESOLVERS`). Behavioral note: a declined/expired/cancelled community review now auto-creates a fresh `community-submission` request and returns the draft to `draft_with_review` ([commit 7444420](https://github.com/oarepo/oarepo-communities/commit/7444420)); UI tests that assert the old declined-state behavior will need updating.
 
-**4. Optionally adopt the new communities v12 UI additions**
-
-A **collections UI** (`/collections` browse/detail pages, gated by `INVENIO_COLLECTIONS_COMMUNITY_SLUG` / `INVENIO_COLLECTIONS_UI_URL_PREFIX`) and a **sub-community creation button** injected through a new `details/header.html` override. If your site also overrides that template's `subheader_buttons` block, reconcile the two.
-
-**5. Re-run vocabulary fixtures if you customized them**
+**4. Re-run vocabulary fixtures if you customized them**
 
 If you maintain custom files under `app_data/vocabularies/`, merge DataCite 4.4–4.7 additions into them and re-apply with `invenio rdm-records add-to-fixture <vocabulary>`. Details and the list of changed vocabularies: [v13→v14 upgrade guide](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/#update-vocabularies).
 
