@@ -9,31 +9,28 @@ import {
 
 <MigrationHeader
   date="2026-09-29"
-  title="oarepo-app 6.x → 7.0.3"
+  title="oarepo-app 6.3.0 → 7.0.3"
   versionBadge="oarepo-app ≥ 7.0.3"
 />
 
-`oarepo-app` 7 transitions the pinned stack from the InvenioRDM 14 **release candidates** to the **final** v14 releases (`invenio-app-rdm 14.0.0rc4 → 14.0.0`, `invenio-rdm-records → 32.2.1`, `invenio-communities → 28.x`) and lands a major-version cascade across the `oarepo-*` packages (`oarepo-ui` 11→13.5.3, `oarepo-vocabularies` 7→10.2.1, `oarepo-communities` 9→12.1.2, `oarepo-theme` 4→6, `oarepo-dashboard` 6→8, `oarepo-requests` 7→9.5.2, `oarepo-rdm` 6→8.6.1, `oarepo-runtime` 5→7.7.0, `oarepo-model` 3→5.4.1, `oarepo-oidc-einfra` 5→8.0.1). For the full list of package changes see the [oarepo-app v7.0.0rc1 and later release notes](https://github.com/oarepo/oarepo-app/releases).
+This guide covers exactly what changes between **oarepo-app 6.3.0** and **7.0.3**: the upstream RDM stack moves from 14.0.0rc2 to the final 14.0.0 (`invenio-rdm-records` 32.0.2 → 32.2.1, `invenio-communities` 28.1.0 → 28.2.0, `invenio-requests` 14.0.0 → 14.1.0), and the oarepo-* packages to `oarepo-ui` 13.5.1 → 13.5.3, `oarepo-vocabularies` 9.0.1 → 10.2.1, `oarepo-communities` 11.4.0 → 12.1.2, `oarepo-config` 1.0.2 → 2.1.2, `oarepo-related-resources` 4.1.0 → 5.0.0, `oarepo-requests` 9.2.1 → 9.5.2, `oarepo-rdm` 8.4.1 → 8.6.1, `oarepo-runtime` 7.3.0 → 7.7.0, `oarepo-model` 5.3.0 → 5.4.1, `oarepo-oidc-einfra` 7.1.0 → 8.0.1.
 
-Most major bumps are mechanical dependency re-pins, but four areas contain **genuine breaking changes** that custom UI code may hit:
+The breaking surface for custom UI code in that window is small:
 
-1. The **deposit-form overridable component IDs** were renamed upstream ([invenio-rdm-records PR #2101](https://github.com/inveniosoftware/invenio-rdm-records/pull/2101), shipped in invenio-rdm-records 29.x, so it affects even 6.4.x installations on older pins).
-2. **oarepo-vocabularies v10 removed every deposit-form vocabulary React component** in favour of a single generic `VocabularyField`, so any JS importing the old `@js/oarepo_vocabularies` form components breaks at build time.
-3. **oarepo-communities v12 removed its custom invitation/membership UI**, falling back to the upstream invenio-communities UI.
-4. **oarepo-ui v12/v13 unified permission actions** (`OAREPO_UI_DRAFT_ACTIONS` and per-page permission classvars were removed, `permissions` moved out of `form_config`) and now requires **jinjax ≥ 0.64**, which breaks custom `Catalog` subclasses that skip `super().__init__()`.
+1. **oarepo-vocabularies v10** removed every deposit-form vocabulary React component in favour of a single generic `VocabularyField` — any JS importing the old `@js/oarepo_vocabularies` form components breaks at build time.
+2. **oarepo-communities v12** removed its custom invitation/membership UI, falling back to the upstream invenio-communities UI.
+3. **oarepo-ui 13.5.2/13.5.3** (new against 6.3.0's 13.5.1) re-based the deposit page's **`files_locked`** state on the draft file-bucket lock ([PR #494](https://github.com/oarepo/oarepo-ui/pull/494)) — files on a *published* record no longer appear locked, and deposit-page UI tests need updating.
 
-React did **not** move (`react@^16.13`, `semantic-ui-react@^2.1`, Formik `^2`), and `oarepo-theme` 4→6 is a pure `pyproject.toml` bump with no template/LESS/webpack change.
+React did **not** move between 6.3.0 and 7.0.3 (`react@^16.13`, `semantic-ui-react@^2.1`, Formik `^2`), and `oarepo-theme` is unchanged (6.0.0 in both). For the full upstream 14.0 items — Node 24+, pnpm/rspack, database upgrade procedure and stock-vocabulary changes — follow the official [v13→v14 upgrade guide](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/); only the oarepo-specific removals are listed below.
 
 <MigrationAffected>
 
 | Affected | Not affected |
 |----------|--------------|
-| Repositories on `oarepo-app < 7.0.0` upgrading to 7.0.x | Repositories already on `oarepo-app >= 7.0.3` |
-| Repositories overriding deposit-form components by their overridable IDs in `overridableRegistry/mapping.js` | Standard `nrp-app-copier` generated repositories that use only model-generated components (the copier templates use model-local `buildUID(prefix, Name)` IDs, which are unchanged) |
+| Repositories on `oarepo-app == 6.3.0` upgrading to 7.0.x | Repositories already on `oarepo-app >= 7.0.3` |
 | Repositories importing `VocabularySelectField`, `VocabularyRemoteSelectField`, `VocabularyPickerField`, `VocabularyTreeSelectField`, `LocalVocabularySelectField` or related helpers from `@js/oarepo_vocabularies` | Repositories that only set `vocabulary` types in `metadata.yaml` — those already render through the generic `VocabularyField` |
 | Repositories importing `CommunityInvitationsModal` (or its template/overridable overrides) from oarepo-communities | Repositories that never customized the invitations UI |
-| Repositories subclassing oarepo-ui `UIResourceComponent` hooks (`before_ui_detail`, `before_ui_edit`, `before_ui_create`) or reading `permissions` from `form_config` | Repositories using unmodified resource components |
-| Repositories with a custom JinjaX `Catalog` subclass that overrides `__init__` without calling `super().__init__()` | Standard jinjax usage via components |
+| Repositories with deposit-form UI tests that still assert the pre-13.5.3 files-locked behavior (based on `can_update_files` / `record.is_published`) | Repositories that never customized `FilesLockedComponent` or the deposit-page hidden inputs |
 
 </MigrationAffected>
 
@@ -41,140 +38,41 @@ React did **not** move (`react@^16.13`, `semantic-ui-react@^2.1`, Formik `^2`), 
 
 **1. Update `pyproject.toml`**
 
-Bump the `oarepo-app` dependency and let it pull the final RDM 14 stack:
+Bump the `oarepo-app` pin and reinstall. The schema/mapping deltas are those of the official [v13→v14 upgrade](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/) — follow its database/alembic and index-rebuild steps; the local equivalent is:
 
 ```toml filename="pyproject.toml"
 # Before
-dependencies = [
-    "oarepo-app[production,ccmm]==6.4.0rc5",   # or any 6.x
-]
+dependencies = [ "oarepo-app[production,ccmm]==6.3.0" ]
 
 # After
-dependencies = [
-    "oarepo-app[production,ccmm]==7.0.3",
-]
+dependencies = [ "oarepo-app[production,ccmm]==7.0.3" ]
 ```
-
-Then reinstall and rebuild:
 
 ```bash
 ./run.sh upgrade                   # reinstall with the new pins
-./run.sh invenio alembic upgrade   # database schema migrations (rdm-records 32.x, communities 28.x, requests, oidc-einfra changed schemas)
-./run.sh index rebuild             # drop, recreate and reindex OpenSearch (mappings changed)
-./run.sh run                       # let Celery workers process the reindex queue
+./run.sh invenio alembic upgrade   # database schema migrations
+./run.sh index rebuild             # drop, recreate and reindex OpenSearch
 ```
 
 <Callout type="warning">
-As with the 6.3.0 migration, the production Alembic procedure is still work in progress — test it against a database copy first. Local development can use `./run.sh reset` instead (wipes data).
+Test the production Alembic procedure against a database copy first. Local development can use `./run.sh reset` instead (wipes data).
 </Callout>
 
-**2. Update renamed upstream configuration variables**
+**2. Migrate removed vocabulary form components (only if you imported them)**
 
-If you set any of these in `invenio.cfg`, rename them (see the official [v13→v14 upgrade guide](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/)):
+oarepo-vocabularies v10 removed all deposit-form React components: `LocalVocabularySelectField`, `VocabularySelectField`, `VocabularyRemoteSelectField` (+modal/search pieces), `VocabularyPickerField`, `VocabularyTreeSelectField` (+ `HierarchyColumn`, `TreeSelectFieldModal`, `TreeSelectValues`), `SelectedVocabularyValues`, `OptionsLoadingSkeleton`, and the Python `oarepo_vocabularies/ui/resources/components/deposit.py`. The replacement is the single generic `VocabularyField` (see the generated `forms/index.js` in your model); labels/help/required come from `metadata.yaml` via `useFieldData()`/`getFieldData()`, initial options from the record's UI serialization as `{id, title_l10n}`. Webpack entry points and aliases are unchanged between v9 and v10.
 
-- `COMMUNITIES_SHOW_BROWSE_MENU_ENTRY` → `COMMUNITIES_COLLECTIONS_ENABLED`
-- `WSGI_PROXIES = N` was removed → use `PROXYFIX_CONFIG = {"x_for": ..., "x_proto": ...}` matching your reverse-proxy setup
-- `COMMUNITIES_GROUPS_ENABLED` (deprecated) → `USERS_RESOURCES_GROUPS_ENABLED`
-- If you rely on `invenio-cli run --host/--port` to set `SITE_UI_URL`/`SITE_API_URL` — it no longer does; set them explicitly in `invenio.cfg` (e.g. `https://127.0.0.1:5000` and `https://127.0.0.1:5000/api`).
+**3. Remove oarepo-communities invitation UI references (only if you customized it)**
 
-**3. Rewrite deposit-form overridable IDs (only if you override by ID)**
+v12 removed the custom invitation/membership UI: the `CommunityInvitationsModal` React component, the six `InvenioCommunities.CommunityMembersSearch.*.InvitationsModal.container` `UIComponentOverride` registrations, and the template overrides `details/members/base.html`, `details/members/invitations.html`, `details/settings/base.html` — pages now fall back to the upstream invenio-communities UI. Also remove, if present, any `@js/oarepo_communities/components/CommunityInvitationsModal` import, the `RDM_RECORDS_COMMUNITY_RECORDS_SERVICE_CLASS` variable / `oarepo_communities.services.community_records.CommunityRecordsService` import, and any reference to `oarepo_communities.config.community_members_recipient` (replaced by `CommunityRoleEmailRecipient` / `CommunityRecipient` in v12's `NOTIFICATION_RECIPIENTS_RESOLVERS`). Behavioral note: a declined/expired/cancelled community review now auto-creates a fresh `community-submission` request and returns the draft to `draft_with_review` ([commit 7444420](https://github.com/oarepo/oarepo-communities/commit/7444420)); UI tests that assert the old declined-state behavior will need updating.
 
-Upstream renamed the deposit form's overridable component IDs to a uniform `InvenioRdmRecords.DepositForm.<Field>[.<sub>]` scheme. Two representative renames:
+**4. Optionally adopt the new communities v12 UI additions**
 
-```jsx filename="assets/js/overridableRegistry/mapping.js"
-// Before
-export const overriddenComponents = {
-  "InvenioRdmRecords.DatesField.DateTextField.Container": MyDateField,
-  "InvenioRDMRecords.CreatibutorsModal.FullNameField.container": MyFullName,
-};
+These are additive, not breaking: a **collections UI** (`/collections` browse/detail pages, gated by `INVENIO_COLLECTIONS_COMMUNITY_SLUG` / `INVENIO_COLLECTIONS_UI_URL_PREFIX`) and a **sub-community creation button** injected through a new `details/header.html` override — if your site overrides that template's `subheader_buttons` block, reconcile the two overrides.
 
-// After
-export const overriddenComponents = {
-  "InvenioRdmRecords.DepositForm.DatesField.DateField": MyDateField,
-  "InvenioRdmRecords.DepositForm.CreatibutorsModal.FullNameField": MyFullName,
-};
-```
+**5. Re-run vocabulary fixtures if you customized them**
 
-Check your mapping file against the [full list of ID changes](https://github.com/inveniosoftware/invenio-rdm-records/pull/2101/files). Note the behavior change that came with the refactor: every field is wrapped by `createCommonFieldDepositComponent`, so passing `hidden: true` now suppresses rendering — but Formik still submits the stored initial value. `hidden` is not the same as clearing a field.
-
-Model-generated oarepo components (CCMM sections) use their own `buildUID(overridableIdPrefix, "Name")` IDs and are **not affected** by this upstream rename.
-
-**4. Update custom-field widget props**
-
-If you developed custom React widgets or override built-in ones with `parametrize`, rename the deprecated props (old names still work for now but will be removed):
-
-```jsx
-// Before
-parametrize(TitlesField, { icon: "barcode", description: "Describe your resource" })
-
-// After
-parametrize(TitlesField, { labelIcon: "barcode", helpText: "Describe your resource" })
-```
-
-**5. Migrate removed vocabulary form components (only if you imported them)**
-
-oarepo-vocabularies v10 removed all deposit-form React components:
-`LocalVocabularySelectField`, `VocabularySelectField`, `VocabularyRemoteSelectField` (with its modal and search-app pieces), `VocabularyPickerField`, `VocabularyTreeSelectField` (+ `HierarchyColumn`, `TreeSelectFieldModal`, `TreeSelectValues`), `SelectedVocabularyValues`, `OptionsLoadingSkeleton`, and the Python `oarepo_vocabularies/ui/resources/components/deposit.py`.
-
-The replacement is the single generic `VocabularyField`, which is already what model-generated forms use for `vocabulary: <name>` types via `useFieldData()` / `getFieldData()` (labels, help text and required flags come from `metadata.yaml`; initial options resolve from the record's UI serialization as `{id, title_l10n}` pairs). If you imported the removed components directly, migrate to `VocabularyField` — see, for example, how the generated `forms/index.js` uses it. Webpack entry points and aliases (`@js/oarepo_vocabularies`, `@translations/oarepo_vocabularies_ui`) are unchanged.
-
-**6. Remove oarepo-communities invitation UI references (only if you customized it)**
-
-oarepo-communities v12 removed the custom invitation/membership UI: the `CommunityInvitationsModal` React component (with `serializeMembers` / `findAndValidateEmails` helpers), the 12 `UIComponentOverride` registrations on the `invenio_communities.members` / `invenio_communities.invitations` bundles (`InvenioCommunities.CommunityMembersSearch.InvitationsEmptyResults|InvitationsResultsContainer|InvitationsSearchLayout|ManagerEmptyResults|ManagerMembersResultsContainer|ManagerSearchLayout` and `InvitationsModal.container`), and the template overrides `details/members/base.html`, `details/members/invitations.html` and `details/settings/base.html`. The pages now silently fall back to the upstream invenio-communities UI.
-
-Also remove, if present:
-
-- any `@js/oarepo_communities/components/CommunityInvitationsModal` import,
-- the `RDM_RECORDS_COMMUNITY_RECORDS_SERVICE_CLASS` config variable and any import of `oarepo_communities.services.community_records.CommunityRecordsService` (both removed; functionality superseded by upstream community-records machinery),
-- any reference to `oarepo_communities.config.community_members_recipient` in notification configuration (replaced by `CommunityRoleEmailRecipient` / `CommunityRecipient` keyed to the request type's `needs_context["community_roles"]`). Note that v12.1.2 also replaces hardcoded `manager`/`curator` role names on upstream request types with the roles configured in `COMMUNITIES_ROLES` (`can_manage` / `can_curate`) — if you renamed community roles, requests now notify/notify-only the right recipients.
-
-Behavior change worth knowing even with no custom code: when a community review is declined/expired/cancelled, a fresh `community-submission` request is now auto-created and the draft returns to `draft_with_review` (the "submit for review" button reappears), instead of the draft staying in the declined/expired state. UI tests that assert the upstream declined-state behavior will break.
-
-Additive goodies in v12 you may want to opt into: the **collections UI** (`/collections` routes with browse/detail pages, controlled by `INVENIO_COLLECTIONS_COMMUNITY_SLUG` / `INVENIO_COLLECTIONS_UI_URL_PREFIX`) and a **sub-community creation button** injected via a new `details/header.html` override — if your site also overrides that template's `subheader_buttons` block, reconcile the two overrides.
-
-**7. Update custom `UIResourceComponent` hooks and permission reads (only if you subclassed them)**
-
-oarepo-ui 12/13 unified record/draft permission actions ([PR #480](https://github.com/oarepo/oarepo-ui/pull/480)):
-
-- `OAREPO_UI_DRAFT_ACTIONS` and `ext.draft_actions` were removed — `OAREPO_UI_RECORD_ACTIONS` is the single action set, and draft actions map to **distinct** flags (`can_delete_draft` is no longer aliased onto `can_delete`). Update templates/components that relied on the old remapping.
-- `PermissionsComponent.form_config()` was removed: `permissions` no longer appears inside `form_config`. On the Python side it is injected into `extra_context` / `render_kwargs`; on the frontend `DepositFormApp.jsx` reads top-level `props.permissions` instead of `props.config.permissions`.
-- `RecordsUIResourceConfig.record_detail_permissions` / `deposit_edit_permissions` / `deposit_create_permissions` classvars and `resource.get_record_permissions()` were removed.
-- `UIResourceComponent.before_ui_detail` / `before_ui_edit` / `before_ui_create` gained an explicit `render_kwargs: dict` parameter — subclasses overriding these hooks must accept it.
-- `FilesLockedComponent` now derives the locked state from the draft file bucket lock (`draft.files.bucket.locked`) instead of `can_update_files` / `record.is_published`, and writes `render_kwargs["files_locked"]` (previously `form_config["filesLocked"]`). The deposit page template gained a `deposits-file-modification` hidden input consumed by `parseFormAppConfig()` as `fileModification`.
-
-**8. Fix custom JinjaX `Catalog` subclasses for jinjax ≥ 0.64 (only if you have one)**
-
-jinjax 0.61 introduced deferred asset injection; 0.64 (required by oarepo-ui 13) makes it mandatory. If you subclass `jinjax.Catalog` and override `__init__` without calling `super().__init__()` (as `oarepo_ui/templating/catalog.py` does), you must set these attributes or `irender` raises `AttributeError`:
-
-```python
-# inside your Catalog.__init__
-self.fingerprint = False
-self._assets_placeholder = f"@@jinjax_assets_{self._key}@@"
-self._emit_assets_later = False
-```
-
-Also note jinjax 0.61 stopped sorting the HTML `class` attribute — snapshot tests that assume sorted classes may need updating.
-
-**9. Check search-component imports (only if you use them directly)**
-
-From oarepo-ui v11 (already shipped with oarepo-app 6.0, but re-verify): `ActiveFiltersElement` → `ActiveFilters`, `SearchAppResultOptions` → `ResultOptions`, `SearchAppSort` → `Sort`; `SearchAppLayoutWithSearchbar` and `SearchAppResultViewWithSearchbar` were removed (folded into `SearchAppLayout` / `SearchAppResults`). Copier-generated `search/index.js` uses only the stable helpers (`parseSearchAppConfigs`, `createSearchAppsInit`) and is unaffected. The webpack entries are unchanged across v11→v13.5.3.
-
-**10. Reconcile with `oarepo_app.workarounds` (only if you patched fixtures yourself)**
-
-oarepo-app 7 registers `oarepo_app.workarounds` as an `invenio_config.module` entry point. It monkey-patches `invenio_rdm_records.fixtures.vocabularies.VocabulariesFixture.load` and `VocabularyEntry.load` to load fixture vocabularies via a `ThreadPoolExecutor` with bulk indexing, and tunes GC settings at `app_loaded`. If your instance ships its own monkey-patch of the same fixture methods, remove or reconcile it — the built-in patch overwrites `load` unconditionally.
-
-**11. Optional toolchain upgrades**
-
-Nothing forces these, but v14 marked them as the supported defaults:
-
-- **Node.js ≥ 24** (24 or 26 were tested) is now required for building assets.
-- **Python 3.14** is required (oarepo-app 6 already required 3.14).
-- **rspack** instead of webpack: `WEBPACKEXT_PROJECT = "invenio_assets.webpack:rspack_project"` in `invenio.cfg` (and add rspack to your Dockerfile asset stage).
-- **pnpm** instead of npm: `javascript_package_manager = pnpm` in `.invenio` and `WEBPACKEXT_NPM_PKG_CLS = "pynpm:PNPMPackage"` in `invenio.cfg`.
-
-**12. Re-run vocabulary fixtures if you customized them**
-
-The upstream v14 stock vocabularies changed (new/changed entries for `datetypes`, `descriptiontypes`, `licenses`, `relationtypes`, `resourcetypes`, `contributorsroles`, `creatorsroles`, `titletypes`, `removalreasons`; notably the `publication-thesis` entry was merged into `publication-dissertation`). If you have customized vocabulary files under `app_data/vocabularies/`, merge upstream changes into them and update with `invenio rdm-records add-to-fixture <vocabulary>` — details in the official upgrade guide (aligning thesis/dissertation resource types is optional and can be done later).
+If you maintain custom files under `app_data/vocabularies/`, merge the upstream v14 changes (DataCite 4.4–4.7 additions across `datetypes`, `descriptiontypes`, `licenses`, `relationtypes`, `resourcetypes`, `contributorsroles`, `creatorsroles`, `titletypes`, `removalreasons`; the `publication-thesis` entry was merged into `publication-dissertation`) and re-apply with `invenio rdm-records add-to-fixture <vocabulary>` — details in the [v13→v14 upgrade guide](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/#update-vocabularies).
 
 </MigrationSteps>
 
