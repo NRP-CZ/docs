@@ -2,5 +2,7 @@ export default {
     "index": "Vocabularies",
     "initial_data": "Initial Data",
     "editable": "Editable vocabularies",
-    "custom_fields": "Custom fields"
+    "custom_fields": "Custom fields",
+    "external": "External vocabularies"
+
 }
