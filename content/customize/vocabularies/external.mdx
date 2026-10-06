@@ -32,17 +32,21 @@ Implementation:
    The [deposit form components](/customize/model_ui/deposit_components)
    page lists the vocabulary-related building blocks you can start from.
 2. Allow the external hostname in the **Content Security Policy**
-   configuration of your instance (extend `connect-src` in
-   `APP_DEFAULT_SECURE_HEADERS`, documented in the
-   [configuration reference](/customize/configure/reference)), otherwise
-   browser requests to the external API will be blocked:
+   configuration of your instance — pass a `config.CSP` instance with
+   `connect_src` to `configure_ui()`, as documented in the
+   [security headers section](/customize/configure/reference#security-headers-app_default_secure_headers)
+   of the configuration reference — otherwise browser requests to the
+   external API will be blocked:
 
 ```python filename="invenio.cfg"
 # illustrative sketch
-APP_DEFAULT_SECURE_HEADERS = {
-    # ... keep the existing directives ...
-    "connect-src": ["'self'", "https://api.example.org"],
-}
+config.configure_ui(
+    # ... keep the existing arguments ...
+    csp=config.CSP(
+        # let the deposit form call the external vocabulary API from the browser
+        connect_src=["https://api.example.org"],
+    ),
+)
 ```
 
 <Callout type="info">
