@@ -122,6 +122,7 @@ Implementation:
 # illustrative sketch
 from invenio_access.permissions import system_identity
 from invenio_vocabularies.proxies import current_vocabulary_service
+from marshmallow import ValidationError, validates
 
 
 def resolve_term(vocabulary_type, value):
@@ -143,6 +144,18 @@ def resolve_term(vocabulary_type, value):
     return current_vocabulary_service.create(
         system_identity, {"id": value, **data}, type=vocabulary_type
     )
+
+
+class MySchema:
+    # ... your model fields ...
+
+    @validates("species")
+    def validate_species(self, value):
+        # runs on every form save; unknown values fail validation
+        try:
+            resolve_term("species", value)
+        except LookupError as e:
+            raise ValidationError(str(e))
 ```
 
 ## See also
