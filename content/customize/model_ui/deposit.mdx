@@ -837,17 +837,26 @@ Every generated model already ships `ui/mymodel/templates/semantic-ui/mymodel/de
 
 ### Customize via Included Partials (Recommended)
 
-The generated `deposit_create.html` / `deposit_edit.html` comment points you at two hot-swappable partials that the parent `oarepo_ui/...` template auto-includes for you:
+The generated `deposit_create.html` / `deposit_edit.html` comment points you at three hot-swappable partials that the parent `oarepo_ui/...` template auto-includes for you:
 
 | Partial | Path (inside `ui/mymodel/templates/semantic-ui/mymodel/`) | Purpose |
 |---|---|---|
 | Form container | `deposit_create/form.html` | Wraps/replaces the React mount div and surrounding markup of the page body |
 | JavaScript hooks | `deposit_create/javascript.html` | Adds model-specific `<script>` tags without touching the parent's `{% block javascript %}` (auto-included via the `ignore missing` fallback) |
+| CSS | `deposit_create.html` (Main template) | Adds model-specific stylesheets by extending the parent's `{% block css %}` |
 
 The JavaScript partial is the easiest safe override — just create the file. Content Security Policy blocks raw inline `<script>` tags, so the partial's role is to pull in a **webpack bundle** you've registered for the model — not to embed code directly. Register a bundle in your model's `webpack.py` (see [Webpack Configuration](/customize/repository_ui/webpack) for how registration works) and refer to it by name:
 
 ```jinja filename="ui/mymodel/templates/semantic-ui/mymodel/deposit_create/javascript.html"
 {{ webpack["mymodel_deposit_custom.js"] }}
+```
+
+Similarly, to add custom CSS, you inject it directly into your main generated template (`deposit_create.html` or `deposit_edit.html`) rather than creating a separate partial file. Just override the `CSS` block, making sure to call `{{ super() }}` so you don't lose the default framework styles:
+```
+{%- block css %}
+  {{ super() }}
+  {{ webpack['stylesheet.css'] }}
+{%- endblock css %}
 ```
 
 With the corresponding webpack entrypoint and registration, e.g.:
