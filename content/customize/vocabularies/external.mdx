@@ -40,6 +40,8 @@ Implementation:
 
 ```python filename="invenio.cfg"
 # illustrative sketch
+config.configure_generic_parameters()
+
 config.configure_ui(
     # ... keep the existing arguments ...
     csp=config.CSP(
@@ -54,6 +56,12 @@ The CSP change is only needed because the **browser** calls the external API
 directly. If you route the calls through a small endpoint on your repository
 backend instead, no CSP change is needed, cross-origin restrictions do not
 apply, and the API key of the external service never leaves the server.
+
+Always call `configure_generic_parameters()` before `configure_ui()` — it sets
+the baseline CSP (S3 endpoint, fonts, `'unsafe-inline'`). `configure_ui()`
+then **merges** your `connect_src` into that baseline instead of replacing it.
+To verify the result, check the `Content-Security-Policy` response header in
+browser DevTools (Network tab).
 </Callout>
 
 ## Use case 2: Validation against a frequently changing vocabulary
