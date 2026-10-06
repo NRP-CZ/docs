@@ -143,8 +143,15 @@ def resolve_term(vocabulary_type, value):
     except LookupError:
         pass  # not cached yet
 
-    # 2. on a cache miss, call the external API
-    data = fetch_from_external_api(value)
+    # 2. on a cache miss, call the external API with an explicit timeout
+    try:
+        data = fetch_from_external_api(value, timeout=5)
+    except requests.RequestException as e:
+        # service down/unreachable — distinguish from "term unknown"
+        raise LookupError(
+            f"External vocabulary service unavailable: {e}"
+        )
+        
     if not data:
         raise LookupError(f"'{value}' not found in external vocabulary")
 
