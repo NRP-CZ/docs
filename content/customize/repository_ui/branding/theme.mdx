@@ -96,12 +96,52 @@ Extends Semantic UI with basic Invenio defaults for typography, buttons, color p
 ### InvenioRDM UI (invenio-app-rdm)
 Adds RDM-specific branding, templates, components, search UI, forms, and deposit interfaces.
 
-### **Oarepo Theme (NRP base theme)**
-NRP-specific extension layer over the RDM theme --
-adjusted defaults for NRP repositories, NRP-specific branding, typography, variable and additional components.
+### OARepo package themes
+Each installed OARepo UI package can contribute its own component
+`.variables` and `.overrides` layers. Currently,
+[`oarepo-ui`](https://github.com/oarepo/oarepo-ui),
+[`oarepo-vocabularies`](https://github.com/oarepo/oarepo-vocabularies) and
+[`oarepo-communities`](https://github.com/oarepo/oarepo-communities)
+provide such layers through `oarepo-theme`. These load on top of the RDM
+theme but below your repository-level customizations.
 
 ### Your Project Branding
 Everything placed under `assets/less` overrides the layers above.  
 This is where repository-level customization occurs.
 
 </Steps>
+
+For each Semantic UI component, the layers are applied in the order listed
+above, so anything you define at a higher layer wins.
+
+The definitive reference for the exact per-component import order — which
+differs slightly between `.variables` and `.overrides`, and between
+standard and custom components — is
+[`oarepo-theme`'s `theme.less`](https://github.com/oarepo/oarepo-theme/tree/main/oarepo_theme/assets/semantic-ui/less/oarepo/theme.less).
+It defines the cascade directly; the editable locations in your repository
+that take part in it are the `@import` statements using the `@{siteFolder}`
+variable (which resolves to `assets/less/site/` in your project).
+
+Roughly, from lowest to highest priority, those site locations for a standard
+component are:
+
+1. `assets/less/site/default/…`
+2. `assets/less/site/{theme}/…` (e.g. `rdm`)
+3. `assets/less/site/…`
+
+Custom components registered through `ui/components` additionally read their
+`.variables`/`.overrides` from `assets/less/site/components/default/…` and
+`assets/less/site/components/{theme}/…` **before** the standard component
+locations above. Note also that `.variables` (defaults a component reads
+first) and `.overrides` (style rules applied last) do not share an identical
+cascade — `.overrides` omits the `site/default` and `site/components/default`
+layers. Always double-check `theme.less` when in doubt — in case of any
+disagreement, the code wins.
+
+<Callout type="info">
+The `components/` folders under `assets/less/site/` are meant for the
+`.variables`/`.overrides` files of **your own custom Semantic UI components**
+(e.g. components registered from the `ui/components` folder) — see the
+[Styling](/customize/repository_ui/branding/styling) guide for the standard
+component layers.
+</Callout>

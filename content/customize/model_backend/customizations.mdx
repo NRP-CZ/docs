@@ -1,0 +1,164 @@
+import { Callout } from "nextra/components";
+import {Difficulty} from '@/components/difficulty'
+
+# Customizations
+
+Customizations change the classes and configuration that oarepo-model generates for a model,
+without copying or overriding the generated code. They are passed to the `model()` call in the
+model's `model.py` through the `customizations` argument and are applied after the
+[presets](/customize/model_backend/model#presets):
+
+```python filename="equipment/model.py"
+from oarepo_model.api import model
+from oarepo_model.customizations import AddServiceComponent, SetPermissionPolicy
+
+from .components import EquipmentComponent
+from .permissions import EquipmentPermissionPolicy
+
+equipment_model = model(
+    "equipment",
+    # ... presets, types, metadata_type etc. as generated for your model
+    customizations=[
+        AddServiceComponent(EquipmentComponent),
+        SetPermissionPolicy(EquipmentPermissionPolicy),
+    ],
+)
+```
+
+All customizations can be imported from `oarepo_model.customizations`, except `AddLink`, which is
+imported from `oarepo_model.customizations.high_level`.
+
+## High-level customizations <Difficulty level="easy" />
+
+| Customization | Description | Documentation |
+|---------------|-------------|---------------|
+| `AddMetadataExport(code, name, mimetype, serializer, ...)` | Adds an export format | [Exports and imports](/customize/model_backend/exports_and_imports) |
+| `AddMetadataImport(code, name, mimetype, deserializer, description, ...)` | Adds an import format | [Exports and imports](/customize/model_backend/exports_and_imports#adding-custom-import-formats) |
+| `SetPermissionPolicy(policy, keep_mixins=False)` | Sets the permission policy | [Permissions](/customize/model_backend/permissions) |
+| `SetDefaultSearchFields(*fields)` | Sets the fields searched by a full-text query | [Search configuration](/customize/model_backend/search) |
+| `PatchIndexSettings(settings)`, `SetIndexTotalFieldsLimit(limit)`, `SetIndexNestedFieldsLimit(limit)` | Change the search index settings | [Search configuration](/customize/model_backend/search) |
+| `PatchIndexMapping(mapping)`, `PatchIndexPropertyMapping(field, mapping)` | Change the search index mapping | [Search configuration](/customize/model_backend/search) |
+| `AddFacetGroup(name, facets, exists_ok=False, *, draft_facets=None)` | Adds a facet group | [Search configuration](/customize/model_backend/search#facet-groups) |
+| `AddParamInterpreterCls(cls)` | Adds a search parameter interpreter | [Search configuration](/customize/model_backend/search#custom-search-parameters) |
+| `AddServiceComponent(component_cls)` | Adds a component to the record service | [below](#service-components) |
+| `AddLink(name, link)` | Adds a link to the record's `links` in API responses | [below](#links) |
+| `SetSyntheticMetadata(**functions)` | Adds computed metadata fields | [below](#synthetic-metadata) |
+| `AddPIDRelation(name, path, keys, pid_field, cache_key=None)` | Declares a relation to another record. Relations are normally generated from `pid-relation` and `vocabulary` fields in the metadata, so this is rarely needed | [Metadata reference](/customize/model_backend/model_reference#pid-relation) |
+
+### Service components
+
+A service component hooks into the record service operations (create, update, publish, delete, ...).
+It is a subclass of `invenio_records_resources.services.records.components.ServiceComponent`:
+
+```python filename="equipment/components.py"
+from invenio_records_resources.services.records.components import ServiceComponent
+
+
+class EquipmentComponent(ServiceComponent):
+    """Normalize the serial number before the record is saved."""
+
+    def create(self, identity, data=None, record=None, **kwargs):
+        self._normalize(record)
+
+    def update(self, identity, data=None, record=None, **kwargs):
+        self._normalize(record)
+
+    def _normalize(self, record):
+        serial = record.metadata.get("serial_number")
+        if serial:
+            record.metadata["serial_number"] = serial.strip().upper()
+```
+
+```python
+AddServiceComponent(EquipmentComponent)
+```
+
+### Links
+
+`AddLink` adds an entry to the `links` of a record in API responses. The link is one of the link
+classes of `invenio_records_resources.services` (`ExternalLink`, `EndpointLink`, `ConditionalLink`, ...):
+
+```python
+from invenio_records_resources.services import ExternalLink
+from oarepo_model.customizations.high_level import AddLink
+
+AddLink(
+    "manufacturer_catalogue",
+    ExternalLink(
+        "https://catalogue.example.org/{serial}",
+        vars=lambda record, vars: vars.update(
+            {"serial": record.metadata.get("serial_number", "")}
+        ),
+    ),
+)
+```
+
+### Synthetic metadata
+
+Synthetic metadata are values computed from the stored metadata when they are read in code as
+`record.metadata["<name>"]`. They are not stored in the database. `SetSyntheticMetadata` takes
+the field names as keyword arguments and functions that receive the stored metadata dictionary:
+
+```python
+from oarepo_model.customizations import SetSyntheticMetadata
+
+SetSyntheticMetadata(
+    display_name=lambda md: f'{md.get("manufacturer", "")} {md.get("serial_number", "")}'.strip(),
+)
+```
+
+A synthetic value is returned only when the key is not present in the stored metadata. It is not
+included when the metadata is iterated or serialized, so it doesn't appear in API responses.
+
+## Low-level customizations <Difficulty level="advanced" />
+
+The low-level customizations work on the named building blocks of the model (classes, lists,
+dictionaries, modules, files). They are what presets and the high-level customizations are made of.
+To use them, you need to know the names of the building blocks, which are defined by the presets
+(for example, the class `Record`, the list `record_service_components` or the dictionary
+`record_links_item`). See the [oarepo-model sources](https://github.com/oarepo/oarepo-model/tree/main/src/oarepo_model/presets)
+for the names.
+
+| Customization | Description |
+|---------------|-------------|
+| **Classes** | |
+| `AddClass(name, clazz=None, exists_ok=False)` | Adds a new class to the model |
+| `AddBaseClass(name, clazz)` | Adds a base class to a model class |
+| `PrependMixin(name, clazz)` | Adds a mixin as the first parent of a model class, so its methods take precedence |
+| `ReplaceBaseClass(name, old_base_class, new_base_class, fail=True, subclass=False)` | Replaces a base class of a model class |
+| `AddClassField(name, field_name, field_value)` | Adds an attribute, method or property to a model class |
+| `AddClassList(name, exists_ok=False)` | Adds a list of classes kept in a consistent (MRO) order |
+| **Lists and dictionaries** | |
+| `AddList(name, exists_ok=False)` | Adds a new list |
+| `AddToList(list_name, value, exists_ok=False)` | Appends a value to a list |
+| `AddDictionary(name, default=None, exists_ok=False)` | Adds a new dictionary |
+| `AddToDictionary(dictionary_name, *values, key=None, value=None, exists_ok=False, patch=False, override_values=True)` | Adds entries to a dictionary, either as dictionaries in `values` or as a single `key`/`value`; `patch=True` merges into existing values |
+| **Modules and files** | |
+| `AddModule(name, exists_ok=False)` | Adds a module to the model |
+| `AddToModule(module_name, property_name, value, exists_ok=False)` | Adds a variable to a module |
+| `AddFileToModule(symbolic_name, module_name, file_path, file_content, exists_ok=False)` | Adds a file to a module |
+| `AddJSONFile(symbolic_name, module_name, file_path, payload, exists_ok=False)` | Adds a JSON file to a module |
+| `PatchJSONFile(symbolic_name, payload)` | Merges `payload` (or the result of a function applied to the file content) into an existing JSON file |
+| `CopyFile(source_symbolic_name, target_symbolic_name, target_module_name, target_file_path, exists_ok=False)` | Copies a file |
+| **Entry points** | |
+| `AddEntryPoint(group, name, value, separator=":", overwrite=False)` | Adds an entry point of the model |
+
+For example, to add a mixin with an extra method to the generated record class:
+
+```python
+from oarepo_model.customizations import PrependMixin
+
+
+class EquipmentRecordMixin:
+    @property
+    def display_name(self):
+        return f'{self.metadata.get("manufacturer", "")} {self.metadata.get("serial_number", "")}'.strip()
+
+
+PrependMixin("Record", EquipmentRecordMixin)
+```
+
+<Callout type="warning">
+The names of the building blocks are internal to oarepo-model and may change between versions.
+Prefer the high-level customizations where possible.
+</Callout>

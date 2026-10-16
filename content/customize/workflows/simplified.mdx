@@ -51,7 +51,11 @@ act as the gatekeepers.
 
 ---
 
-## Registering Workflows in `invenio.cfg`
+## Registering Workflows
+
+To be able to use workflows in your repository, you need to register them in your `invenio.cfg` and add support for them in your model.
+
+### Registering Workflows in `invenio.cfg`
 
 The preferred way to register workflows in a CESNET Invenio repository is to call
 `configure_workflows()` from within `invenio.cfg`. Pass any number of workflow definition
@@ -88,6 +92,27 @@ and [code of CommunityWorkflow](https://github.com/oarepo/oarepo-app/blob/rdm-14
 together with [base class](https://github.com/oarepo/oarepo-app/blob/rdm-14/src/oarepo_app/config/workflows/base.py)
 for a comprehensive list of options and their default values.
 
+### Adding support for workflows to a model
+
+Each model that should be governed by workflows must have the corresponding presets in the model's definition.
+
+```python
+from oarepo_communities.model.presets import communities_preset
+from oarepo_requests.model.presets.requests import requests_preset
+from oarepo_workflows.model.presets import workflows_preset
+
+datasets_model = model(
+    "datasets",
+    version="1.1.0",
+    presets=[
+        ...,
+        workflows_preset,
+        requests_preset,
+        communities_preset,
+    ],
+    ...
+)
+```
 ---
 
 ## Scenario Guide

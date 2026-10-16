@@ -42,12 +42,12 @@ For example:
 * An **int** type is for whole numbers like quantities or years
 * An **object** type is for grouping related information together
 
-For a complete list of metadata field types, see the [metadata reference](./model_reference.md).
+For a complete list of metadata field types, see the [metadata reference](/customize/model_backend/model_reference).
 
 
 The main blueprint for your records is called `Metadata` by default. When you add new fields to this blueprint, they become available as information fields that users can fill out when creating or editing records of this model.
 
-**Note:** After adding custom metadata fields in `metadata.yaml`, you must also configure the deposit form UI to display and edit these fields. See the [deposit form customization documentation](../model_ui/deposit.mdx) for details.
+**Note:** After adding custom metadata fields in `metadata.yaml`, you must also configure the deposit form UI to display and edit these fields. See the [deposit form customization documentation](/customize/model_ui/deposit) for details.
 
 
 ### Working with YAML files
@@ -168,13 +168,103 @@ Instead of having separate top-level fields, the warranty information is grouped
 * **More organized** - you can see at a glance what belongs to warranty versus other aspects
 * **Expandable** - you can easily add more warranty-related fields later (like warranty start date, warranty type, etc.) without cluttering the main level
 
+### Reusing named types
+
+Every top-level name in the YAML file (such as `Warranty` above) defines a new type that can be
+used anywhere in the model, just like the built-in types. When you use a named type, you can add
+or override properties at the place of use; they are merged over the type's definition. For example,
+the same `Warranty` type can be required in one place and optional in another:
+
+```yaml
+Metadata:
+  type: object
+  properties:
+    warranty:
+      type: Warranty
+      required: true
+      label:
+        en: Warranty Information
+    extended_warranty:
+      type: Warranty
+      label:
+        en: Extended Warranty
+```
+
 ### Organizing with multiple YAML files
 
-You can create multiple YAML files in the model directory to organize your definitions better and reference them from the `model.py` file. This approach helps keep your metadata definitions manageable and well-organized, especially for complex schemas.
+For complex schemas, you can split the definitions into several YAML files in the model directory.
+Each file is loaded with `from_yaml` and passed to the `model()` call in the model's `model.py`
+through the `types` argument. Types from all files are available everywhere in the model, so a
+type defined in one file can be used in another:
+
+```python filename="equipment/model.py"
+from oarepo_model.api import model
+from oarepo_model.datatypes.registry import from_yaml
+
+equipment_model = model(
+    "equipment",
+    # ... presets, customizations etc. as generated for your model
+    types=[
+        from_yaml("metadata.yaml", __file__),
+        from_yaml("warranty.yaml", __file__),
+    ],
+    metadata_type="Metadata",
+)
+```
+
+* The second argument (`__file__`) makes the file name relative to the directory of `model.py`.
+* `metadata_type` is the name of the type used for the record's `metadata`.
+* A YAML file contains either a mapping of type names to definitions (as in the examples above)
+  or a list of definitions, each with a `name` key.
+* If the same type name is defined in more than one file, the later file wins and a warning is logged.
+  Avoid reusing the names of built-in types (such as `keyword` or `object`).
+
+`from_json` (from the same module) loads definitions from JSON files in the same way.
 
 ### Additional resources
 
-For comprehensive details on metadata field types, validation rules, and advanced configuration options, see the [metadata reference](./model_reference.md).
+For comprehensive details on metadata field types, validation rules, and advanced configuration options, see the [metadata reference](/customize/model_backend/model_reference).
+
+## Presets
+
+A model is assembled from **presets**, each adding one part of the functionality (records and
+their REST API, drafts, files, relations, ...). The generated `model.py` already contains the presets
+of the template you chose, so you normally only add a preset to enable an optional feature.
+Presets are passed to the `model()` call in the `presets` argument:
+
+```python filename="equipment/model.py"
+from oarepo_model.api import model
+from oarepo_model.presets.internal_relations import internal_relations_preset
+
+equipment_model = model(
+    "equipment",
+    presets=[
+        # ... presets already present in the generated file
+        internal_relations_preset,
+    ],
+    # ...
+)
+```
+
+The following presets are provided by oarepo-model:
+
+| Preset | Import from | Description |
+|--------|-------------|-------------|
+| `records_resources_preset` | `oarepo_model.presets.records_resources` | Records, their service, REST API, search index and files. `records_preset` and `files_preset` are its record-only and files-only parts |
+| `drafts_preset` | `oarepo_model.presets.drafts` | Drafts and publishing, including draft files |
+| `relations_preset` | `oarepo_model.presets.relations` | Resolves the relations declared in the metadata (`pid-relation`, `vocabulary`, ...) |
+| `internal_relations_preset` | `oarepo_model.presets.internal_relations` | Needed for [`internal-relation`](/customize/model_backend/model_reference#internal-relation) fields |
+| `custom_fields_preset` | `oarepo_model.presets.custom_fields` | [Custom fields](/customize/model_backend/custom_fields) |
+| `ui_preset` | `oarepo_model.presets.ui` | Generates the UI model of the metadata (labels, help texts, inputs) used by the UI |
+| `ui_links_preset` | `oarepo_model.presets.ui_links` | Adds links to the record's HTML pages to the API responses |
+
+<Callout type="warning">
+Adding or removing a preset may change the database tables and the search index. Reinitialize them
+afterwards, see [Database update](/customize/model_backend/db_update).
+</Callout>
+
+To change the generated classes and configuration without writing a preset, use
+[customizations](/customize/model_backend/customizations).
 
 ## Custom export formats
 

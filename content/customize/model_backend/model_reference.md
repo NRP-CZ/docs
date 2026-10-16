@@ -12,8 +12,9 @@ This file describes the data types supported by the model builder for defining r
 | [keyword](#keyword) | Keyword field for exact matching |
 | [fulltext](#fulltext) | Full-text searchable field |
 | [fulltext+keyword](#fulltextkeyword) | Full-text field with keyword validation |
-| [i18n](#i18n) | Internationalized text with language-value pairs |
-| [multilingual](#multilingual) | Array of language-value pairs for multilingual content |
+| [url](#url) | Absolute URL (http, https, ftp, ftps) |
+| [i18n](#i18n) | Single localized text entry (language reference + value) |
+| [multilingual](#multilingual) | One i18n entry per language for multilingual content |
 | [i18ndict](#i18ndict) | Simple multilingual dictionary (language code keys) |
 | [date](#date) | Basic date values |
 | [datetime](#datetime) | Date and time values |
@@ -21,19 +22,81 @@ This file describes the data types supported by the model builder for defining r
 | [edtf-time](#edtf-time) | EDTF (Extended Date/Time Format) time values |
 | [edtf](#edtf) | EDTF (Extended Date/Time Format) values |
 | [edtf-interval](#edtf-interval) | EDTF intervals |
+| [edtf-date-or-interval](#edtf-date-or-interval) | EDTF date or interval with range queries |
 | [object](#object) | Structured object with defined properties |
 | [nested](#nested) | Nested object for complex structures |
 | [array](#array) | Array/list of items |
 | [dynamic-object](#dynamic-object) | Object with dynamic properties |
 | [polymorphic](#polymorphic) | Discriminated union type |
 | [pid-relation](#pid-relation) | Relation to another record using a PID |
+| [lazy-pid-relation](#lazy-pid-relation) | PID relation resolved lazily (self-references, circular references) |
+| [internal-relation](#internal-relation) | Relation to another part of the same record |
 | [vocabulary](#vocabulary) | Reference to a controlled vocabulary |
+| [geo_point](#geo_point) | Geographic point (latitude/longitude) |
+| [geo_shape](#geo_shape) | Geographic shape (WKT or GeoJSON) |
+| [icrs](#icrs) | Celestial position (right ascension/declination) |
+| [icrs_shape](#icrs_shape) | Celestial area (WKT or GeoJSON in ICRS coordinates) |
+
+## Common properties
+
+The following properties can be used on a field of any data type. The sections below list only the
+properties specific to each type.
+
+| Property | Description |
+|----------|-------------|
+| `required` | The field must be present on input |
+| `allow_none` | `null` is accepted as a value |
+| `dump_only` | The field is returned by the API but ignored on input |
+| `load_only` | The field is accepted on input but not returned by the API |
+| `label`, `help`, `hint` | Multilingual texts (`{en: ..., cs: ...}`) for the UI: the field label, a longer help text, and a short hint. `label` is also used as the facet label |
+| `input` | Name of the UI input used for the field in the generated UI model. Defaults to the name of the data type |
+| `searchable` | `false` disables the facet for this field. The field is still indexed and searchable. See [Search configuration](/customize/model_backend/search#controlling-facets-of-a-field) |
+| `facet-def` | Custom facet definition that replaces the generated one, see [Search configuration](/customize/model_backend/search#controlling-facets-of-a-field) |
+| `marshmallow_validate` | Additional validators, see [Custom validators](#custom-validators) |
+| `marshmallow_field_class` | Import path of a marshmallow field class used instead of the default one; it is instantiated with the generated arguments |
+| `marshmallow_field` | Import path of a ready-made marshmallow field *instance* used as-is instead of generating one |
+| `ui_marshmallow_field_class` | Import path of a marshmallow field class used for the UI serialization. The per-type tables below show the default class |
+
+Some data types don't support all of them; this is noted in the type's section (for example,
+[`i18ndict`](#i18ndict) always uses its fixed field). For `object`, `nested` and `array` fields,
+`ui_marshmallow_field` (import path of a ready-made UI field instance) is also supported, and a
+property of an `object` can be marked with `skip_marshmallow: true` to leave it out of the
+marshmallow schema while keeping it in the mapping and JSON Schema.
+
+### Unknown fields are rejected
+
+The generated schemas accept only the declared properties. Input with a property that is not
+defined in the model fails validation with an `Unknown field.` error, and the search index mapping
+is `dynamic: strict`, so undeclared fields are not indexed either. Use
+[`dynamic-object`](#dynamic-object) for parts of the metadata whose structure is not known in advance.
+
+### YAML shortcuts
+
+* **Array shortcut** - a property name ending with `[]` defines an array of the given item type.
+  The `[]` is not part of the field name:
+
+  ```yaml
+  keywords[]:
+    type: keyword
+  # is the same as
+  keywords:
+    type: array
+    items:
+      type: keyword
+  ```
+
+* **Omitted type** - `type` can be left out when it is clear from the definition: an element with
+  `properties` is an `object`, and an element with `items` is an `array`.
+
+* **Named types** - every top-level name in a YAML file defines a type that can be used as `type:`
+  elsewhere, with properties merged at the place of use. See
+  [Reusing named types](/customize/model_backend/model#reusing-named-types).
 
 ## Boolean data types
 
 ### boolean
 
-Data type for storing true/false values. Essential for research metadata like peer review status, open access availability, data availability, embargo status, and publication flags. In the UI, boolean fields are typically rendered as checkboxes. The data type includes internationalization support, automatically translating boolean values to localized "true"/"false" text for display purposes. The OpenSearch mapping stores boolean values efficiently and supports boolean queries for filtering and aggregations in research discovery interfaces.
+Data type for storing true/false values. Essential for research metadata like peer review status, open access availability, data availability, embargo status, and publication flags. In the UI, boolean fields are typically rendered as checkboxes. Only JSON `true`/`false` (and the numbers `1`/`0`) are accepted; strings such as `"true"` or `"false"` are rejected. For display, the UI serialization adds a sibling `<field>_i18n` key with the localized "true"/"false" text; the original value is kept unchanged. The OpenSearch mapping stores boolean values efficiently and supports boolean queries for filtering and aggregations in research discovery interfaces.
 
 | Property | Description |
 |----------|-------------|
@@ -44,7 +107,8 @@ Data type for storing true/false values. Essential for research metadata like pe
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Boolean` |
-| ui_marshmallow_field_class | FormatBoolean |
+| ui_marshmallow_field_class | FormatBoolean (emitted as `<field>_i18n`) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -77,7 +141,7 @@ open_access:
 
 ### int
 
-Data type for 32-bit signed integers, supporting values from -2,147,483,648 to 2,147,483,647. Perfect for citation counts, sample sizes, publication years, version numbers, dataset entry counts, and other whole number values within this range. The type includes built-in validation for range constraints and supports localized number formatting in the UI. OpenSearch stores integers efficiently and provides fast numerical queries, aggregations, and sorting for research metrics and filtering. Use `strict_validation` to ensure the input is exactly an integer and not a string representation.
+Data type for 32-bit signed integers, supporting values from -2,147,483,648 to 2,147,483,647. Perfect for citation counts, sample sizes, publication years, version numbers, dataset entry counts, and other whole number values within this range. The type includes built-in validation for range constraints and supports localized number formatting in the UI. OpenSearch stores integers efficiently and provides fast numerical queries, aggregations, and sorting for research metrics and filtering. Validation is strict by default: only JSON integers are accepted, and strings like `"5"` or floats like `5.0` are rejected (set `strict_validation: false` to accept them). Values outside the 32-bit range are always rejected.
 
 | Property | Description |
 |----------|-------------|
@@ -93,7 +157,8 @@ Data type for 32-bit signed integers, supporting values from -2,147,483,648 to 2
 | max_inclusive | Maximum allowed value (inclusive) |
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
-| strict_validation | Make sure that the value is exactly an integer, not a string containing an integer |
+| strict_validation | Accept only JSON integers (default `true`). Set to `false` to also accept strings containing an integer (`"5"`) and floats (`5.0`) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -126,7 +191,7 @@ sample_size:
 
 ### long
 
-Data type for 64-bit signed integers, supporting values from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807. Essential for large numerical values like timestamps, file sizes in bytes, unique identifiers, or any integer that exceeds the 32-bit range. Uses the same marshmallow Integer field but maps to OpenSearch's `long` type for extended range support. Includes the same validation and formatting features as the `int` type but with a much larger value range.
+Data type for 64-bit signed integers, supporting values from -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807. Essential for large numerical values like timestamps, file sizes in bytes, unique identifiers, or any integer that exceeds the 32-bit range. Uses the same marshmallow Integer field but maps to OpenSearch's `long` type for extended range support. Includes the same validation and formatting features as the `int` type (including strict validation by default) but with a much larger value range; values outside the 64-bit range are rejected.
 
 | Property | Description |
 |----------|-------------|
@@ -142,7 +207,8 @@ Data type for 64-bit signed integers, supporting values from -9,223,372,036,854,
 | max_inclusive | Maximum allowed value (inclusive) |
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
-| strict_validation | Make sure that the value is exactly an integer, not a string containing an integer |
+| strict_validation | Accept only JSON integers (default `true`). Set to `false` to also accept strings containing an integer (`"5"`) and floats (`5.0`) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -175,7 +241,7 @@ dataset_entries:
 
 ### float
 
-Data type for single precision floating-point numbers (32-bit IEEE 754). Supports decimal values with approximately 7 decimal digits of precision, ranging from -3.4×10³⁸ to 3.4×10³⁸. Ideal for measurements, prices, ratings, percentages, and other decimal values where moderate precision is sufficient. The type provides localized number formatting and supports range validation. OpenSearch stores floats efficiently for numerical operations, but be aware of potential precision limitations for financial calculations or high-precision scientific data.
+Data type for single precision floating-point numbers (32-bit IEEE 754). Supports decimal values with approximately 7 decimal digits of precision, ranging from -3.4×10³⁸ to 3.4×10³⁸. Ideal for measurements, prices, ratings, percentages, and other decimal values where moderate precision is sufficient. The type provides localized number formatting and supports range validation; values outside the single-precision range are always rejected. Strings containing a number (e.g. `"3.5"`) are accepted and converted to a number. OpenSearch stores floats efficiently for numerical operations, but be aware of potential precision limitations for financial calculations or high-precision scientific data.
 
 | Property | Description |
 |----------|-------------|
@@ -191,7 +257,7 @@ Data type for single precision floating-point numbers (32-bit IEEE 754). Support
 | max_inclusive | Maximum allowed value (inclusive) |
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
-| strict_validation | Make sure that the value is exactly a float, not a string containing a float |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -226,7 +292,7 @@ confidence_level:
 
 ### double
 
-Data type for double precision floating-point numbers (64-bit IEEE 754). Provides approximately 15-17 decimal digits of precision with a range from -1.8×10³⁰⁸ to 1.8×10³⁰⁸. Essential for high-precision calculations, scientific measurements, geographic coordinates, financial calculations requiring precision, and any decimal values where single precision is insufficient. Uses the same marshmallow Float field but maps to OpenSearch's `double` type for extended precision and range. Recommended for most decimal number use cases due to its superior precision.
+Data type for double precision floating-point numbers (64-bit IEEE 754). Provides approximately 15-17 decimal digits of precision with a range from -1.8×10³⁰⁸ to 1.8×10³⁰⁸. Essential for high-precision calculations, scientific measurements, geographic coordinates, financial calculations requiring precision, and any decimal values where single precision is insufficient. Uses the same marshmallow Float field (strings containing a number are accepted and converted) but maps to OpenSearch's `double` type for extended precision and range. Recommended for most decimal number use cases due to its superior precision.
 
 | Property | Description |
 |----------|-------------|
@@ -242,7 +308,7 @@ Data type for double precision floating-point numbers (64-bit IEEE 754). Provide
 | max_inclusive | Maximum allowed value (inclusive) |
 | min_exclusive | Minimum allowed value (exclusive) |
 | max_exclusive | Maximum allowed value (exclusive) |
-| strict_validation | Make sure that the value is exactly a float, not a string containing a float |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -283,7 +349,7 @@ measurement_value:
 
 ### keyword
 
-Data type for exact-match text fields that are not analyzed (not broken into tokens). Perfect for IDs, status values, categories, tags, and structured data where you need precise matching and efficient aggregations. OpenSearch stores keywords as-is, enabling fast exact searches, sorting, and faceting. Limited to 256 characters by default (`ignore_above: 256`). Supports pattern validation with regular expressions, enumerated value lists, and length constraints. Use this for dropdown options, and any text that should match exactly.
+Data type for exact-match text fields that are not analyzed (not broken into tokens). Perfect for IDs, status values, categories, tags, and structured data where you need precise matching and efficient aggregations. OpenSearch stores keywords as-is, enabling fast exact searches, sorting, and faceting. The mapping uses `ignore_above: 256`: longer values are stored in the record but are not indexed, so they cannot be found or aggregated. This is not a validation limit; use `max_length` to limit the value length. Supports pattern validation with regular expressions, enumerated value lists, and length constraints. A `required` field without `min_length` also rejects empty strings. Use this for dropdown options, and any text that should match exactly.
 
 | Property | Description |
 |----------|-------------|
@@ -299,6 +365,7 @@ Data type for exact-match text fields that are not analyzed (not broken into tok
 | max_length | Maximum string length |
 | enum | List of allowed values |
 | pattern | Regular expression pattern for validation |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -337,7 +404,7 @@ subject_classification:
 
 ### fulltext
 
-Data type for analyzed text content that supports full-text search capabilities. OpenSearch breaks the text into tokens using analyzers, enabling sophisticated search features like stemming, synonyms, and relevance scoring. Ideal for descriptions, abstracts, comments, article content, and any text where users need to search within the content rather than match exactly. Unlike `keyword` fields, fulltext fields are optimized for search relevance but cannot be used efficiently for sorting or aggregations. No character limit by default.
+Data type for analyzed text content that supports full-text search capabilities. OpenSearch breaks the text into tokens using analyzers, enabling sophisticated search features like stemming, synonyms, and relevance scoring. Ideal for descriptions, abstracts, comments, article content, and any text where users need to search within the content rather than match exactly. Unlike `keyword` fields, fulltext fields are optimized for search relevance but cannot be used for sorting or aggregations, so no facet is generated for them. No character limit by default. As with `keyword`, a `required` field without `min_length` rejects empty strings.
 
 | Property | Description |
 |----------|-------------|
@@ -353,6 +420,7 @@ Data type for analyzed text content that supports full-text search capabilities.
 | max_length | Maximum string length |
 | enum | List of allowed values |
 | pattern | Regular expression pattern for validation |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -390,7 +458,7 @@ technical_info:
 
 ### fulltext+keyword
 
-Data type that combines both full-text search and exact-match capabilities in a single field. OpenSearch creates a multi-field mapping with the main field analyzed for full-text search and a `.keyword` sub-field for exact matching, sorting, and aggregations. Perfect for titles, names, and other text that needs both search functionality and precise filtering/faceting. This is the most versatile text type - use it for fields like article titles, author names, or any text where you want both search and exact-match capabilities. The keyword sub-field respects the 256-character limit.
+Data type that combines both full-text search and exact-match capabilities in a single field. OpenSearch creates a multi-field mapping with the main field analyzed for full-text search and a `.keyword` sub-field for exact matching, sorting, and aggregations. Perfect for titles, names, and other text that needs both search functionality and precise filtering/faceting. This is the most versatile text type - use it for fields like article titles, author names, or any text where you want both search and exact-match capabilities. The keyword sub-field uses `ignore_above: 256`, so longer values are searchable as text but not through `.keyword`. The generated facet uses the `.keyword` sub-field. As with `keyword`, a `required` field without `min_length` rejects empty strings.
 
 | Property | Description |
 |----------|-------------|
@@ -406,6 +474,7 @@ Data type that combines both full-text search and exact-match capabilities in a 
 | max_length | Maximum string length |
 | enum | List of allowed values |
 | pattern | Regular expression pattern for validation |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -444,36 +513,83 @@ author_name:
 | `author_name:Smith` | Search for authors with surname Smith |
 | `title:bioinformatics AND journal_name:"Computational Biology"` | Combined search across fields |
 
-### i18n
+### url
 
-Data type for internationalized text fields that store language-value pairs as nested objects. Each entry contains a language code and corresponding text value, stored in OpenSearch as nested documents for independent querying. Supports customizable field names for language and value properties. Ideal for structured multilingual content where you need to query specific language-text combinations. Automatically creates nested facets for language-based filtering and provides specialized UI fields for multilingual input and display.
+Data type for an absolute URL, such as a link to a landing page, a dataset download or a project website. The value must be an absolute URL with the `http`, `https`, `ftp` or `ftps` scheme; a bare domain (`example.org`), a relative path, and other schemes such as `mailto:` or `doi:` are rejected (store DOIs and other identifiers in a `keyword` field instead). Host names, `localhost` and IP addresses are accepted. The value is stored exactly as entered. It is indexed as a keyword, like [`keyword`](#keyword), but with `ignore_above: 2048` because URLs are often longer than 256 characters; longer URLs are stored but not indexed. It supports the same validation options as `keyword`, and a facet is generated for it.
 
 | Property | Description |
 |----------|-------------|
-| source code | [multilingual.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/multilingual.py) |
-| jsonschema type | `object` with language and value properties |
-| mapping | [`nested`](https://docs.opensearch.org/latest/field-types/supported-field-types/nested/) with language (keyword) and value (text+keyword) fields |
+| source code | [strings.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/strings.py) |
+| jsonschema type | `string` with `format: uri` |
+| mapping | [`keyword`](https://docs.opensearch.org/latest/field-types/supported-field-types/keyword/) with `ignore_above: 2048` |
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | I18nStrField |
-| ui_marshmallow_field_class | I18nStrUIField |
-| multilingual.lang_name | Custom name for language field (defaults to "lang") |
-| multilingual.value_name | Custom name for value field (defaults to "value") |
+| marshmallow_field_class | `marshmallow.fields.Url` |
+| ui_marshmallow_field_class | no special serialization for UI |
+| min_length | Minimum string length |
+| max_length | Maximum string length |
+| enum | List of allowed values |
+| pattern | Regular expression pattern for validation (in addition to the URL check) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
 ```yaml
-title_multilingual:
-  type: i18n
-  multilingual:
-    lang_name: "language"
-    value_name: "text"
+landing_page:
+  type: url
+  required: true
 
-abstract_i18n:
-  type: i18n
+download_links:
+  type: array
+  items:
+    type: url
 
-keywords_i18n:
+project_website:
+  type: url
+  pattern: "^https://"
+```
+
+**Valid input json example:**
+
+```json
+{
+  "landing_page": "https://example.org/datasets/1234",
+  "download_links": [
+    "https://data.example.org/files/measurements.csv",
+    "ftp://ftp.example.org/pub/raw-data.zip"
+  ],
+  "project_website": "https://project.example.org"
+}
+```
+
+**Sample search queries:**
+
+| Query | Description |
+|-------|-------------|
+| `landing_page:"https://example.org/datasets/1234"` | Exact match of the URL |
+| `download_links:https\:\/\/data.example.org*` | URLs starting with the given prefix (`:` and `/` must be escaped) |
+
+### i18n
+
+Data type for a single localized text entry as a `{lang, value}` pair. `lang` is a reference to the *languages* vocabulary (entered as `{"id": "en"}`, expanded with the vocabulary `title` on output), `value` holds the text. Both sub-fields are predefined, there is nothing to configure. The type is mostly used as the item type of [`multilingual`](#multilingual), but can be used directly for fields that hold text in exactly one language. Sub-fields are searchable but intentionally not exposed as facets: the built-in definition marks both `lang` and `value` with `searchable: false`.
+
+| Property | Description |
+|----------|-------------|
+| source code | [entrypoints.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/entrypoints.py) (shortcut for an `object` with predefined properties) |
+| jsonschema type | `object` with `lang` (vocabulary reference) and `value` (string) properties |
+| mapping | [`object`](https://docs.opensearch.org/latest/field-types/supported-field-types/object/) with `lang.id` (keyword), `lang.title` (dynamic i18ndict) and `value` (keyword) |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Nested` (generated schema) |
+| ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+**Example:**
+
+```yaml
+alternative_title:
   type: i18n
 ```
 
@@ -481,17 +597,9 @@ keywords_i18n:
 
 ```json
 {
-  "title_multilingual": {
-    "language": "en",
-    "text": "Machine Learning in Bioinformatics"
-  },
-  "abstract_i18n": {
-    "lang": "en",
-    "value": "This paper presents a comprehensive survey of machine learning applications in bioinformatics."
-  },
-  "keywords_i18n": {
-    "lang": "en", 
-    "value": "machine learning, bioinformatics, computational biology"
+  "alternative_title": {
+    "lang": {"id": "en"},
+    "value": "Machine Learning in Bioinformatics"
   }
 }
 ```
@@ -500,27 +608,28 @@ keywords_i18n:
 
 | Query | Description |
 |-------|-------------|
-| `title_multilingual.language:en` | Search for documents with English titles |
-| `abstract_i18n.value:"machine learning"` | Search for machine learning in English abstracts |
-| `title_multilingual.language:en AND title_multilingual.text:bioinformatics` | Search for English titles containing bioinformatics |
-| `keywords_i18n.lang:en AND keywords_i18n.value:biology` | Search for English keywords containing biology |
+| `alternative_title.lang.id:"en"` | Entry written in English |
+| `alternative_title.value:"Machine Learning in Bioinformatics"` | Keyword match on the text |
 
 ### multilingual
 
-Data type for arrays of language-value pairs, enabling multiple translations per field. Similar to `i18n` but stores content as an array of nested objects rather than a single nested object. Perfect for fields that may have multiple translations or regional variants. Uses the same nested mapping as `i18n` but with array semantics. Provides array-based UI components for managing multiple language entries and supports the same faceting capabilities.
+Data type for text provided in several languages: a list of [`i18n`](#i18n) entries with at most one entry per language - duplicate language codes are rejected on load. `items` defaults to `{type: i18n}`; it can be replaced with another item type, which must keep the `{lang: {id}, value}` shape because the language-uniqueness check reads `lang.id`. Otherwise the field behaves like an ordinary [`array`](#array). Entries are indexed as flattened objects, so conditions on `lang` and `value` are not guaranteed to match within the same entry (use [`nested`](#nested) items if you need that). Sub-fields are searchable but intentionally not exposed as facets.
 
 | Property | Description |
 |----------|-------------|
-| source code | [multilingual.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/multilingual.py) |
-| jsonschema type | `array` of objects with language and value properties |
-| mapping | [`nested`](https://docs.opensearch.org/latest/field-types/supported-field-types/nested/) with language (keyword) and value (text+keyword) fields |
+| source code | [multilingual.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/multilingual.py) (`MultilingualDataType`), registered as an `array` of `i18n` items in [entrypoints.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/entrypoints.py) |
+| jsonschema type | `array` of i18n objects |
+| mapping | the `i18n` item mapping emitted directly ([`object`](https://docs.opensearch.org/latest/field-types/supported-field-types/object/) with `dynamic: strict`, `lang.id` keyword and `value` keyword); the array wrapper is skipped because OpenSearch arrays are implicit, so the field accepts a single object or a list |
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | MultilingualField |
-| ui_marshmallow_field_class | MultilingualUIField |
-| multilingual.lang_name | Custom name for language field (defaults to "lang") |
-| multilingual.value_name | Custom name for value field (defaults to "value") |
+| marshmallow_field_class | `marshmallow.fields.List` (of `Nested` i18n items) |
+| ui_marshmallow_field_class | `marshmallow.fields.List` (with item UI field) |
+| items | Item type definition, defaults to `{type: i18n}` (see above) |
+| min_items | Minimum number of language entries |
+| max_items | Maximum number of language entries |
+| unique_items | Whether the entries must be unique (duplicate language codes are rejected regardless) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options (including the language-uniqueness one), see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -530,9 +639,6 @@ description:
 
 additional_titles:
   type: multilingual
-
-notes:
-  type: multilingual
 ```
 
 **Valid input json example:**
@@ -541,24 +647,18 @@ notes:
 {
   "description": [
     {
-      "lang": "en",
+      "lang": {"id": "en"},
       "value": "A comprehensive dataset for machine learning research"
     },
     {
-      "lang": "cs",
+      "lang": {"id": "cs"},
       "value": "Komplexní datová sada pro výzkum strojového učení"
     }
   ],
   "additional_titles": [
     {
-      "lang": "de",
+      "lang": {"id": "de"},
       "value": "Maschinelles Lernen in der Bioinformatik"
-    }
-  ],
-  "notes": [
-    {
-      "lang": "en",
-      "value": "Updated methodology section"
     }
   ]
 }
@@ -568,10 +668,9 @@ notes:
 
 | Query | Description |
 |-------|-------------|
-| `description.lang:en` | Search for documents with English descriptions |
-| `description.value:"machine learning"` | Search for machine learning in description values |
-| `description.lang:en AND description.value:dataset` | Search for English descriptions containing dataset |
-| `additional_titles.lang:de AND additional_titles.value:Bioinformatik` | Search for German titles containing Bioinformatik |
+| `description.lang.id:"en"` | Records that provide the description in English |
+| `description.value:"machine learning"` | Keyword match in any language version |
+| `additional_titles.lang.id:"de"` | Records with a German additional title |
 
 ### i18ndict
 
@@ -585,8 +684,9 @@ Data type for simple multilingual dictionaries where language codes are direct o
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | i18n_strings (from invenio_vocabularies) |
+| marshmallow_field_class | fixed to the `i18n_strings` field instance (from `invenio_vocabularies`): a `fields.Dict` whose keys must be two-letter lowercase codes and whose values are sanitized text |
 | ui_marshmallow_field_class | (no UI transformation - returns empty dict) |
+| marshmallow_validate | not supported - the field is hard-coded to `i18n_strings`, so `marshmallow_validate`, `required`, `allow_none`, `marshmallow_field_class` and `marshmallow_field` are all ignored |
 
 **Example:**
 
@@ -634,7 +734,7 @@ subject_headings:
 
 ### date
 
-Data type for date-only values (year-month-day) without time information. Stores dates in ISO 8601 format (YYYY-MM-DD) and supports various input formats through OpenSearch's date parsing. Perfect for publication dates, birth dates, deadlines, and any date-centric information. The UI provides localized date formatting in multiple styles (long, medium, short, full) for different display contexts. Supports date range validation and efficient date-based queries, sorting, and aggregations in OpenSearch.
+Data type for date-only values (year-month-day) without time information. Stores dates in ISO 8601 format (YYYY-MM-DD) and supports various input formats through OpenSearch's date parsing. Perfect for publication dates, birth dates, deadlines, and any date-centric information. For display, the UI serialization adds four sibling keys with the localized date: `<field>_l10n_long`, `<field>_l10n_medium`, `<field>_l10n_short` and `<field>_l10n_full`; the original value is kept unchanged. Supports date range validation and efficient date-based queries, sorting, and aggregations in OpenSearch.
 
 | Property | Description |
 |----------|-------------|
@@ -644,10 +744,11 @@ Data type for date-only values (year-month-day) without time information. Stores
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | `marshmallow.fields.Date` |
+| marshmallow_field_class | `DateString` (a `marshmallow.fields.Date` that keeps the original string on output) |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatDate` |
 | min_date | Minimum allowed date |
 | max_date | Maximum allowed date |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -685,7 +786,7 @@ data_collection_start:
 
 ### datetime
 
-Data type for complete date and time information including timezone support. Stores timestamps in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ) with support for various input formats including milliseconds and timezone variations. Essential for created/modified timestamps, event scheduling, logging, and any time-sensitive data. OpenSearch automatically handles timezone conversions and provides powerful time-based queries, range filtering, and time-series aggregations. The UI offers localized datetime formatting for different presentation needs.
+Data type for complete date and time information including timezone support. Stores timestamps in ISO 8601 format (YYYY-MM-DDTHH:MM:SSZ) with support for various input formats including milliseconds and timezone variations. Essential for created/modified timestamps, event scheduling, logging, and any time-sensitive data. OpenSearch automatically handles timezone conversions and provides powerful time-based queries, range filtering, and time-series aggregations. For display, the UI serialization adds four sibling keys with the localized datetime: `<field>_l10n_long`, `<field>_l10n_medium`, `<field>_l10n_short` and `<field>_l10n_full`; the original value is kept unchanged.
 
 | Property | Description |
 |----------|-------------|
@@ -695,10 +796,11 @@ Data type for complete date and time information including timezone support. Sto
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | `marshmallow.fields.DateTime` |
+| marshmallow_field_class | `DateTimeString` (a `marshmallow.fields.DateTime` that keeps the original string on output) |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatDatetime` |
 | min_datetime | Minimum allowed datetime |
 | max_datetime | Maximum allowed datetime |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -735,7 +837,7 @@ submission_timestamp:
 
 ### time
 
-Data type for time-only values (hours, minutes, seconds) without date information. Stores time in ISO 8601 time format (HH:MM:SS) with support for various input formats including milliseconds. Ideal for opening hours, duration timestamps, recurring event times, and any time-of-day information. OpenSearch maps this as a date field with time-specific formatting, enabling time-based queries and aggregations. The UI provides localized time formatting and supports time range validation for business rules.
+Data type for time-only values (hours, minutes, seconds) without date information. Stores time in ISO 8601 time format (HH:MM:SS) with support for various input formats including milliseconds. Ideal for opening hours, duration timestamps, recurring event times, and any time-of-day information. OpenSearch maps this as a date field with time-specific formatting, enabling time-based queries and aggregations. Supports time range validation for business rules. For display, the UI serialization adds four sibling keys with the localized time: `<field>_l10n_long`, `<field>_l10n_medium`, `<field>_l10n_short` and `<field>_l10n_full`; the original value is kept unchanged.
 
 | Property | Description |
 |----------|-------------|
@@ -745,10 +847,11 @@ Data type for time-only values (hours, minutes, seconds) without date informatio
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | `marshmallow.fields.Time` |
+| marshmallow_field_class | `TimeString` (a `marshmallow.fields.Time` that keeps the original string on output) |
 | ui_marshmallow_field_class | `marshmallow_utils.fields.FormatTime` |
 | min_time | Minimum allowed time |
 | max_time | Maximum allowed time |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -786,7 +889,7 @@ embargo_lift_time:
 
 ### edtf-time
 
-Data type for Extended Date/Time Format (EDTF) supporting flexible and imprecise date/time representations. EDTF handles uncertain dates, approximate dates, date ranges, and incomplete dates commonly found in historical, cultural, or scientific contexts. Examples include "1984?", "1984~", "1984/1985", "198X". Uses cached validation for performance and supports both standard dates and EDTF-specific notations. Essential for digital humanities, archives, museums, and any domain dealing with imprecise temporal information.
+Data type for an [EDTF](https://www.loc.gov/standards/datetime/) date, optionally with a time. Accepts a full date and time ("2023-03-15T10:30:00Z"), a full date ("2023-03-15"), or a reduced-precision date: year and month ("1945-05") or year only ("1984"). Intervals ("1984/1985") and uncertainty or approximation qualifiers ("1984?", "1984~") are rejected; use [`edtf-interval`](#edtf-interval) or [`edtf-date-or-interval`](#edtf-date-or-interval) for intervals. Strict `YYYY-MM-DD` values are validated by a fast path; everything else goes through the EDTF parser.
 
 | Property | Description |
 |----------|-------------|
@@ -797,18 +900,19 @@ Data type for Extended Date/Time Format (EDTF) supporting flexible and imprecise
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow_utils.fields.edtfdatestring.EDTFDateTimeString` |
-| ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| ui_marshmallow_field_class | `oarepo_runtime.services.schema.ui.LocalizedEDTFTime` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
 ```yaml
-manuscript_date:
+observation_time:
   type: edtf-time
 
 historical_event_date:
   type: edtf-time
 
-archaeological_dating:
+manuscript_date:
   type: edtf-time
 ```
 
@@ -816,9 +920,9 @@ archaeological_dating:
 
 ```json
 {
-  "manuscript_date": "1984?",
-  "historical_event_date": "1945-05~",
-  "archaeological_dating": "198X"
+  "observation_time": "2023-03-15T10:30:00Z",
+  "historical_event_date": "1945-05",
+  "manuscript_date": "1984"
 }
 ```
 
@@ -826,14 +930,13 @@ archaeological_dating:
 
 | Query | Description |
 |-------|-------------|
-| `manuscript_date:"1984?"` | Search for manuscripts with uncertain 1984 dating |
-| `historical_event_date:"1945-05~"` | Search for events approximately in May 1945 |
-| `archaeological_dating:198*` | Search for archaeological finds from 1980s |
-| `manuscript_date:[1980 TO 1990]` | Search for manuscripts from 1980s decade |
+| `observation_time:[2023-03-15T00:00:00Z TO 2023-03-15T23:59:59Z]` | Search for observations made on a specific day |
+| `historical_event_date:[1945-01 TO 1945-12]` | Search for events in 1945 |
+| `manuscript_date:[1980 TO 1990]` | Search for manuscripts from the 1980s |
 
 ### edtf
 
-Data type for Extended Date/Time Format (EDTF) focused on date values without time components. Supports uncertain dates ("1984?"), approximate dates ("1984~"), date ranges ("1984/1985"), decades ("198X"), centuries ("19XX"), and other flexible date representations. Ideal for historical records, archaeological data, manuscript dating, and any scholarly work requiring nuanced temporal expressions. The implementation optimizes for common date formats while supporting the full EDTF specification for complex cases.
+Data type for an [EDTF](https://www.loc.gov/standards/datetime/) date without a time component. Accepts a full date ("2023-06-12") or a reduced-precision date: year and month ("1945-05") or year only ("1450"). Values with a time, intervals ("1984/1985") and uncertainty or approximation qualifiers ("1984?", "1984~") are rejected; use [`edtf-time`](#edtf-time) for values with a time and [`edtf-interval`](#edtf-interval) or [`edtf-date-or-interval`](#edtf-date-or-interval) for intervals. Useful for historical records and any data where the full date is not always known.
 
 | Property | Description |
 |----------|-------------|
@@ -844,7 +947,8 @@ Data type for Extended Date/Time Format (EDTF) focused on date values without ti
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.String` |
-| ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| ui_marshmallow_field_class | `oarepo_runtime.services.schema.ui.LocalizedEDTF` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -863,9 +967,9 @@ specimen_collection_date:
 
 ```json
 {
-  "artifact_dating": "1450~",
-  "cultural_period": "15XX",
-  "specimen_collection_date": "2023-06?"
+  "artifact_dating": "1450",
+  "cultural_period": "1945-05",
+  "specimen_collection_date": "2023-06-12"
 }
 ```
 
@@ -873,14 +977,13 @@ specimen_collection_date:
 
 | Query | Description |
 |-------|-------------|
-| `artifact_dating:"1450~"` | Search for artifacts dated approximately 1450 |
-| `cultural_period:"15XX"` | Search for 15th century cultural periods |
-| `specimen_collection_date:"2023-06?"` | Search for specimens possibly collected in June 2023 |
-| `cultural_period:1[45]*` | Search for 14th or 15th century periods |
+| `artifact_dating:[1400 TO 1499]` | Search for artifacts dated to the 15th century |
+| `cultural_period:[1945-01 TO 1945-12]` | Search for periods in 1945 |
+| `specimen_collection_date:"2023-06-12"` | Search for specimens collected on a specific day |
 
 ### edtf-interval
 
-Data type for EDTF interval representations, specifically designed for date ranges and temporal spans. Supports complex interval notations like "1984/1985", "1984-01/1985-12", and open-ended intervals ("1984/.."). Maps to OpenSearch's `date_range` field type, enabling efficient range queries and interval-based aggregations. Perfect for project durations, historical periods, employment terms, and any time spans that may have uncertain or flexible boundaries typical in scholarly and archival contexts.
+Data type for a closed [EDTF](https://www.loc.gov/standards/datetime/) interval: two dates separated by `/`, each a full date, year and month, or year only ("1984/1985", "2022-06/2023-12", "1984-06-19/1985"). The start must not be after the end. Single dates, open or unknown ends ("1984/..", "..1985") and uncertainty or approximation qualifiers are rejected; use [`edtf-date-or-interval`](#edtf-date-or-interval) if a field can hold either a date or an interval. Maps to OpenSearch's `date_range` field type. Useful for project durations, historical periods, and other time spans.
 
 | Property | Description |
 |----------|-------------|
@@ -891,7 +994,8 @@ Data type for EDTF interval representations, specifically designed for date rang
 | Property in YAML schema | Description |
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.String` |
-| ui_marshmallow_field_class | `marshmallow_utils.fields.FormatEDTF` |
+| ui_marshmallow_field_class | `oarepo_runtime.services.schema.ui.LocalizedEDTFTimeInterval` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -912,7 +1016,7 @@ funding_period:
 {
   "research_period": "2022/2024",
   "data_collection_period": "2022-06/2023-12",
-  "funding_period": "2022/.."
+  "funding_period": "2022-01-01/2025"
 }
 ```
 
@@ -922,14 +1026,51 @@ funding_period:
 |-------|-------------|
 | `research_period:"2022/2024"` | Search for research conducted from 2022 to 2024 |
 | `data_collection_period:"2022-06/2023-12"` | Search for data collected in specific period |
-| `funding_period:"2022/.."` | Search for funding starting 2022 with open end |
 | `research_period:[2022 TO 2025]` | Search for research periods overlapping with range |
+
+### edtf-date-or-interval
+
+Data type for a single EDTF date or interval, accepting notations like "1984", "1984-06", "1984-06-19", "1984/1985" and "1984-06/1985". Open or unknown interval ends ("1984-01/..", "..1985") and uncertainty or approximation qualifiers ("1984?", "1984~") are rejected. In addition to the original value, the record is indexed with a hidden sibling field `<field>_range` holding the {gte, lte} bounds of the date or interval, so it can be used in date range queries while the original notation stays intact. In the UI schema the value is exposed as localized text in four formats (`<field>_l10n_long`, `_medium`, `_short`, `_full`). Also works as an array item, where all generated ranges are merged into the array's sibling field.
+
+| Property | Description |
+|----------|-------------|
+| source code | [date.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/date.py) |
+| jsonschema type | `string` with `format: date` |
+| mapping | [`keyword`](https://docs.opensearch.org/latest/field-types/supported-field-types/keyword/) with a generated sibling `<field>_range` field of type [`date_range`](https://docs.opensearch.org/latest/field-types/supported-field-types/range/) |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.String` |
+| ui_marshmallow_field_class | `oarepo_runtime.services.schema.ui.LocalizedEDTFTimeInterval` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+**Example:**
+
+```yaml
+coverage_date:
+  type: edtf-date-or-interval
+```
+
+**Valid input json example:**
+
+```json
+{
+  "coverage_date": "1984-06/1985"
+}
+```
+
+**Sample search queries:**
+
+| Query | Description |
+|-------|-------------|
+| `coverage_date:"1984-06/1985"` | Exact match of the entered EDTF notation |
+| `coverage_date_range:[1984 TO 1985]` | Search for dates and intervals overlapping with the given range |
 
 ## Composite data types
 
 ### object
 
-Data type for structured objects with defined properties, creating nested document structures. Each object requires a `properties` definition specifying the nested fields and their types. OpenSearch stores objects as flattened structures, making them searchable but not independently queryable (use `nested` for that). Automatically generates marshmallow schemas for validation and serialization. Perfect for addresses, contact information, metadata structures, and any logical grouping of related fields. The `dynamic: strict` mapping prevents unexpected fields from being indexed.
+Data type for structured objects with defined properties, creating nested document structures. Each object requires a `properties` definition specifying the nested fields and their types. OpenSearch stores objects as flattened structures, making them searchable but not independently queryable (use `nested` for that). Automatically generates marshmallow schemas for validation and serialization. The generated schema can be extended with reusable validation logic through `marshmallow_schema_mixins`. Perfect for addresses, contact information, metadata structures, and any logical grouping of related fields. The `dynamic: strict` mapping prevents unexpected fields from being indexed.
 
 | Property | Description |
 |----------|-------------|
@@ -943,7 +1084,9 @@ Data type for structured objects with defined properties, creating nested docume
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema) |
 | properties | Dictionary of nested field definitions |
 | marshmallow_schema_class | Custom Marshmallow schema class (optional) |
+| marshmallow_schema_mixins | List of `marshmallow.Schema` subclass import paths mixed into the generated schema (optional) |
 | ui_marshmallow_schema_class | Custom UI Marshmallow schema class (optional) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -969,6 +1112,42 @@ funding_info:
     amount:
       type: double
 ```
+
+**Schema mixins example:**
+
+`marshmallow_schema_mixins` extends the auto-generated schema with reusable logic, most importantly cross-property validation that cannot be expressed on a single property. Each entry is the fully qualified import path of a `marshmallow.Schema` subclass. The mixins are added to the bases of the generated schema: fields they declare are merged with the generated ones and their `@marshmallow.validates_schema` hooks run on load.
+
+```python
+# model/validators.py
+import marshmallow as ma
+
+
+class DateRangeMixin(ma.Schema):
+    @ma.validates_schema
+    def check_range(self, data, **kwargs):
+        start, end = data.get("start"), data.get("end")
+        if start and end and start > end:
+            raise ma.ValidationError({"end": ["end must not be before start"]})
+```
+
+```yaml
+date_range:
+  type: object
+  marshmallow_schema_mixins:
+    - model.validators.DateRangeMixin
+  properties:
+    start:
+      type: keyword
+    end:
+      type: keyword
+```
+
+With this definition, loading `{"start": "2024-05-01", "end": "2024-01-01"}` fails with `{"end": ["end must not be before start"]}`; the valid order is accepted unchanged.
+
+- The value must be a list of importable `marshmallow.Schema` subclasses. A non-list value, a non-importable path, or a class that does not subclass `marshmallow.Schema` raises an error when the model is built.
+- Multiple mixins can be listed; all of them are applied.
+- Mixins apply to the API (load) schema only, the UI schema is unaffected.
+- If `marshmallow_schema_class` is set, it replaces the generated schema and the mixins are ignored.
 
 **Valid input json example:**
 
@@ -999,13 +1178,13 @@ funding_info:
 
 ### nested
 
-Data type for nested objects that maintain their structure independently in OpenSearch, unlike regular objects which are flattened. Each nested object is indexed as a separate document, enabling complex queries that preserve the relationship between nested fields. Essential for arrays of objects where you need to query specific combinations within individual array items (e.g., "authors where role=editor AND name=Smith"). More resource-intensive than regular objects but provides powerful querying capabilities. Supports specialized nested faceting and aggregations.
+Data type for nested objects that maintain their structure independently in OpenSearch, unlike regular objects which are flattened. Each nested object is indexed as a separate document, enabling complex queries that preserve the relationship between nested fields. Essential for lists of objects where you need to query specific combinations within individual items (e.g., "authors where role=editor AND name=Smith"). A bare `nested` field holds a single object; to store a list of them, wrap it in an [`array`](#array) whose `items` are `type: nested` (the OpenSearch `nested` mapping keeps each item's fields grouped). More resource-intensive than regular objects but provides powerful querying capabilities. Supports specialized nested faceting and aggregations.
 
 | Property | Description |
 |----------|-------------|
 | source code | [collections.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/collections.py) |
 | jsonschema type | `object` |
-| mapping | [`nested`](https://docs.opensearch.org/latest/field-types/supported-field-types/nested/) |
+| mapping | [`nested`](https://docs.opensearch.org/latest/field-types/supported-field-types/nested/) with `dynamic: strict` |
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
@@ -1013,7 +1192,9 @@ Data type for nested objects that maintain their structure independently in Open
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema) |
 | properties | Dictionary of nested field definitions |
 | marshmallow_schema_class | Custom Marshmallow schema class (optional) |
+| marshmallow_schema_mixins | List of `marshmallow.Schema` subclass import paths mixed into the generated schema (optional) |
 | ui_marshmallow_schema_class | Custom UI Marshmallow schema class (optional) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -1086,6 +1267,7 @@ Data type for ordered collections of homogeneous items, where each item must con
 | min_items | Minimum number of items |
 | max_items | Maximum number of items |
 | unique_items | Whether items must be unique |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -1155,8 +1337,9 @@ Data type for objects with unpredictable or variable property names, such as mul
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
-| marshmallow_field_class | `marshmallow.fields.Nested` (with PermissiveSchema) |
+| marshmallow_field_class | `marshmallow.fields.Raw` (arbitrary JSON passed through unchanged on load and dump) |
 | ui_marshmallow_field_class | (no UI transformation) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Example:**
 
@@ -1207,7 +1390,7 @@ user_defined_fields:
 
 ### polymorphic
 
-Data type for discriminated union types where a field can represent different object types based on a discriminator field (typically "type"). Each variant in the `oneof` array specifies both a discriminator value and its corresponding schema. At runtime, the discriminator field determines which schema to use for validation and serialization. OpenSearch merges all possible properties into a single object mapping. Perfect for modeling heterogeneous entities like different types of creators (person vs organization), various content types, or flexible configuration options where the structure depends on a type field.
+Data type for discriminated union types where a field can represent different object types based on a discriminator field (typically "type"). Each variant in the `oneof` array specifies both a discriminator value and its corresponding schema. At runtime, the discriminator field determines which schema to use for validation and serialization; a value with a missing or unknown discriminator is rejected. The `type` of a variant is either `object` with inline `properties` or the name of a type defined elsewhere in the model (e.g., `Person`). OpenSearch merges all possible properties into a single object mapping. The discriminator is added automatically to the mapping (as `keyword`) and to the JSON Schema (as a required `const` per variant). Polymorphic fields do not generate facets, and relations (`pid-relation`, `vocabulary`, ...) inside the variants are not resolved. Perfect for modeling heterogeneous entities like different types of creators (person vs organization), various content types, or flexible configuration options where the structure depends on a type field.
 
 | Property | Description |
 |----------|-------------|
@@ -1220,7 +1403,9 @@ Data type for discriminated union types where a field can represent different ob
 | marshmallow_field_class | PolymorphicField |
 | ui_marshmallow_field_class | PolymorphicField |
 | discriminator | Field name used to determine schema variant (defaults to "type") |
-| oneof | Array of schema variants with discriminator values |
+| oneof | Array of schema variants; each has a `discriminator` value and a `type` (`object` with `properties`, or the name of another type) |
+| marshmallow_field | Ready-made marshmallow field instance (import path) used instead of the generated polymorphic field |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
 
 **Important:**
 
@@ -1325,32 +1510,59 @@ Data type for creating relationships between records using Persistent Identifier
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Nested` |
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema from ObjectDataType) |
-| keys | List of keys to include in the relation (e.g., `["id", "metadata.title"]`) |
+| keys | List of dotted field paths to cache locally (e.g., `["id", "metadata.title"]`). Each entry is either a plain string (definition is looked up in the schema of the target `model`) or a single-key mapping `"<dotted.path>": {<type definition>}` (definition provided explicitly) |
+| model | Name of the target model (as registered). Used to look up the definitions of plain-string `keys` in the target's schema. Required if `keys` contains plain strings other than `id` |
 | record_cls | Target record class (e.g., `"my_other_model.records:record"`) |
 | pid_field | PID field getter function or PID field instance |
 | cache_key | Optional cache key for caching the resolved record |
 | relation_field_kwargs | Additional kwargs for the relation field |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+Either `record_cls` or `pid_field` must be provided to resolve the target PID. The definitions of the cached `keys` come from `model` or from explicit definitions; without `model`, a plain-string key other than `id` fails when the model is built with `Model name is not available, cannot determine target properties for '...'`.
+
+The `id` field is always part of the relation, whether or not it is listed in `keys` (it is what the relation actually stores, keyed by the target's PID). A hidden `@v` field is added to the OpenSearch mapping and JSON Schema (dump-only) and skipped on marshmallow load.
+
+The target must be a **published** record. A record that exists only as a draft does not resolve and is rejected with `InvalidRelationValue`.
 
 **Example:**
 
 ```yaml
+# key definitions looked up in the "publications" model
 cited_publication:
   type: pid-relation
+  model: publications
   keys: ["id", "metadata.title", "metadata.doi"]
   record_cls: "publications.records:PublicationRecord"
 
+# key definitions provided explicitly
 related_dataset:
   type: pid-relation
-  keys: ["id", "metadata.title", "metadata.resource_type"]
+  keys:
+    - id
+    - metadata.title: {type: fulltext+keyword}
+    - metadata.resource_type: {type: keyword}
   record_cls: "datasets.records:DatasetRecord"
 
 parent_collection:
   type: pid-relation
+  model: collections
   keys: ["id", "metadata.title"]
   record_cls: "collections.records:CollectionRecord"
 ```
 
 **Valid input json example:**
+
+Submitting the target record's PID is enough; the `keys` you declared are filled in from the resolved record.
+
+```json
+{
+  "cited_publication": { "id": "pub-12345" },
+  "related_dataset": { "id": "ds-67890" },
+  "parent_collection": { "id": "col-11111" }
+}
+```
+
+After the record is saved, `RelationDumperExt` dereferences each relation, so the response and the search index hold the locally cached copy of the target:
 
 ```json
 {
@@ -1362,7 +1574,7 @@ parent_collection:
     }
   },
   "related_dataset": {
-    "id": "ds-67890", 
+    "id": "ds-67890",
     "metadata": {
       "title": "Bioinformatics Training Data",
       "resource_type": "dataset"
@@ -1387,9 +1599,197 @@ parent_collection:
 | `related_dataset.metadata.resource_type:dataset` | Search for documents with related datasets |
 | `parent_collection.metadata.title:*Research*` | Search by parent collection title pattern |
 
+### lazy-pid-relation
+
+Variant of [`pid-relation`](#pid-relation) for relations whose target model cannot be introspected eagerly at build time: self-references (a record pointing to another record of the same model) and circular references (model A references model B, which references back to model A). Everything about the relation - the OpenSearch mapping, the JSON Schema, the marshmallow schemas (API and UI), and any relations nested inside the cached `keys` - is resolved lazily the first time the target model is actually available in the runtime registry, by which point the whole model graph has finished building. The generated JSON Schema and OpenSearch mapping are `object`s whose sub-properties come from the target model's own schema (or the explicit definition you provide per key), with `unevaluatedProperties: false` and `dynamic: strict`. Facets are generated only for `keys` with an explicit definition; keys given as plain strings get no facet, because facet names must be known when the model is built and the target cannot be introspected at that point.
+
+| Property | Description |
+|----------|-------------|
+| source code | [lazy_relations.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/lazy_relations.py) |
+| jsonschema type | `object` with `unevaluatedProperties: false` and lazily-resolved `properties` (from the target model) |
+| mapping | `object` with `dynamic: strict` and lazily-resolved `properties` (from the target model) |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Nested` |
+| ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema, also lazily resolved from the target's `RecordUISchema`) |
+| keys | **Required.** List of dotted field paths to cache locally (e.g., `["id", "metadata.title"]`). Each entry is either a plain string (definition is looked up lazily in the target model's real schema) or a single-key mapping `"<dotted.path>": {<type definition>}` (definition provided explicitly) |
+| model | **Required.** Target model name (as registered in the runtime models registry); use the current model's own name for self-references |
+| record_cls | Optional target record class (e.g., `"my_records.records:Record"`); if set, its `pid` attribute is used as the PID field instead of the lazy resolver |
+| pid_field | Optional PID field getter or PID field instance; overrides `record_cls` and the lazy `model`-based resolution when set |
+| cache_key | Optional cache key for caching the resolved record |
+| relation_field_kwargs | Additional kwargs forwarded to the underlying relation field |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+The `id` field is always part of the relation, whether or not it is listed in `keys` (it is what the relation actually stores; every relation is keyed by the target's PID). A hidden `@v` field is added to the OpenSearch mapping and JSON Schema (dump-only) and skipped on marshmallow load.
+
+**Example:**
+
+```yaml
+# self-reference: a record of model "records" pointing to another record
+# of the same model
+parent_version:
+  type: lazy-pid-relation
+  model: records
+  keys: ["id", "metadata.title"]
+
+# circular reference: model "datasets" pointing at "publications", which
+# itself references back to "datasets" (the eager `pid-relation` would
+# fail to resolve in that cycle)
+primary_publication:
+  type: lazy-pid-relation
+  model: publications
+  keys: ["id", "metadata.title", "metadata.doi"]
+
+# any number of array and object levels around the relation is fine
+revisions:
+  type: array
+  items:
+    type: lazy-pid-relation
+    model: records
+    keys: ["id", "metadata.title"]
+```
+
+**Valid input json example:**
+
+Submitting the target's PID is enough; the cached `keys` are filled in from the resolved record.
+
+```json
+{
+  "parent_version": { "id": "rec-aaaa" },
+  "primary_publication": { "id": "pub-12345" },
+  "revisions": [ { "id": "rec-bbbb" }, { "id": "rec-cccc" } ]
+}
+```
+
+After the record is saved, `RelationDumperExt` dereferences each relation, so the response and the search index hold the full cached value:
+
+```json
+{
+  "parent_version": {
+    "id": "rec-aaaa",
+    "metadata": { "title": "Previous version of this dataset" }
+  },
+  "primary_publication": {
+    "id": "pub-12345",
+    "metadata": {
+      "title": "The paper this dataset supports",
+      "doi": "10.1038/nature12373"
+    }
+  },
+  "revisions": [
+    { "id": "rec-bbbb", "metadata": { "title": "Revision 1" } },
+    { "id": "rec-cccc", "metadata": { "title": "Revision 2" } }
+  ]
+}
+```
+
+**Sample search queries:**
+
+| Query | Description |
+|-------|-------------|
+| `parent_version.id:"rec-aaaa"` | Search by the cached target PID |
+| `parent_version.metadata.title:"Previous version"` | Search by the cached target title |
+| `primary_publication.metadata.doi:"10.1038/nature12373"` | Search by a key cached from the circularly-referenced model |
+
+### internal-relation
+
+Relation to a part of the *same* record: a self-referencing relation whose target is a sub-path of the current model rather than the model's root. Structurally a [`lazy-pid-relation`](#lazy-pid-relation) (with all the same lazy machinery for mapping, JSON Schema, marshmallow and UI schema), except that the target is always a path inside the record the field is declared on, and the target's PID is not consulted - resolution happens at runtime through an `InternalRelations` lookup table the record exposes as `record.internal_relations`, keyed by each entry's dot-separated path within the record. The lookup table auto-discovers every dict with an `id` anywhere in the record, so any sub-object with an `id` can be pointed at.
+
+To actually resolve at runtime, the model must also include `presets.internal_relations.internal_relations_preset` (from [oarepo-model/presets/internal_relations](https://github.com/oarepo/oarepo-model/tree/main/src/oarepo_model/presets/internal_relations)); without it the field builds but never resolves. Like `lazy-pid-relation`, facets are generated only for `keys` with an explicit definition, and any nested relations inside the target are discovered lazily (on first `record.relations` access), not at build time.
+
+| Property | Description |
+|----------|-------------|
+| source code | [internal_relations.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/internal_relations.py) |
+| jsonschema type | `object` with `unevaluatedProperties: false` and `properties` lazily resolved from the record's own schema at `target` |
+| mapping | `object` with `dynamic: strict` and `properties` lazily resolved from the record's own mapping at `target` |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Nested` |
+| ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema, also lazily resolved from the same record's UI schema at `target`) |
+| target | **Required.** Dotted path to the sub-property of the same record this field points into (e.g., `metadata.proteins`). Must resolve to a nested field (or an array of nested fields) at build time |
+| keys | **Required.** List of dotted field paths (relative to `target`) to cache locally. Each entry is either a plain string (definition is looked up lazily in the target's real schema) or a single-key mapping `"<dotted.path>": {<type definition>}` |
+| relation_field_kwargs | Additional kwargs forwarded to `InternalRelation(**kwargs)` |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+Unlike `pid-relation` / `lazy-pid-relation`, `model`, `record_cls`, `pid_field` and `cache_key` do not apply here - the target is always the same record and there is no external PID to resolve.
+
+As with `lazy-pid-relation`, the `id` field is always part of the relation whether or not it is listed in `keys` (it is what the relation stores and resolution is keyed off it), and a hidden `@v` field is added to the mapping and JSON Schema. A `keys` entry may itself be a dotted path into the target (e.g. `provider.name`). The `target` may also point at an array of a [`polymorphic`](#polymorphic) type, in which case `keys` resolve as the union of the properties declared across all the `oneof` variants.
+
+**Example:**
+
+```yaml
+# a record that carries its own lists of proteins and instruments, and points
+# at one protein (scalar relation) and several instruments (array relation)
+# from within itself
+metadata:
+  proteins:
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          type: keyword
+        name:
+          type: keyword
+        sequence:
+          type: fulltext
+  instruments:
+    type: array
+    items:
+      type: object
+      properties:
+        id:
+          type: keyword
+        name:
+          type: keyword
+  main_protein:
+    type: internal-relation
+    target: metadata.proteins
+    keys: ["id", "name"]
+  used_instruments:
+    type: array
+    items:
+      type: internal-relation
+      target: metadata.instruments
+      keys: ["id", "name"]
+```
+
+**Valid input json example:**
+
+You submit only the referenced `id`(s); the remaining `keys` are resolved for you.
+
+```json
+{
+  "metadata": {
+    "proteins": [
+      { "id": "prot-1", "name": "Hemoglobin", "sequence": "MGLSDGEWQLVLNVWGKVEADIP" },
+      { "id": "prot-2", "name": "Myoglobin",  "sequence": "VLVLGAEEKLYPVMTILALGSSA" }
+    ],
+    "instruments": [
+      { "id": "inst-1", "name": "Spectrometer A" },
+      { "id": "inst-2", "name": "Microscope B" }
+    ],
+    "main_protein": { "id": "prot-1" },
+    "used_instruments": [ { "id": "inst-1" }, { "id": "inst-2" } ]
+  }
+}
+```
+
+On save, `RelationDumperExt` dereferences each relation against its `target`, so the API response and the search index carry the full `keys` (e.g. `main_protein.name` becomes `"Hemoglobin"`, and each `used_instruments[]` entry gains the matching instrument `name`) even though only ids were submitted. Referencing an `id` that does not exist at `target` fails validation with `InvalidRelationValue`.
+
+**Sample search queries:**
+
+| Query | Description |
+|-------|-------------|
+| `metadata.main_protein.id:"prot-1"` | Search by the referenced entry's ID |
+| `metadata.main_protein.name:"Hemoglobin"` | Search by the dereferenced name |
+| `metadata.used_instruments.name:"Spectrometer A"` | Search an array internal relation by a dereferenced key |
+
 ### vocabulary
 
-Data type for references to controlled vocabularies, extending pid-relation with vocabulary-specific functionality. Automatically configures appropriate fields and schemas based on the `vocabulary-type` (languages, affiliations, funders, awards, subjects). Each vocabulary type has predefined field sets (e.g., affiliations include identifiers and name fields). Provides seamless integration with Invenio's vocabulary system, automatic PID field resolution, and specialized marshmallow schemas. Essential for maintaining data consistency and enabling faceted search across standardized terms and entities.
+Data type for references to controlled vocabularies, extending pid-relation with vocabulary-specific functionality. Any vocabulary type can be used in `vocabulary-type`. The types `affiliations`, `funders`, `awards` and `subjects` have their own schemas and predefined keys (e.g., affiliations include `identifiers` and `name`). All other ("generic") vocabulary types, such as `languages` or `resourcetypes`, cache the term's `title` (a multilingual dictionary) and are serialized for the UI as `{id, title_l10n}`. The PID field of the vocabulary is determined from `vocabulary-type` automatically. A facet is generated on `<field>.id`, with value labels taken from the vocabulary. Keys added in `keys` (other than the predefined ones) get facets according to their types, e.g. `props.<name>`, see [Caching vocabulary props](#caching-vocabulary-props).
 
 | Property | Description |
 |----------|-------------|
@@ -1401,11 +1801,14 @@ Data type for references to controlled vocabularies, extending pid-relation with
 |------------------------|-------------|
 | marshmallow_field_class | `marshmallow.fields.Nested` |
 | ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema from ObjectDataType) |
-| vocabulary-type | Type of vocabulary (e.g., `"languages"`, `"affiliations"`, `"funders"`, `"awards"`, `"subjects"`) |
-| keys | List of keys to include (auto-populated based on vocabulary type if not specified) |
-| record_cls | (inherited from pid-relation, auto-determined from vocabulary-type) |
-| pid_field | (inherited from pid-relation, auto-determined from vocabulary-type) |
+| vocabulary-type | Id of the vocabulary type (e.g., `"languages"`, `"resourcetypes"`, `"affiliations"`, `"funders"`, `"awards"`, `"subjects"`) |
+| keys | Additional keys to cache; the predefined keys of the vocabulary type are always included. `props` and `props.<name>` can be listed without a type definition, see [Caching vocabulary props](#caching-vocabulary-props) |
+| record_cls | not configurable, determined from `vocabulary-type` |
+| pid_field | not configurable, determined from `vocabulary-type` |
 | cache_key | (inherited from pid-relation, defaults to vocabulary-type if not specified) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+As with [`pid-relation`](#pid-relation), the `id` field is always part of the relation whether or not it is listed in `keys`, and a hidden `@v` field is added to the mapping and JSON Schema (dump-only) and skipped on marshmallow load.
 
 **Example:**
 
@@ -1433,55 +1836,336 @@ related_award:
 
 **Valid input json example:**
 
+Submitting the vocabulary term's `id` is enough; the fields defined for that vocabulary type are filled in from the vocabulary record.
+
+```json
+{
+  "language": { "id": "en" },
+  "author_affiliation": { "id": "02ex6cf31" },
+  "research_subject": { "id": "ab" },
+  "funding_agency": { "id": "05k73zm37" },
+  "related_award": { "id": "01cwqze88::1R01HL141112-01" }
+}
+```
+
+After the record is saved, the relation is dereferenced against the vocabulary, so the response and the search index hold the keys predefined for each vocabulary type:
+
 ```json
 {
   "language": {
-    "id": "eng",
-    "title": {
-      "en": "English",
-      "cs": "Angličtina"
-    }
+    "id": "en",
+    "title": { "en": "English", "cs": "Angličtina" }
   },
   "author_affiliation": {
-    "id": "mit",
-    "title": {
-      "en": "Massachusetts Institute of Technology"
-    },
-    "identifiers": {
-      "ror": "042nb2s44"
-    }
+    "id": "02ex6cf31",
+    "name": "Brookhaven National Laboratory",
+    "identifiers": [ { "scheme": "ror", "identifier": "02ex6cf31" } ]
   },
   "research_subject": {
-    "id": "computer-science",
-    "title": {
-      "en": "Computer Science"
-    }
+    "id": "ab",
+    "subject": "Agricultural biotechnology",
+    "scheme": "FOS",
+    "props": { "classification": "FOS" }
   },
   "funding_agency": {
-    "id": "nsf",
-    "title": {
-      "en": "National Science Foundation"
-    }
+    "id": "05k73zm37",
+    "name": "Academy of Finland"
   },
   "related_award": {
-    "id": "nsf-2023-1234",
-    "title": {
-      "en": "Machine Learning for Scientific Discovery"
-    }
+    "id": "01cwqze88::1R01HL141112-01",
+    "title": { "en": "Studies of mRNA translational regulations in erythropoiesis" },
+    "number": "1R01HL141112-01",
+    "identifiers": [ { "scheme": "doi", "identifier": "10.1234/01cwqze88::1R01HL141112-01" } ],
+    "acronym": "mRNA",
+    "program": "NATIONAL_HEART,_LUNG,_AND_BLOOD_INSTITUTE"
   }
 }
 ```
+
+Note that the dereferenced keys are not uniform across vocabulary types: `languages` expose a multilingual `title`, while `affiliations` and `funders` expose `name`, and `identifiers` is a list of `{scheme, identifier}` objects (not a mapping keyed by scheme).
+
+#### Caching vocabulary props
+
+Vocabulary terms can carry additional values in `props`, a dictionary of strings (e.g., the three-letter code of a language in `props.alpha3`). To copy them into the record, list them in `keys`; no type definition is needed:
+
+| Key | What is cached | Mapping |
+|-----|----------------|---------|
+| `props` | The whole `props` dictionary | `object` with `dynamic: true` (each value is indexed with a dynamically created mapping, like in the vocabulary's own index) |
+| `props.<name>` | A single value from `props` | `keyword` inside a strict `props` object |
+
+Use `props.<name>` when you know which values you need to search; use `props` to copy everything. For `subjects`, `props` is already one of the predefined keys.
+
+```yaml
+language:
+  type: vocabulary
+  vocabulary-type: languages
+  keys: ["id", "props.alpha3"]
+```
+
+After the record is saved, the cached value is part of the record and of the search index:
+
+```json
+{
+  "language": {
+    "id": "en",
+    "title": { "en": "English", "cs": "Angličtina" },
+    "props": { "alpha3": "eng" }
+  }
+}
+```
+
+It can then be searched with `metadata.language.props.alpha3:eng`.
+
+Each `props.<name>` key also gets its own terms facet, `metadata.language.props.alpha3` in the example above, in addition to the facet on `metadata.language.id`. Copying the whole `props` does not create a facet. The label of the props facet is taken from translations (the message id is the field path, e.g. `metadata/language/props/alpha3.label`); to set it directly or to turn the facet off, write the key with an explicit definition:
+
+```yaml
+language:
+  type: vocabulary
+  vocabulary-type: languages
+  keys:
+    - id
+    - props.alpha3:
+        type: keyword
+        label:
+          en: ISO 639-2 code
+    - props.alpha2:
+        type: keyword
+        searchable: false   # cached and searchable, but no facet
+```
+
+`searchable: false` on the vocabulary field itself turns off only the `<field>.id` facet, not the facets of its props. For `subjects`, whose predefined keys already include `props`, `props.<name>` keys do not get a facet.
+
+For generic vocabulary types, the UI serialization contains only `{id, title_l10n}`, so the props are available in the API response but not in the UI representation.
 
 **Sample search queries:**
 
 | Query | Description |
 |-------|-------------|
-| `language.id:eng` | Search for English language documents |
-| `author_affiliation.id:mit` | Search by affiliation ID |
-| `author_affiliation.title.en:"Massachusetts Institute of Technology"` | Search by affiliation name |
-| `author_affiliation.identifiers.ror:"042nb2s44"` | Search by ROR identifier |
-| `research_subject.title.en:"Computer Science"` | Search by subject title |
-| `funding_agency.id:nsf AND related_award.id:nsf*` | Search for NSF funding and awards |
+| `language.id:en` | Search for English language documents |
+| `author_affiliation.id:02ex6cf31` | Search by affiliation ID |
+| `author_affiliation.name:"Brookhaven National Laboratory"` | Search by affiliation name |
+| `author_affiliation.identifiers.scheme:ror` | Filter by the scheme of a cached identifier |
+| `research_subject.subject:"Agricultural biotechnology"` | Search by the cached subject term |
+| `funding_agency.name:"Academy of Finland"` | Search by funder name |
+| `related_award.number:"1R01HL141112-01"` | Search by the cached award number |
+
+## Geospatial and astronomical data types
+
+### geo_point
+
+Data type for geographic points (latitude/longitude). The value must be an object with numeric `lat` and `lon` properties; the other forms OpenSearch accepts for `geo_point` (a `"lat,lon"` string, a `[lon, lat]` array, a geohash) are rejected. The ranges of `lat` and `lon` are not validated. Maps to OpenSearch's [`geo_point`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-point/) field.
+
+It can be queried with the `geo_distance:<field>`, `geo_bounding_box:<field>` and `geo_shape:<field>` search parameters (see sample queries below). These are **URL query-string parameters** of the search API, not part of the `q` query, e.g. `GET /api/<model>/?geo_distance:metadata.location=[14.4213,50.0875,10km]`. They can be combined with `q` and with each other.
+
+A place name (e.g. `Prague, Czechia`) can be used instead of coordinates and is resolved via [OpenStreetMap Nominatim](https://nominatim.org/) geocoding. The repository server sends the place name to the public Nominatim service; configure it with `NOMINATIM_USER_AGENT` (default: a user agent derived from `SITE_UI_URL`) and `NOMINATIM_MIN_DELAY_SECONDS` (minimum delay between requests, default `1`). Production deployments should set their own user agent, as required by the Nominatim usage policy. Coordinates are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. In the search queries below the coordinates are given longitude-first (`[lon, lat, …]`, the GeoJSON order), unlike the stored value's `{lat, lon}` keys. 
+
+| Property | Description |
+|----------|-------------|
+| source code | [spherical.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/spherical.py) |
+| jsonschema type | `object` with numeric `lat` / `lon` properties |
+| mapping | [`geo_point`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-point/) |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Nested` |
+| ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema for `lat` / `lon`) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+
+**Example:**
+
+```yaml
+location:
+  type: geo_point
+```
+
+**Valid input json example:**
+
+```json
+{
+  "location": {
+    "lat": 50.0875,
+    "lon": 14.4213
+  }
+}
+```
+
+**Sample search parameters** (URL query string):
+
+| Parameter | Description |
+|-------|-------------|
+| `geo_distance:metadata.location=[14.4213,50.0875,10km]` | Records within 10 km of the point `[lon,lat,distance]` (longitude first), closer ones boosted in relevance |
+| `geo_distance:metadata.location=[Prague, Czechia,50km]` | Same, with the centre resolved from a place name via geocoding |
+| `geo_bounding_box:metadata.location=[14.0,49.0,14.5,51.0]` | Records within a rectangle `[west,south,east,north]` (lon,lat order); the first corner must be the south-westerly one |
+| `geo_shape:metadata.location=WITHIN POLYGON ((14.0 49.0, 14.5 49.0, 14.5 51.0, 14.0 51.0, 14.0 49.0))` | Records within a WKT geometry (`lon lat` pairs), relation `INTERSECTS` (default), `DISJOINT`, `WITHIN` or `CONTAINS` |
+
+### geo_shape
+
+Data type for arbitrary geometric shapes. The value is stored as given, either as a WKT string (`POLYGON ((...))`) or as a GeoJSON geometry object, and is validated on load with [shapely](https://shapely.net/): WKT must parse, GeoJSON must use one of the geometry types OpenSearch accepts (Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon, GeometryCollection). Coordinates in both forms are [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System) longitudes/latitudes in degrees, the reference system OpenSearch geo fields expect. Arrays of shapes are supported. Shapes are searched with the `geo_shape:<field>` URL query-string parameter (not the `q` query), see [geo_point](#geo_point) for how the search parameters and place-name geocoding work. Maps to OpenSearch's [`geo_shape`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-shape/) field with `coerce` (unclosed polygon rings are closed), `ignore_malformed` (a shape that passes local validation but is rejected by OpenSearch is skipped from the geo index instead of failing the whole record) and `doc_values` disabled (required for arrays of shapes).
+
+| Property | Description |
+|----------|-------------|
+| source code | [spherical.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/spherical.py) |
+| jsonschema type | `string` (WKT) or `object` (GeoJSON) |
+| mapping | [`geo_shape`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-shape/) with `coerce` and `ignore_malformed` |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Raw` (stores the shape as given) |
+| ui_marshmallow_field_class | (no UI transformation - returns empty dict) |
+| marshmallow_validate | not supported - the field always uses the built-in shapely validator, so any validators listed here are ignored |
+
+**Example:**
+
+```yaml
+spatial_coverage:
+  type: geo_shape
+
+survey_route:
+  type: geo_shape
+```
+
+**Valid input json example:**
+
+```json
+{
+  "spatial_coverage": {
+    "type": "Polygon",
+    "coordinates": [[[13.9, 48.6], [17.9, 48.6], [17.9, 51.1], [13.9, 51.1], [13.9, 48.6]]]
+  },
+  "survey_route": "LINESTRING (14.42 50.08, 14.5 50.1, 14.6 50.05)"
+}
+```
+
+**Sample search parameters** (URL query string):
+
+| Parameter | Description |
+|-------|-------------|
+| `geo_shape:metadata.spatial_coverage=INTERSECTS POINT (14.4213 50.0875)` | Shapes intersecting the point, WKT coordinates as `lon lat` pairs (`INTERSECTS` is the default relation) |
+| `geo_shape:metadata.survey_route=WITHIN POLYGON ((14.0 49.0, 14.5 49.0, 14.5 51.0, 14.0 51.0, 14.0 49.0))` | Relation can be `INTERSECTS`, `DISJOINT`, `WITHIN` or `CONTAINS` |
+| `geo_shape:metadata.spatial_coverage=INTERSECTS Prague, Czechia` | A place name instead of WKT is geocoded to a shape via Nominatim |
+
+### icrs
+
+Data type for celestial positions in the ICRS (International Celestial Reference System), given as right ascension and declination in degrees. The value must be an object with numeric `ra` and `dec` properties (predefined, `double`); their ranges are not validated. Records keep the coordinates as they were entered; when indexing, a dumper extension added automatically by the `records_resources` preset rewrites them into a `geo_point` field (declination becomes latitude, right ascension is folded from `[0, 360)` to `[-180, 180]`) and converts them back when search results are built. This makes OpenSearch's geo machinery usable for sky positions; the `icrs_distance:<field>` parameter expresses the radius as an angular distance in degrees rather than a surface distance. Like the geo parameters, `icrs_distance:`, `icrs_bounding_box:` and `icrs_shape:` are URL query-string parameters of the search API (e.g. `GET /api/<model>/?icrs_distance:metadata.position=[83.6331,22.0145,5]`), not part of the `q` query. See the [ICRS documentation](https://aa.usno.navy.mil/faq/ICRS_doc) or the [Wikipedia article on ICRS](https://en.wikipedia.org/wiki/International_Celestial_Reference_System_and_its_realizations).
+
+| Property | Description |
+|----------|-------------|
+| source code | [spherical.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/spherical.py) |
+| jsonschema type | `object` with numeric `ra` / `dec` properties |
+| mapping | [`geo_point`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-point/) (coordinates converted on index) |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Nested` |
+| ui_marshmallow_field_class | `marshmallow.fields.Nested` (with UI schema for `ra` / `dec`) |
+| marshmallow_validate | List of validators run in addition to the built-in validation options, see [Custom validators](#custom-validators) |
+| properties | not configurable, `ra` and `dec` are predefined |
+
+**Example:**
+
+```yaml
+position:
+  type: icrs
+```
+
+**Valid input json example:**
+
+```json
+{
+  "position": {
+    "ra": 83.6331,
+    "dec": 22.0145
+  }
+}
+```
+
+**Sample search parameters** (URL query string):
+
+| Parameter | Description |
+|-------|-------------|
+| `icrs_distance:metadata.position=[83.6331,22.0145,5]` | Records within 5 degrees of the position (distance in degrees, no unit suffix), closer ones boosted |
+| `icrs_bounding_box:metadata.position=[80.0,20.0,90.0,25.0]` | Records within a box given by two opposite corners in `[ra,dec,ra,dec]` order; the first corner must be the lower-declination one |
+
+### icrs_shape
+
+Data type for celestial areas, the sky counterpart of [geo_shape](#geo_shape): a WKT string or GeoJSON geometry whose x/y coordinates are read as ICRS right ascension and declination (degrees) instead of WGS84 longitude/latitude. Validation and storage are identical to `geo_shape`; the field is indexed as a `geo_shape` whose coordinates a dumper extension converts to lat/lon on index and back when search results are built, so records always keep ICRS coordinates. See the [ICRS documentation](https://aa.usno.navy.mil/faq/ICRS_doc) or the [Wikipedia article on ICRS](https://en.wikipedia.org/wiki/International_Celestial_Reference_System_and_its_realizations).
+
+| Property | Description |
+|----------|-------------|
+| source code | [spherical.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/spherical.py) |
+| jsonschema type | `string` (WKT) or `object` (GeoJSON) |
+| mapping | [`geo_shape`](https://docs.opensearch.org/latest/mappings/supported-field-types/geo-shape/) (coordinates converted on index) |
+
+| Property in YAML schema | Description |
+|------------------------|-------------|
+| marshmallow_field_class | `marshmallow.fields.Raw` (stores the shape as given) |
+| ui_marshmallow_field_class | (no UI transformation - returns empty dict) |
+| marshmallow_validate | not supported - the field always uses the built-in shapely validator, so any validators listed here are ignored |
+| properties | not configurable, a shape has no sub-properties |
+
+**Example:**
+
+```yaml
+field_of_view:
+  type: icrs_shape
+```
+
+**Valid input json example:**
+
+```json
+{
+  "field_of_view": "POLYGON ((83.0 21.5, 84.3 21.5, 84.3 22.6, 83.0 22.6, 83.0 21.5))"
+}
+```
+
+**Sample search parameters** (URL query string):
+
+| Parameter | Description |
+|-------|-------------|
+| `icrs_shape:metadata.field_of_view=INTERSECTS POINT (83.6331 22.0145)` | Shapes intersecting the position, WKT coordinates read as ra/dec |
+| `icrs_shape:metadata.field_of_view=WITHIN POLYGON ((80 20, 90 20, 90 25, 80 25, 80 20))` | Relation can be `INTERSECTS`, `DISJOINT`, `WITHIN` or `CONTAINS` |
+
+Unlike `geo_shape:`, `icrs_shape:` accepts WKT only, never a place name. The distance and bounding-box parameters (`icrs_distance:`, `icrs_bounding_box:`) work on `geo_point`-mapped fields only.
+
+## Custom validators
+
+`marshmallow_validate` attaches additional validation to a field whose marshmallow field is generated from the model schema, i.e. every data type listed in this reference except `i18ndict`, `geo_shape` and `icrs_shape`, which always use their own fixed validation. It is a list of validators that run on load, in addition to - not instead of - the built-in validation options such as `min_length`, `enum` or `min_inclusive`.
+
+Each item of the list declares one validator, in one of two forms:
+
+| Form | Meaning |
+|------|---------|
+| `fully.qualified.name` | The imported callable is used directly as the validator. Use it for plain functions `def validator(value)` that raise `marshmallow.ValidationError` on invalid input. |
+| `[fully.qualified.name, [args], {kwargs}]` | The imported object is instantiated with the given arguments (both optional) and the instance is used as the validator. Use it for marshmallow validator classes such as `marshmallow.validate.Length` or `marshmallow.validate.Range`. |
+
+**Example:**
+
+```python
+# model/validators.py
+import marshmallow as ma
+
+
+def no_trailing_space(value):
+    if value != value.strip():
+        raise ma.ValidationError("value must not start or end with whitespace")
+```
+
+```yaml
+title:
+  type: fulltext+keyword
+  marshmallow_validate:
+    - model.validators.no_trailing_space
+    - ["marshmallow.validate.Length", {"min": 3, "max": 500}]
+
+pages:
+  type: int
+  marshmallow_validate:
+    - ["marshmallow.validate.Range", [1, 10000]]
+```
+
+- All validators in the list are applied; the value must pass every one of them. Errors are reported for the validated field.
+- A non-importable path or an invalid constructor call raises an error when the model is built, not at runtime.
+- Validators receive a single (already deserialized) value. For cross-field validation of `object` types, use [schema mixins](#object) instead.
 
 <!-- Template 
 

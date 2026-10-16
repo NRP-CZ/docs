@@ -11,7 +11,13 @@ export default {
   "exports_and_imports": {
     "title": "Exports and imports"
   },
+  "customizations": {
+    "title": "Customizations"
+  },
   "model_reference": {
     "title": "Metadata reference"
   },
+  "compound_datasets": {
+    "title": "Compound datasets (proposal)"
+  }
 }
