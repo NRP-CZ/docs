@@ -157,6 +157,11 @@ configure_workflows(
 - The owner of the draft can publish it directly, without asking anyone for approval
   (`publish_without_review=True`).
 
+<Callout type="warning">
+**Known issue (as of Oct 2026):** publishing directly from the upload form does not
+work yet. Save the record as a draft first, then publish it from **My dashboard**.
+</Callout>
+
 ---
 
 ### Scenario 2 — Restricted Submission: only users with a specific role can deposit
@@ -184,6 +189,11 @@ configure_workflows(
 
 > **Tip:** roles like `depositor` are managed in the Invenio administration panel
 > under *User management → Roles*.
+
+<Callout type="warning">
+**Known issue (as of Oct 2026):** depositors cannot publish directly from the upload
+form — save the record as a draft and publish it from **My dashboard**.
+</Callout>
 
 ---
 
@@ -443,6 +453,11 @@ configure_workflows(
 - Community members can preview drafts that have been submitted for review.
 - Community members can read published records even when the record's access is set to
   *restricted*.
+
+<Callout type="info">
+**Known limitation (as of Oct 2026):** community members can open a restricted record
+via its direct URL, but it does not appear in their list of records yet.
+</Callout>
 
 ---
 
