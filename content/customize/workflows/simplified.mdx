@@ -203,6 +203,10 @@ configure_workflows(
 
 ---
 
+{/*
+HIDDEN — major workflow bug found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+Reviewer does not see the publish request, so the curated review flow is broken.
+
 ### Scenario 4 — Curated Review: depositors submit, reviewers approve
 
 **Situation:** Any logged-in user can deposit, but a record must be reviewed and
@@ -240,6 +244,11 @@ Depositor creates draft  →  Depositor submits review request
 ```
 
 ---
+*/}
+
+{/*
+HIDDEN — major workflow bugs found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+Reviewer does not see the publish request; a trusted depositor cannot accept their own request.
 
 ### Scenario 5 — Tiered Publish: trusted users publish directly, others need review
 
@@ -268,6 +277,11 @@ configure_workflows(
   without submitting a review request.
 
 ---
+*/}
+
+{/*
+HIDDEN — major workflow bug found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+After preapproval the depositor loses read rights to the record ("Permission required") and cannot publish from the UI.
 
 ### Scenario 6 — External Pre-Approval: publish only after an external system approves
 
@@ -297,6 +311,7 @@ configure_workflows(
 - Attempting to publish from `draft` is denied.
 
 ---
+*/}
 
 ### Scenario 7 — Default Community Workflow: submit to a community for curation
 
@@ -340,6 +355,10 @@ Submitter creates draft  →  Submitter sends community-submission request
 
 ---
 
+{/*
+HIDDEN — major workflow bug found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+Users who are not community members cannot submit a record to the community (UI and API).
+
 ### Scenario 8 — Open Community: any logged-in user can submit
 
 **Situation:** The community is open for submissions from the general public (any
@@ -365,6 +384,7 @@ configure_workflows(
 - A curator still needs to approve before publication.
 
 ---
+*/}
 
 ### Scenario 9 — Extended Community Roles: members can also deposit
 
@@ -415,6 +435,10 @@ configure_workflows(
 
 ---
 
+{/*
+HIDDEN — major workflow bug found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+For published records, a member can edit metadata and save as draft but cannot submit the change for review.
+
 ### Scenario 11 — Community with Member Management
 
 **Situation:** You want community *members* to be able to edit and manage any record in
@@ -435,6 +459,11 @@ configure_workflows(
 ```
 
 ---
+*/}
+
+{/*
+HIDDEN — major workflow bugs found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+Combines workflow patterns with known bugs (curated review, open community — see scenarios 4, 5 and 8).
 
 ### Scenario 12 — Combining Multiple Workflows
 
@@ -485,6 +514,7 @@ configure_workflows(
 ```
 
 ---
+*/}
 
 ## How Records Pick a Workflow
 
