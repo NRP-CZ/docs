@@ -1,3 +1,5 @@
+import { Callout } from "nextra/components";
+
 # Simplified configuration
 
 This guide is for repository administrators and content managers who want to define
@@ -120,6 +122,15 @@ datasets_model = model(
 The scenarios below cover the most common setups. Each scenario shows the exact
 configuration snippet you need.
 
+<Callout type="warning">
+Community roles in Invenio are **not inherited** — a community `owner` does not
+automatically have the permissions of a `curator`. In addition, setting any of the
+`*_community_roles` options **replaces the default list entirely**. When you configure
+a role list, always include the higher-privilege roles explicitly — for example
+`community_curator_roles=["curator", "owner"]` so that community owners can also
+accept and decline review requests.
+</Callout>
+
 ---
 
 ### Scenario 1 — Open Submission: anyone can deposit and self-publish
@@ -145,6 +156,11 @@ configure_workflows(
 - Any authenticated user can create a draft (`authenticated_draft_creation=True`).
 - The owner of the draft can publish it directly, without asking anyone for approval
   (`publish_without_review=True`).
+
+<Callout type="warning">
+**Known issue (as of Oct 2026):** publishing directly from the upload form does not
+work yet. Save the record as a draft first, then publish it from **My dashboard**.
+</Callout>
 
 ---
 
@@ -174,6 +190,11 @@ configure_workflows(
 > **Tip:** roles like `depositor` are managed in the Invenio administration panel
 > under *User management → Roles*.
 
+<Callout type="warning">
+**Known issue (as of Oct 2026):** depositors cannot publish directly from the upload
+form — save the record as a draft and publish it from **My dashboard**.
+</Callout>
+
 ---
 
 ### Scenario 3 — Permission-Need Gated Submission
@@ -202,6 +223,10 @@ configure_workflows(
 - They can publish directly.
 
 ---
+
+{/*
+HIDDEN — major workflow bug found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+Reviewer does not see the publish request, so the curated review flow is broken.
 
 ### Scenario 4 — Curated Review: depositors submit, reviewers approve
 
@@ -240,6 +265,11 @@ Depositor creates draft  →  Depositor submits review request
 ```
 
 ---
+*/}
+
+{/*
+HIDDEN — major workflow bugs found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+Reviewer does not see the publish request; a trusted depositor cannot accept their own request.
 
 ### Scenario 5 — Tiered Publish: trusted users publish directly, others need review
 
@@ -268,6 +298,11 @@ configure_workflows(
   without submitting a review request.
 
 ---
+*/}
+
+{/*
+HIDDEN — major workflow bug found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+After preapproval the depositor loses read rights to the record ("Permission required") and cannot publish from the UI.
 
 ### Scenario 6 — External Pre-Approval: publish only after an external system approves
 
@@ -297,12 +332,13 @@ configure_workflows(
 - Attempting to publish from `draft` is denied.
 
 ---
+*/}
 
 ### Scenario 7 — Default Community Workflow: submit to a community for curation
 
 **Situation:** Records belong to a community (e.g. a research group or department).
-Only community *submitters* can deposit records; community *curators* must approve them
-before they are published.
+Community *submitters*, *curators* and *owners* can deposit records; community
+*curators* and *owners* must approve them before they are published.
 
 ```python
 from oarepo_app.config import configure_workflows, CommunityWorkflow
@@ -312,18 +348,18 @@ configure_workflows(
     CommunityWorkflow(
         code="my-community",
         label=_("Community Submission"),
-        # draft_creation_community_roles defaults to ["submitter"]
+        # draft_creation_community_roles defaults to ["submitter", "curator", "owner"]
         # community_curator_roles: who can accept/decline the review request
-        community_curator_roles=["curator"],
+        community_curator_roles=["curator", "owner"],
     ),
 )
 ```
 
 **What this does:**
-- Community members with the `submitter` role can create records
-  (this is the default — no extra option needed).
+- Community members with the `submitter`, `curator` or `owner` role can create records
+  (these are the defaults — no extra option needed).
 - The depositor submits a *community-submission* request directed at the community.
-- Community members with the `curator` role can accept or decline.
+- Community members with the `curator` or `owner` role can accept or decline.
 - On acceptance the record is published into the community.
 
 **Flow:**
@@ -340,6 +376,10 @@ Submitter creates draft  →  Submitter sends community-submission request
 
 ---
 
+{/*
+HIDDEN — major workflow bug found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+Users who are not community members cannot submit a record to the community (UI and API).
+
 ### Scenario 8 — Open Community: any logged-in user can submit
 
 **Situation:** The community is open for submissions from the general public (any
@@ -354,7 +394,7 @@ configure_workflows(
         code="open-community",
         label=_("Open Community"),
         authenticated_draft_creation=True,
-        community_curator_roles=["curator"],
+        community_curator_roles=["curator", "owner"],
     ),
 )
 ```
@@ -362,9 +402,10 @@ configure_workflows(
 **What this does:**
 - `authenticated_draft_creation=True` overrides the default "submitter only" rule so
   that every logged-in user can create a draft, even non-members.
-- A curator still needs to approve before publication.
+- A curator or owner still needs to approve before publication.
 
 ---
+*/}
 
 ### Scenario 9 — Extended Community Roles: members can also deposit
 
@@ -379,8 +420,8 @@ configure_workflows(
     CommunityWorkflow(
         code="member-deposits",
         label=_("Member Deposits"),
-        draft_creation_community_roles=["member", "submitter"],
-        community_curator_roles=["curator"],
+        draft_creation_community_roles=["member", "submitter", "curator", "owner"],
+        community_curator_roles=["curator", "owner"],
     ),
 )
 ```
@@ -401,9 +442,9 @@ configure_workflows(
     CommunityWorkflow(
         code="member-read",
         label=_("Member Read Access"),
-        community_curator_roles=["curator"],
-        read_draft_community_roles=["member"],           # see in-review drafts
-        read_restricted_community_roles=["member"],     # read restricted published records
+        community_curator_roles=["curator", "owner"],
+        read_draft_community_roles=["member", "curator", "owner"],  # see in-review drafts
+        read_restricted_community_roles=["member", "curator", "owner"],  # read restricted published records
     ),
 )
 ```
@@ -413,7 +454,16 @@ configure_workflows(
 - Community members can read published records even when the record's access is set to
   *restricted*.
 
+<Callout type="info">
+**Known limitation (as of Oct 2026):** community members can open a restricted record
+via its direct URL, but it does not appear in their list of records yet.
+</Callout>
+
 ---
+
+{/*
+HIDDEN — major workflow bug found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+For published records, a member can edit metadata and save as draft but cannot submit the change for review.
 
 ### Scenario 11 — Community with Member Management
 
@@ -428,13 +478,18 @@ configure_workflows(
     CommunityWorkflow(
         code="member-manages",
         label=_("Member Management"),
-        community_curator_roles=["curator"],
-        record_manage_community_roles=["member"],
+        community_curator_roles=["curator", "owner"],
+        record_manage_community_roles=["member", "curator", "owner"],
     ),
 )
 ```
 
 ---
+*/}
+
+{/*
+HIDDEN — major workflow bugs found in testing on 2026-10-19, see 20261019_testovani_workflows.docx:
+Combines workflow patterns with known bugs (curated review, open community — see scenarios 4, 5 and 8).
 
 ### Scenario 12 — Combining Multiple Workflows
 
@@ -467,7 +522,7 @@ configure_workflows(
     CommunityWorkflow(
         code="default-community",
         label=_("Default Community"),
-        community_curator_roles=["curator"],
+        community_curator_roles=["curator", "owner"],
     ),
 
     # 4. Open community with broad read access for members
@@ -475,9 +530,9 @@ configure_workflows(
         code="open-community",
         label=_("Open Community"),
         authenticated_draft_creation=True,
-        community_curator_roles=["curator"],
-        read_draft_community_roles=["member"],
-        read_restricted_community_roles=["member"],
+        community_curator_roles=["curator", "owner"],
+        read_draft_community_roles=["member", "curator", "owner"],
+        read_restricted_community_roles=["member", "curator", "owner"],
     ),
 
     default_individual_workflow="open",
@@ -485,6 +540,7 @@ configure_workflows(
 ```
 
 ---
+*/}
 
 ## How Records Pick a Workflow
 
@@ -512,8 +568,8 @@ If no workflow is specified, the system uses the workflow whose code matches the
 Is the record deposited through a community?
 ├── Yes  →  Use CommunityWorkflow
 │          ├── Who can deposit?
-│          │   ├── Only submitters (default)  →  no extra option needed
-│          │   ├── Members too  →  draft_creation_community_roles=["member","submitter"]
+│          │   ├── Submitters, curators, owners (default)  →  no extra option needed
+│          │   ├── Members too  →  draft_creation_community_roles=["member","submitter","curator","owner"]
 │          │   └── Anyone logged in  →  authenticated_draft_creation=True
 │          └── Who can read restricted/draft records?
 │              └── Members  →  read_draft_community_roles / read_restricted_community_roles
