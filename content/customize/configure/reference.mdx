@@ -151,7 +151,7 @@ All discovered values are injected into the caller scope via `set_constants_in_c
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 config.configure_generic_parameters(
     languages=(("en", _("English")), ("cs", _("Czech"))),
@@ -286,7 +286,7 @@ Any extra cron items passed as keyword arguments are merged into the schedule be
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 from datetime import timedelta
 from celery.schedules import crontab
 
@@ -325,7 +325,7 @@ _Defined in `oarepo/config/stats.py`._
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 # Enable statistics collection and aggregation
 config.configure_stats()
@@ -449,7 +449,7 @@ _Defined in `oarepo/config/vocabulary.py`._
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 config.configure_vocabulary(
     "licenses",
@@ -510,7 +510,7 @@ Sets the following constants in the caller module:
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 config.configure_communities(
     communities_roles=[
@@ -566,7 +566,7 @@ _Defined in `oarepo/config/workflows.py`._
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 # Full workflow for community deposits:
 # requires approval from curators/owners before publishing
@@ -658,7 +658,7 @@ the already-configured defaults, following the CSP specification's own fallback 
 you don't accidentally drop sources the application still needs:
 
 ```python filename="invenio.cfg"
-from oarepo import config
+import oarepo_config as config
 
 config.configure_generic_parameters()
 
