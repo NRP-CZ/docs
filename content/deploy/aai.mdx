@@ -79,7 +79,7 @@ What `configure_einfra_oidc()` does:
 
 - When `INVENIO_REMOTE_AUTH_ENABLED` is `true` (also `yes`/`1`), merges an `"e-infra"` entry into `OAUTHCLIENT_REMOTE_APPS`
 - Builds the `EINFRA` client configuration from `INVENIO_EINFRA_CONSUMER_KEY` and `INVENIO_EINFRA_CONSUMER_SECRET`
-- Sets `USERPROFILES_READ_ONLY = True` (users cannot edit their profile, as it is managed by e-INFRA)
+- When enabled, sets `USERPROFILES_READ_ONLY = True` (users cannot edit their profile, as it is managed by e-INFRA)
 - When `INVENIO_REMOTE_AUTH_ENABLED` is not enabled, `OAUTHCLIENT_REMOTE_APPS` stays empty — AAI login is disabled
 - Requires the `oarepo-oidc-einfra` package; if it is missing, the application refuses to start
 
