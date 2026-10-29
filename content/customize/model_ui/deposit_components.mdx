@@ -389,6 +389,8 @@ import { FileUploader } from "@js/invenio_rdm_records";
 - Warning for duplicate/empty files
 - Quota enforcement (max files, max storage)
 
+The quota values (`maxFiles`/`maxStorage`) and the empty-files flag consumed by the uploaders are configured repository-wide via the [`configure_files`](/customize/configure/reference#configure_files) helper in `invenio.cfg`.
+
 #### UppyUploader (Experimental)
 
 Modern UI with folder upload, chunked upload, media preview, extensible plugins:
