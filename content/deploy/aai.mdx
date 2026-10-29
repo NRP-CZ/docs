@@ -32,7 +32,7 @@ Create an OIDC client in the [spadmin console](https://spadmin.e-infra.cz/):
 | Configuration | Value |
 |---|---|
 | URL of login page | `https://<server>/oauth/login/e-infra/` |
-| Redirect URIs | `https://<server>/oauth/authorized/e-infra/` |
+| Redirect URIs | `https://<server>/oauth/authorized/e-infra/` <br/> `https://127.0.0.1:5000/oauth/authorized/e-infra/` (local development) |
 | Flow | authorization code |
 | Token endpoint auth | `client_secret_basic` |
 | PKCE | none |
@@ -49,8 +49,9 @@ This is set up by the e-INFRA AAI team.
 
 ### 1.3 e-INFRA eligible users (optional)
 
-If you want e-INFRA eligible users to automatically receive rights (e.g. the global `submitter`
-role or community roles), use `einfra_eligible_parser_factory` from `oarepo-oidc-einfra`.
+If you want e-INFRA eligible users to automatically receive rights, use `einfra_eligible_parser_factory`
+from `oarepo-oidc-einfra`. By default, eligible users are granted the global `submitter` role;
+additional community roles can be mapped as well.
 See the example in [NRP-CZ/datarepo](https://github.com/NRP-CZ/datarepo/blob/main/invenio.cfg).
 
 ---
@@ -68,8 +69,9 @@ from oarepo_oidc_einfra.remote import einfra_eligible_parser_factory
 
 config.configure_einfra_oidc(
     entitlements_parser=einfra_eligible_parser_factory(
-        # Optional: map e-INFRA eligibility to roles
-        # global_roles=["submitter"],
+        # By default, e-INFRA eligible users are granted the global "submitter" role;
+        # pass global_roles=None to disable it or a custom list to change it
+        # global_roles=None,
         # community_roles=[("my-community", "curator")],
     )
 )
