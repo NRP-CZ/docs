@@ -9,7 +9,7 @@ The record landing page (detail page) displays everything about one record: its 
 
 - **Six auto-included partials** — the page is assembled from six model-specific partial files (body, banners, CSS, JS, meta tags, sidebar; [full list](#partials-cheat-sheet)). The base template picks each one up automatically and falls back to its default when the file doesn't exist.
 - **Creating the file is enough** — no registration, no [`templates`](/customize/repository_ui/resources#resource-configuration) map, no webpack needed for plain HTML/CSS.
-- **`d` carries value + label + help together** — `d.metadata.sample_id` is a `FieldData` object bundling the raw API value, the UI-serialized value, and the schema metadata (`label`, `help`, `hint`) from your model YAML. Use `ui_value(d.metadata.sample_id)` to render the formatted value and `d.metadata.sample_id.label(...)` for its localized label — see [Pulling labels, help, and values from the model](#pulling-labels-help-and-values-from-the-model). For a plain value dump there's also `metadata` (shorthand for `record_ui["metadata"]`).
+- **`d` carries value + label + help together** — `d.metadata.sample_id` is a `FieldData` object bundling the raw API value, the UI-serialized value, and the schema metadata (`label`, `help`, `hint`) from your model YAML. Use `d.metadata.sample_id | ui_value` to render the formatted value and `d.metadata.sample_id | ui_label` for its localized label — see [Pulling labels, help, and values from the model](#pulling-labels-help-and-values-from-the-model). For a plain value dump there's also `metadata` (shorthand for `record_ui["metadata"]`).
 - **Blocks hide or replace** — `main.html` extends the oarepo-ui base, which is one long chain of blocks (`record_header_info`, `record_title`, `record_files`, …). Override a block with `{{ super() }}` inside to augment it; override it without `super()` to hide or replace that section entirely.
 
 ## Partials Cheat Sheet
@@ -61,11 +61,11 @@ Your custom fields live under `metadata`. This block puts a new section *after* 
     <h2>{{ _("Sample metadata") }}</h2>
     <dl class="ui list">
       {# label + help come from your model YAML, already localized #}
-      <dt title="{{ d.help(d.metadata.sample_id) }}">{{ d.label(d.metadata.sample_id) }}</dt>
+      <dt title="{{ d.metadata.sample_id | ui_help }}">{{ d.metadata.sample_id | ui_label }}</dt>
       <dd>{{ d.metadata.sample_id | ui_value }}</dd>
       {% if d.metadata.concentration %}
-      <dt title="{{ d.help(d.metadata.concentration) }}">{{ d.label(d.metadata.concentration) }}</dt>
-      <dd>{{ d.metadata.concentration.value | ui_value }} {{ d.metadata.concentration.unit | ui_value }}</dd>
+      <dt title="{{ d.metadata.concentration | ui_help }}">{{ d.metadata.concentration | ui_label }}</dt>
+      <dd>{{ d.metadata.concentration["value"] | ui_value }} {{ d.metadata.concentration.unit | ui_value }}</dd>
       {% endif %}
     </dl>
   </section>
@@ -75,18 +75,28 @@ Your custom fields live under `metadata`. This block puts a new section *after* 
 
 #### Pulling labels, help, and values from the model
 
-`d` is a `FieldData` object — a per-field wrapper carrying **three** things: the raw API value, the UI-serialized value, and the UI definitions (`label` / `help` / `hint`) extracted from your model's YAML schema (set per-field under `label:` / `help:` / `hint:` keys — see [Model schema customization](/customize/model_backend/model#adding-new-metadata-to-the-model)). `label`, `help`, and `hint` are methods available on **every `FieldData` node**, taking the node as their argument. Index into `d` by field path and call them on `d`, e.g. `d.label(d.metadata.sample_id)`:
+`d` is a `FieldData` object — a per-field wrapper carrying **three** things: the raw API value, the UI-serialized value, and the UI definitions (`label` / `help` / `hint`) extracted from your model's YAML schema (set per-field under `label:` / `help:` / `hint:` keys — see [Model schema customization](/customize/model_backend/model#adding-new-metadata-to-the-model)). Index into `d` by field path and pass the node to one of these filters:
 
 | Call | Returns |
 |---|---|
-| `d.label(d.metadata.sample_id)` | Field label from the model schema, localized |
-| `d.help(d.metadata.sample_id)` | Help text from the model schema, localized |
-| `d.hint(d.metadata.sample_id)` | Hint text from the model schema, localized |
+| `d.metadata.sample_id \| ui_label` | Field label from the model schema, localized |
+| `d.metadata.sample_id \| ui_help` | Help text from the model schema, localized |
+| `d.metadata.sample_id \| ui_hint` | Hint text from the model schema, localized |
 | `d.metadata.sample_id \| ui_value` | UI-serialized value (localized dates, vocabulary titles, …); falls back to the raw value |
 | `value(d.metadata.sample_id)` | Raw API value |
 | `d.metadata.sample_id` in an `{% if %}` | Truthy when the field has a non-empty value |
 
-These are the exact calls oarepo-ui's own field components use (see `oarepo_ui/templates/components/datafields/IField.jinja`) — all available in templates without any import. `ui_value` also has a function form (`ui_value(x)`, same thing) while `value` is function-form only, and `label` / `help` / `hint` are node methods, not filters. Labels/help/hint return `"Item does not exist"` when the field isn't defined in the schema — gate the whole section with `{% if d.metadata.field %}` as in the example above.
+These are the calls oarepo-ui's own field components use (see `oarepo_ui/templates/components/datafields/IField.jinja`), and all of them work in templates without any import. `ui_value`, `ui_label`, `ui_help` and `ui_hint` also have a function form (`ui_label(x)` is the same as `x | ui_label`), while `value` is function-form only.
+
+`ui_label`, `ui_help` and `ui_hint` render an empty string when the schema doesn't define that text, which is the usual case for hints and help. Pass a fallback to show something else: `d.metadata.sample_id | ui_label("Sample ID")` or `ui_hint(d.metadata.sample_id, default_fallback="n/a")`. The fallback only covers missing schema text, not a missing value, so still gate the whole section with `{% if d.metadata.field %}` as in the example above.
+
+<Callout type="info">
+Older oarepo-ui versions don't have these filters. There, call the methods on `d` instead: `d.label(d.metadata.sample_id)`, `d.help(...)` and `d.hint(...)`. These return `"Item does not exist"` instead of an empty string when the text is missing.
+</Callout>
+
+<Callout type="warning">
+Use `["..."]` for fields named like a `FieldData` method: `value`, `ui_value`, `label`, `help`, `hint`, `array`, `dict`, `create` or `translate`. Jinja's dot syntax looks up attributes before keys, so `d.metadata.concentration.value` returns the `FieldData.value` method and `| ui_value` fails with `TypeError: Expected FieldData, got function`. Write `d.metadata.concentration["value"]` instead.
+</Callout>
 
 Simpler alternative when you *don't* need schema metadata: `metadata` is the plain UI-serialized dict (`record_ui["metadata"]` — already localized), so `{{ metadata.sample_id }}` renders the value directly. Reach for `d` when you want the model's labels/help to render with the field.
 
