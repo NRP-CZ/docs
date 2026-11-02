@@ -334,7 +334,7 @@ configure_workflows(
 ---
 */}
 
-### Scenario 7 — Default Community Workflow: submit to a community for curation
+### Scenario 7 — Basic Community Workflow: submit to a community for curation
 
 **Situation:** Records belong to a community (e.g. a research group or department).
 Community *submitters*, *curators* and *owners* can deposit records; community
@@ -518,10 +518,10 @@ configure_workflows(
         reviewer_roles=["reviewer"],
     ),
 
-    # 3. Default community: submitters deposit, curators approve
+    # 3. Basic community: submitters deposit, curators approve
     CommunityWorkflow(
-        code="default-community",
-        label=_("Default Community"),
+        code="basic-community",
+        label=_("Basic Community"),
         community_curator_roles=["curator", "owner"],
     ),
 
