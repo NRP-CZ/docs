@@ -88,7 +88,7 @@ Your custom fields live under `metadata`. This block puts a new section *after* 
 
 These are the calls oarepo-ui's own field components use (see `oarepo_ui/templates/components/datafields/IField.jinja`), and all of them work in templates without any import. `ui_value`, `ui_label`, `ui_help` and `ui_hint` also have a function form (`ui_label(x)` is the same as `x | ui_label`), while `value` is function-form only.
 
-`ui_label`, `ui_help` and `ui_hint` render an empty string when the schema doesn't define that text, which is the usual case for hints and help. Pass a fallback to show something else: `d.metadata.sample_id | ui_label("Sample ID")` or `ui_hint(d.metadata.sample_id, default_fallback="n/a")`. The fallback only covers missing schema text, not a missing value, so still gate the whole section with `{% if d.metadata.field %}` as in the example above.
+`ui_label`, `ui_help` and `ui_hint` render an empty string when that text is missing or empty, which is the usual case for hints and help. Pass a fallback to show something else for fields with no definition at all: `d.metadata.sample_id | ui_label("Sample ID")` or `ui_hint(d.metadata.sample_id, default_fallback="n/a")`. The fallback doesn't cover empty schema text: model-generated hints and help are `{"und": ""}`, so they still render `""`. It doesn't cover a missing value either, so still gate the whole section with `{% if d.metadata.field %}` as in the example above.
 
 <Callout type="info">
 Older oarepo-ui versions don't have these filters. There, call the methods on `d` instead: `d.label(d.metadata.sample_id)`, `d.help(...)` and `d.hint(...)`. These return `"Item does not exist"` instead of an empty string when the text is missing.
