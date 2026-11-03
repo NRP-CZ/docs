@@ -8,6 +8,71 @@ import {
 # Migrations & Updates
 
 <MigrationHeader
+  date="2026-09-29"
+  title="oarepo-app 6.3.0 → 7.0.3"
+  versionBadge="oarepo-app ≥ 7.0.3"
+/>
+
+This guide covers exactly what changes between **oarepo-app 6.3.0** and **7.0.3**: the upstream RDM stack moves from 14.0.0rc2 to the final 14.0.0 (`invenio-rdm-records` 32.0.2 → 32.2.1, `invenio-communities` 28.1.0 → 28.2.0, `invenio-requests` 14.0.0 → 14.1.0), and the oarepo-* packages to `oarepo-ui` 13.5.1 → 13.5.3, `oarepo-vocabularies` 9.0.1 → 10.2.1, `oarepo-communities` 11.4.0 → 12.1.2, `oarepo-config` 1.0.2 → 2.1.2, `oarepo-related-resources` 4.1.0 → 5.0.0, `oarepo-requests` 9.2.1 → 9.5.2, `oarepo-rdm` 8.4.1 → 8.6.1, `oarepo-runtime` 7.3.0 → 7.7.0, `oarepo-model` 5.3.0 → 5.4.1, `oarepo-oidc-einfra` 7.1.0 → 8.0.1.
+
+Breaking changes for custom UI code in that window:
+
+1. **oarepo-vocabularies v10** removed every deposit-form vocabulary React component in favour of one generic `VocabularyField` (step 2).
+2. **oarepo-communities v12** removed its custom invitation/membership UI, falling back to upstream invenio-communities (step 3).
+3. **oarepo-ui 13.5.2/13.5.3** re-based the deposit page's **`files_locked`** state on the draft file-bucket lock ([PR #494](https://github.com/oarepo/oarepo-ui/pull/494)): files on a *published* record no longer appear locked, and deposit-page UI tests need updating.
+
+Upstream 14.0 items (Node 24+, pnpm/rspack, database upgrade, stock-vocabulary changes) are covered by the official [v13→v14 upgrade guide](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/) and not repeated here.
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories on `oarepo-app == 6.3.0` upgrading to 7.0.x | Repositories already on `oarepo-app >= 7.0.3` |
+| Repositories importing `VocabularySelectField`, `VocabularyRemoteSelectField`, `VocabularyPickerField`, `VocabularyTreeSelectField`, `LocalVocabularySelectField` or related helpers from `@js/oarepo_vocabularies` | Repositories that only set `vocabulary` types in `metadata.yaml` — those already render through the generic `VocabularyField` |
+| Repositories importing `CommunityInvitationsModal` (or its template/overridable overrides) from oarepo-communities | Repositories that never customized the invitations UI |
+| Repositories with deposit-form UI tests that still assert the pre-13.5.3 files-locked behavior (based on `can_update_files` / `record.is_published`) | Repositories that never customized `FilesLockedComponent` or the deposit-page hidden inputs |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**1. Update `pyproject.toml`**
+
+Bump the `oarepo-app` pin and reinstall. Database/alembic and index rebuild are the same as in the upstream guide; the local equivalent is:
+
+```toml filename="pyproject.toml"
+# Before
+dependencies = [ "oarepo-app[production,ccmm]==6.3.0" ]
+
+# After
+dependencies = [ "oarepo-app[production,ccmm]==7.0.3" ]
+```
+
+```bash
+./run.sh upgrade                   # reinstall with the new pins
+./run.sh invenio alembic upgrade   # database schema migrations
+./run.sh index rebuild             # drop, recreate and reindex OpenSearch
+```
+
+<Callout type="warning">
+Test the production Alembic procedure against a database copy first. Local development can use `./run.sh reset` instead (wipes data).
+</Callout>
+
+**2. Migrate removed vocabulary form components (only if you imported them)**
+
+oarepo-vocabularies v10 removed all deposit-form React components: `LocalVocabularySelectField`, `VocabularySelectField`, `VocabularyRemoteSelectField` (+modal/search pieces), `VocabularyPickerField`, `VocabularyTreeSelectField` (+ `HierarchyColumn`, `TreeSelectFieldModal`, `TreeSelectValues`), `SelectedVocabularyValues`, `OptionsLoadingSkeleton`, and the Python `oarepo_vocabularies/ui/resources/components/deposit.py`. Replace direct imports with `VocabularyField` (see the generated `forms/index.js` in your model); labels/help/required come from `metadata.yaml` via `useFieldData()`/`getFieldData()`, initial options from the record's UI serialization as `{id, title_l10n}`.
+
+**3. Remove oarepo-communities invitation UI references (only if you customized it)**
+
+v12 removed the custom invitation/membership UI: the `CommunityInvitationsModal` React component, the six `InvenioCommunities.CommunityMembersSearch.*.InvitationsModal.container` `UIComponentOverride` registrations, and the template overrides `details/members/base.html`, `details/members/invitations.html`, `details/settings/base.html` — pages now fall back to the upstream invenio-communities UI. Also remove, if present, any `@js/oarepo_communities/components/CommunityInvitationsModal` import, the `RDM_RECORDS_COMMUNITY_RECORDS_SERVICE_CLASS` variable / `oarepo_communities.services.community_records.CommunityRecordsService` import, and any reference to `oarepo_communities.config.community_members_recipient` (replaced by `CommunityRoleEmailRecipient` / `CommunityRecipient` in v12's `NOTIFICATION_RECIPIENTS_RESOLVERS`). Behavioral note: a declined/expired/cancelled community review now auto-creates a fresh `community-submission` request and returns the draft to `draft_with_review` ([commit 7444420](https://github.com/oarepo/oarepo-communities/commit/7444420)); UI tests that assert the old declined-state behavior will need updating.
+
+**4. Re-run vocabulary fixtures if you customized them**
+
+If you maintain custom files under `app_data/vocabularies/`, merge DataCite 4.4–4.7 additions into them and re-apply with `invenio rdm-records add-to-fixture <vocabulary>`. Details and the list of changed vocabularies: [v13→v14 upgrade guide](https://inveniordm.docs.cern.ch/releases/v14/upgrade-v14.0/#update-vocabularies).
+
+</MigrationSteps>
+
+<MigrationHeader
   date="2026-07-13"
   title="oarepo-app 6.2.0 → 6.3.0"
   versionBadge="oarepo-app ≥ 6.3.0"
