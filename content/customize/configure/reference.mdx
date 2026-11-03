@@ -86,7 +86,7 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 - Enables `MAIL_SUPPRESS_SEND` if configured in environment.
 
 #### Miscellaneous
-- Defines rate limits and quota defaults (`APP_RDM_DEPOSIT_FORM_QUOTA`, `FILES_REST_DEFAULT_QUOTA_SIZE`).
+- Defines rate limits and quota defaults (`APP_RDM_DEPOSIT_FORM_QUOTA`, `FILES_REST_DEFAULT_QUOTA_SIZE`); these quota baselines are refined by [`configure_files`](#configure_files).
 - Sets `SECRET_KEY` from environment.
 - Provides `DASHBOARD_RECORD_CREATE_URL` placeholder (to be customized).
 - Clears default Invenio record routes and endpoints (since NRP provides replacements).
@@ -100,10 +100,71 @@ All discovered values are injected into the caller scope via `set_constants_in_c
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 config.configure_generic_parameters(
     languages=(("en", _("English")), ("cs", _("Czech"))),
+)
+```
+
+## `configure_files`
+
+Configure **file upload limits, record quotas, and file-related toggles** for record depositions.  
+It controls how many files users may attach to a record, how large each may be, the total storage budget, and whether published files may still be modified.
+
+_Defined in [`oarepo_config/files.py`](https://github.com/oarepo/oarepo-config/blob/main/oarepo_config/files.py)._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| `max_file_size` | `int` | `1 * 10**9` (1 GB) | Maximum size of a single uploaded file, in bytes. |
+| `max_files_count` | `int` | `100` | Maximum number of files allowed per record deposition. |
+| `max_total_size` | `int` | `5 * 10**9` (5 GB) | Maximum combined size of all files in a single record deposition, in bytes. |
+| `allow_metadata_only_records` | `bool` | `True` | When `False`, users must upload at least one file before they can publish a record deposition. When `True` (the default), metadata-only records are allowed. |
+| `allow_empty_files` | `bool \| None` | `None` | When `False`, zero-byte files are rejected; when `True`, they are allowed. Defaults to the value of `allow_metadata_only_records`, so that requiring files also prevents users from satisfying the requirement with an empty file. |
+| `file_modification_grace_period` | `timedelta` | `timedelta(days=45)` | Grace period after a record is published during which its files can still be modified without creating a new version. Checked at publish time. |
+| `allow_immediate_file_modification` | `bool` | `True` | When `True` (the default), record owners may unlock and edit their published files themselves within `file_modification_grace_period`, while admins and system processes may do so at any time. When `False`, the default Invenio policy (admin-only) is left in place. |
+| `allow_immediate_quota_increase` | `bool` | `True` | When `True` (the default), users may immediately raise a draft's storage quota from their additional allowance (this surfaces the "Manage storage" UI in the file uploader); admins may do so for any record. When `False`, immediate quota increases stay disabled. |
+| `max_additional_quota_size` | `int` | `0` | Additional quota users/admins may grant on top of the default record quota. |
+
+### Effect
+
+Calling `configure_files()` sets the following **file- and quota-related configuration constants** in the caller module:
+
+#### Upload limits
+- `RDM_FILES_DEFAULT_MAX_FILE_SIZE` — backend limit on the size of a single file (from `max_file_size`).
+- `RDM_FILES_DEFAULT_QUOTA_SIZE` — backend limit on the total size of all files in a record deposition (from `max_total_size`).
+- `RDM_RECORDS_MAX_FILES_COUNT` — backend limit on the number of files per record (from `max_files_count`).
+- `APP_RDM_DEPOSIT_FORM_QUOTA` — deposit-form UI quota object with `maxFiles` and `maxStorage`.
+- `FILES_REST_DEFAULT_MAX_FILE_SIZE` and `FILES_REST_DEFAULT_QUOTA_SIZE` — fallback variables used by the lower-level file storage layer.
+
+#### Toggles
+- `RDM_ALLOW_METADATA_ONLY_RECORDS` — whether metadata-only records are allowed.
+- `RECORDS_RESOURCES_ALLOW_EMPTY_FILES` — whether zero-byte files may be uploaded; defaults to `allow_metadata_only_records` when `allow_empty_files` is not given.
+
+#### File modification after publication
+- `RDM_FILE_MODIFICATION_PERIOD` — time window after record creation during which modified files may be published.
+- `RDM_IMMEDIATE_FILE_MODIFICATION_ENABLED` — whether published files may be edited immediately; set to `allow_immediate_file_modification`.
+- `RDM_IMMEDIATE_FILE_MODIFICATION_POLICIES` — ordered list of policies deciding who may edit published files immediately (only set when `allow_immediate_file_modification` is `True`): record owners within the grace period first, then admins and system processes.
+
+#### Quota increases
+- `RDM_IMMEDIATE_QUOTA_INCREASE_ENABLED` — whether users may immediately raise a draft's quota; set to `allow_immediate_quota_increase`.
+- `RDM_IMMEDIATE_QUOTA_INCREASE_POLICIES` — ordered list of policies deciding who may raise a draft's quota (only set when `allow_immediate_quota_increase` is `True`).
+- `RDM_FILES_DEFAULT_MAX_ADDITIONAL_QUOTA_SIZE` — additional quota that may be granted on top of the default record quota (from `max_additional_quota_size`).
+
+### Example
+
+```python
+import oarepo_config as config
+from datetime import timedelta
+
+config.configure_files(
+    max_file_size=2 * 10**9,  # 2 GB per file
+    max_files_count=200,
+    max_total_size=20 * 10**9,  # 20 GB per record
+    allow_metadata_only_records=False,  # at least one file is required
+    file_modification_grace_period=timedelta(days=30),
 )
 ```
 
@@ -211,7 +272,7 @@ Any extra cron items passed as keyword arguments are merged into the schedule be
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 from datetime import timedelta
 from celery.schedules import crontab
 
@@ -245,7 +306,7 @@ _Defined in `oarepo/config/stats.py`._
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 # Enable statistics collection and aggregation
 config.configure_stats()
@@ -278,7 +339,7 @@ _Defined in `oarepo/config/vocabulary.py`._
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 config.configure_vocabulary(
     "licenses",
@@ -339,7 +400,7 @@ Sets the following constants in the caller module:
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 config.configure_communities(
     communities_roles=[
@@ -395,7 +456,7 @@ _Defined in `oarepo/config/workflows.py`._
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 # Full workflow for community deposits:
 # requires approval from curators/owners before publishing
@@ -487,7 +548,7 @@ the already-configured defaults, following the CSP specification's own fallback 
 you don't accidentally drop sources the application still needs:
 
 ```python filename="invenio.cfg"
-from oarepo import config
+import oarepo_config as config
 
 config.configure_generic_parameters()
 
