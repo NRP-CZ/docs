@@ -186,19 +186,31 @@ EQUIPMENT_CUSTOM_FIELDS_UI = [
 | Key | Description |
 |-----|-------------|
 | `section` | Title of the section |
-| `hidden` | If `True`, the section title is not shown on the record detail page |
+| `hide_from_landing_page` | If `True`, the section is not shown on the record detail page |
 | `fields[].field` | Name of the custom field, without the `custom_fields.` prefix |
 | `fields[].ui_widget` | Widget used to edit the field in the deposit form, e.g. `Input`, `TextArea`, `RichInput`, `Dropdown` or `AutocompleteDropdown` (for vocabularies) |
-| `fields[].props` | Properties passed to the widget: `label`, `placeholder`, `icon`, `description`, ... |
-| `fields[].props.landing_page_component` | Optional name of a JinjaX component that renders the value on the record detail page |
+| `fields[].props` | Properties passed to the widget: `label`, `placeholder`, `icon`, `description`, ... `label` is also used as the field label on the record detail page |
+| `fields[].template` | Optional Jinja template that renders the field on the record detail page, see below |
+| `fields[].is_vocabulary` | Set to `True` for a `VocabularyCF` field so that the record detail page shows the localized title of the term |
 
 Wrap labels and descriptions in `lazy_gettext` so that they can be translated.
 
 ### Record detail page <Difficulty level="intermediate" />
 
-On the record detail page, the configured sections are rendered by the `ICustomFields`
-component from oarepo-ui. Each field is rendered as a label with its value. To render a field
-differently, create a JinjaX component and set its name in `landing_page_component` inside `props`:
+The record detail page uses the InvenioRDM template `invenio_app_rdm/records/details/details.html`,
+which shows the custom field sections in the "Additional details" part of the page. All sections
+from `<MODEL>_CUSTOM_FIELDS_UI` are rendered, except those with `hide_from_landing_page` set.
+A section is shown only if the record has a value in at least one of its fields, and each field
+without a value is skipped.
+
+By default, a field is rendered as its `props.label` followed by its value. The values are taken
+from the UI serialization of the record (`ui.custom_fields`), which the `custom_fields_preset` adds
+to the model's UI schema. A `VocabularyCF` value is shown as the localized title of the term only if
+the field has `"is_vocabulary": True` (next to `props`). Unlike InvenioRDM's `RDM_CUSTOM_FIELDS_UI`,
+this key is not added automatically; without it, the raw serialized value is printed.
+
+To render a field differently, put a Jinja template into your repository's `templates/` directory
+and set its path in the `template` key of the field (next to `props`, not inside it):
 
 ```python filename="invenio.cfg"
 EQUIPMENT_CUSTOM_FIELDS_UI = [
@@ -208,9 +220,9 @@ EQUIPMENT_CUSTOM_FIELDS_UI = [
             {
                 "field": "myorg:instrument",
                 "ui_widget": "Input",
+                "template": "myorg/instrument.html",
                 "props": {
                     "label": _("Instrument"),
-                    "landing_page_component": "InstrumentField",
                 },
             },
         ],
@@ -218,10 +230,14 @@ EQUIPMENT_CUSTOM_FIELDS_UI = [
 ]
 ```
 
-The component receives the value of the field as `d`:
+The template is included inside the `<dl>` list of the section, so it should output a `<dt>`/`<dd>`
+pair. It can use these variables:
 
-```jinja filename="ui/templates/InstrumentField.jinja"
-{# def d #}
+* `field_value` – the UI-serialized value of the field,
+* `field_cfg` – the configuration of the field from `<MODEL>_CUSTOM_FIELDS_UI`,
+* `custom_fields` – UI-serialized values of all custom fields of the record.
 
-<strong>{{ d }}</strong>
+```jinja filename="templates/myorg/instrument.html"
+<dt class="ui tiny header">{{ field_cfg.props.label }}</dt>
+<dd><strong>{{ field_value }}</strong></dd>
 ```
