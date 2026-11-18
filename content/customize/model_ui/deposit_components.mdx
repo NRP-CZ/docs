@@ -337,19 +337,19 @@ Simple, robust file picker and drag-and-drop UI with file list and progress indi
 import { FileUploader } from "@js/invenio_rdm_records";
 
 <FileUploader
-  config={formConfig}
+  config={formConfig.config}
   files={files}
   isDraftRecord={!record.is_published}
   hasParentRecord={record?.versions?.index > 1}
-  quota={formConfig.quota}
+  quota={formConfig.config.quota}
   permissions={permissions}
   record={record}
   uploadFiles={handleUpload}
   deleteFile={handleDelete}
   importParentFiles={handleImport}
-  decimalSizeDisplay={formConfig.decimal_size_display}
+  decimalSizeDisplay={formConfig.config.decimal_size_display}
   filesLocked={filesLocked}
-  allowEmptyFiles={formConfig.allow_empty_files}
+  allowEmptyFiles={formConfig.allowEmptyFiles}
   fileModification={fileModification}
 />
 ```
@@ -398,11 +398,11 @@ import { UppyUploader } from "@js/invenio_rdm_records";
 
 <UppyUploader
   isDraftRecord={!record.is_published}
-  config={formConfig}
-  quota={formConfig.quota}
-  decimalSizeDisplay={formConfig.decimal_size_display}
-  allowEmptyFiles={formConfig.allow_empty_files}
-  fileUploadConcurrency={formConfig.file_upload_concurrency}
+  config={formConfig.config}
+  quota={formConfig.config.quota}
+  decimalSizeDisplay={formConfig.config.decimal_size_display}
+  allowEmptyFiles={formConfig.allowEmptyFiles}
+  fileUploadConcurrency={formConfig.config.fileUploadConcurrency}
   filesLocked={filesLocked}
 />
 ```
@@ -439,37 +439,46 @@ The component is redux-connected; the upload/state callbacks (`importParentFiles
 
 ### AccessRightField
 
-Record access and file permissions configuration:
+oarepo-ui does not provide its own access field. Use the `AccessRightField` from InvenioRDM, the same component the InvenioRDM v14 deposit form renders in its "Visibility" card:
 
 ```jsx
-import { AccessRightField } from "@js/oarepo_ui/forms";
+import { AccessRightField } from "@js/invenio_rdm_records";
+import { useFormConfig } from "@js/oarepo_ui/forms";
+import { i18next } from "@translations/oarepo_ui/i18next";
+
+const { record, permissions, recordRestrictionGracePeriod, allowRecordRestriction } =
+  useFormConfig();
 
 <AccessRightField
+  id="visibility-section"
   fieldPath="access"
-  label="Access rights"
-  labelIcon="unlock"
+  label={i18next.t("Visibility")}
+  labelIcon="shield"
   record={record}
-  recordRestrictionGracePeriod={180}
-  allowRecordRestriction={true}
+  showMetadataAccess={permissions?.can_manage_record_access}
+  recordRestrictionGracePeriod={recordRestrictionGracePeriod}
+  allowRecordRestriction={allowRecordRestriction}
 />
 ```
 
-**Source:** [oarepo-ui/forms/components/AccessRightField](https://github.com/oarepo/oarepo-ui/tree/main/oarepo_ui/theme/assets/semantic-ui/js/oarepo_ui/forms/components/AccessRightField)
+Inside an oarepo-ui deposit form these values come from `useFormConfig()`.
 
-**Based on:** `invenio-rdm-records.AccessRightFieldCmp`
+**Source:** [invenio-rdm-records/fields/AccessField](https://github.com/inveniosoftware/invenio-rdm-records/tree/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/fields/AccessField)
+
+The component is redux-connected: the selected community is read from the deposit store (`state.deposit.editorState.selectedCommunity`), not passed as a prop. Whether the record is metadata-only is derived from the form value `files.enabled`.
 
 **Props:**
 
 | Prop | Type | Required | Description |
 |------|------|----------|-------------|
-| `fieldPath` | string | yes | Path to access-right field |
+| `fieldPath` | string | yes | Path to the access field |
 | `label` | string | yes | Display label |
-| `labelIcon` | string | yes | Semantic UI icon name |
-| `showMetadataAccess` | bool | no | Show metadata access option (`true`) |
-| `community` | object | no | Specific community object |
+| `labelIcon` | string | no | Semantic UI icon name |
+| `id` | string | yes | Element id of the field container |
 | `record` | object | yes | Current record object |
 | `recordRestrictionGracePeriod` | number | yes | Grace period in days |
 | `allowRecordRestriction` | bool | yes | Enable record restriction UI |
+| `showMetadataAccess` | bool | no | Show the metadata access option (default `true`) |
 
 ### ArrayFieldItem
 

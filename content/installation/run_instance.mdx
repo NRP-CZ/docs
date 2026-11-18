@@ -160,9 +160,15 @@ To create an initial administrator user, open another terminal, change to the re
 
 and login with the created user.
 
-## Create the initial bucket in S3
+## S3 storage bucket
 
-At this time the S3 storage does not have any buckets created. To create the initial bucket, log in to the minio web interface at [http://127.0.0.1:9000/](http://127.0.0.1:9000/) using the credentials (`INVENIO_S3_ACCESS_KEY`, `INVENIO_S3_SECRET_KEY`) that you find inside the `variables` file. Create a bucket named `default`.
+Uploaded files are stored in an S3 bucket named `default`. The S3 server in the generated repository is RustFS (the `s3` service in `docker/docker-compose.yml`, image `rustfs/rustfs`). The bucket is created automatically: when the docker services start, the one-shot `s3-init` service waits until `s3` is healthy and creates the `default` bucket. The step is idempotent; no manual action is needed.
+
+The S3 API listens on [http://127.0.0.1:9000/](http://127.0.0.1:9000/) and the RustFS web console on [http://127.0.0.1:9001/](http://127.0.0.1:9001/). Log in with `INVENIO_S3_ACCESS_KEY` and `INVENIO_S3_SECRET_KEY` from the `variables` file.
+
+<Callout type="warning">
+Repositories generated before this change still use minio and do not create the bucket automatically. If file uploads fail with a `NoSuchBucket` error, the `default` bucket is missing. See the [migration notes](/administration/migrations) for how to update the repository.
+</Callout>
 
 ## Create a sample record
 

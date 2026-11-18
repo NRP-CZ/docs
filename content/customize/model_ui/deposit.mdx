@@ -198,7 +198,7 @@ A worked example is in [Build Your Form from Sections](#build-your-form-from-sec
 | Prop            | Type     | Description                                                                                                                                                           |
 | --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `record`        | object   | The current record/draft data. Use to read existing field values (e.g. `record.ui.languages`, `record.is_published`)                                                  |
-| `formConfig`    | object   | The form configuration object. Contains `formConfig.config.vocabularies`, `formConfig.config.filesLocked`, `formConfig.quota`, `formConfig.overridableIdPrefix`, etc. |
+| `formConfig`    | object   | The form configuration object. Contains `formConfig.config.vocabularies`, `formConfig.config.filesLocked`, `formConfig.config.quota`, `formConfig.overridableIdPrefix`, etc. |
 | `activeStep`    | number   | Zero-based index of the currently active section tab                                                                                                                  |
 | `next`          | function | Call `next()` to programmatically advance to the next tab                                                                                                             |
 | `back`          | function | Call `back()` to programmatically navigate to the previous tab                                                                                                        |
@@ -314,11 +314,11 @@ const componentOverrides = {
   [`${overridablePrefix}.Files`]: ({ record, formConfig }) => (
     <UppyUploader
       isDraftRecord={!record.is_published}
-      config={formConfig}
-      quota={formConfig.quota}
-      decimalSizeDisplay={formConfig.decimal_size_display}
-      allowEmptyFiles={formConfig.allow_empty_files}
-      fileUploadConcurrency={formConfig.file_upload_concurrency}
+      config={formConfig.config}
+      quota={formConfig.config.quota}
+      decimalSizeDisplay={formConfig.config.decimal_size_display}
+      allowEmptyFiles={formConfig.allowEmptyFiles}
+      fileUploadConcurrency={formConfig.config.fileUploadConcurrency}
       filesLocked={true} // override: always lock files
     />
   ),
@@ -533,6 +533,7 @@ The action row at the bottom of the wizard (Save / Publish / Preview / Delete / 
 | Override ID | Default |
 |---|---|
 | `${prefix}.TabForm.DeleteButton` | Invenio RDM `DeleteButton` (draft delete) |
+| `${prefix}.TabForm.RecordDeletionButton` | oarepo-ui `RecordDeletionButton` (delete a published record, see [Delete Record Action](#delete-record-action)) |
 | `${prefix}.TabForm.ShareDraftButton` | Invenio RDM `ShareDraftButton` (grant access to the draft) |
 | `${prefix}.TabForm.PreviewButton` | Invenio RDM `PreviewButton` |
 | `${prefix}.TabForm.SaveButton` | Invenio RDM `SaveButton` |
@@ -578,6 +579,69 @@ const componentOverrides = {
 <Callout type="warning">
 Buttons are not "plain labels" — Save, Publish, Preview and Delete each trigger their own backend action (save draft, kick off the publish request, navigate to preview, soft-delete). Replacing one without wiring it to the corresponding Redux action will silently break that flow. Prefer hiding with `() => null` or wrapping the default component rather than rebuilding behaviour. The RDM reference implementation of these buttons is at [`invenio_rdm_records/…/deposit/controls`](https://github.com/inveniosoftware/invenio-rdm-records/tree/master/invenio_rdm_records/assets/semantic-ui/js/invenio_rdm_records/src/deposit/controls).
 </Callout>
+
+### Delete Record Action
+
+<Callout type="info">
+  Available in the oarepo-ui release containing [#519](https://github.com/oarepo/oarepo-ui/pull/519).
+</Callout>
+
+`RecordDeletionButton` (exported from `@js/oarepo_ui/forms`) renders the InvenioRDM `RecordDeletion` component ("Delete record") next to the draft Delete button, as the InvenioRDM deposit form does:
+
+- It is rendered only when editing a **published** record of an **RDM service** with RDM record deletion enabled, i.e. `RDM_IMMEDIATE_RECORD_DELETION_ENABLED` or `RDM_REQUEST_RECORD_DELETION_ENABLED` is `True` (both default to `False` in invenio-rdm-records).
+- It is disabled unless the RDM record deletion policy allows the current user to delete the record.
+- The removal reasons come from `formConfig.config.vocabularies.deletion_request_removal_reasons`. If no resource component has put them there, the resource loads them from the `removalreasons` vocabulary (entries tagged `deletion-request`) when the user is allowed to delete.
+
+The deletion state reaches the page as the `record_deletion` template variable and the `deposits-record-deletion` hidden input. NRP repositories normally delete published records through the oarepo-requests `delete_published_record` request (see [Workflows](/customize/workflows/workflows)), so with the default configuration the button is not shown.
+
+The override ID depends on the layout:
+
+| Layout | Override ID | Props passed to the override |
+|---|---|---|
+| Wizard (`useWizardForm`) | `${prefix}.TabForm.RecordDeletionButton` | `permissions` |
+| Single page (without `useWizardForm`) | `${prefix}.FormActions.RecordDeletion` | `record` |
+
+```jsx filename="ui/{{model_name}}/semantic-ui/js/{{model_name}}/forms/index.js"
+import { parseFormAppConfig, RecordDeletionButton } from "@js/oarepo_ui/forms";
+
+const { rootEl, config, ...rest } = parseFormAppConfig();
+const overridablePrefix = config.overridableIdPrefix;
+
+const componentOverrides = {
+  // Hide "Delete record" in the wizard form
+  [`${overridablePrefix}.TabForm.RecordDeletionButton`]: () => null,
+  // Or keep the default button and wrap it:
+  // [`${overridablePrefix}.TabForm.RecordDeletionButton`]: () => (
+  //   <div className="my-record-deletion">
+  //     <RecordDeletionButton />
+  //   </div>
+  // ),
+};
+```
+
+`RecordDeletionButton` reads the record, permissions and deletion state itself (Redux store and `useFormConfig()`), so a wrapping override does not need to pass any props.
+
+## Files Quota
+
+<Callout type="info">
+  Describes the oarepo-ui release containing [#519](https://github.com/oarepo/oarepo-ui/pull/519).
+</Callout>
+
+The UI resource sets `forms_config["quota"]` (in JS `formConfig.config.quota`, passed to the file uploader in the [uploader override](#overriding-individual-fields-within-a-section)) for both the create and the edit page:
+
+| Key | Value |
+|---|---|
+| `maxStorage` | Quota size of the draft's files bucket |
+| `maxFileSize` | Maximum file size of the draft's files bucket, falling back to `RDM_FILES_DEFAULT_MAX_FILE_SIZE` |
+| `quotaIncrease` | RDM services: InvenioRDM quota increase evaluation for the current user. Other services: always disabled |
+| other keys (e.g. `maxFiles`) | Copied from `APP_RDM_DEPOSIT_FORM_QUOTA`; its `maxStorage` is always replaced by the value above |
+
+When there is no bucket yet (create page) or the bucket has no limits, the missing values are taken from:
+
+- **RDM services** — the InvenioRDM files quota: the record's quota, then the owner's user quota (on the create page the current user's quota), then `RDM_FILES_DEFAULT_QUOTA_SIZE` / `RDM_FILES_DEFAULT_MAX_FILE_SIZE`.
+- **Other services** — `FILES_REST_DEFAULT_QUOTA_SIZE` / `FILES_REST_DEFAULT_MAX_FILE_SIZE`, falling back to the `RDM_FILES_DEFAULT_*` values.
+
+The resource sets `quota` before running the `form_config` hooks of [resource components](#optional-resource-components), so a component can still replace `form_config["quota"]`.
 
 ## useFieldData Helper
 
@@ -859,6 +923,8 @@ Similarly, to add custom CSS, you inject it directly into your main generated te
 {%- endblock css %}
 ```
 
+`{{ super() }}` also keeps the community theme stylesheet, which the parent `oarepo_ui/deposit_{create,edit}.html` links only when the record's community has its theme enabled ([#519](https://github.com/oarepo/oarepo-ui/pull/519)).
+
 With the corresponding webpack entrypoint and registration, e.g.:
 
 ```python filename="ui/mymodel/webpack.py"
@@ -1075,6 +1141,7 @@ These context variables are available in your templates:
 | `extra_context`    | Additional context from resource components         |
 | `ui_links`         | UI links                                            |
 | `permissions`      | User permissions                                    |
+| `record_deletion`  | RDM record-deletion evaluation, see [Delete Record Action](#delete-record-action) (edit page; empty otherwise) |
 | `webpack_entry`    | Webpack entry point for the deposit form JavaScript |
 
 
