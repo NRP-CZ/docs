@@ -34,6 +34,7 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 - Enables secure cookies (`SESSION_COOKIE_SECURE=True`) and sets sane `Strict-Transport-Security` defaults.
 - Enables local login and fine-grained security features (registration, password recovery, confirmation) via environment toggles (`INVENIO_SECURITY_*`).
 - Configures rate limits for guest and authenticated users (`RATELIMIT_GUEST_USER`, `RATELIMIT_AUTHENTICATED_USER`).
+- Applies the InvenioRDM security defaults — CSRF protection of the REST API, rate-limit counters shared in Redis, limits on the account forms. See [InvenioRDM defaults](#inveniordm-defaults).
 
 #### Authentication
 - Enables OAuth/autologin redirects (`OAUTHCLIENT_AUTO_REDIRECT_TO_EXTERNAL_LOGIN`).
@@ -43,6 +44,9 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 #### Database
 - Constructs `SQLALCHEMY_DATABASE_URI` from `INVENIO_DATABASE_*` environment variables if not provided directly.
 - Uses PostgreSQL by default.
+- Sets `SQLALCHEMY_ENGINE_OPTIONS`: connections are recycled after an hour, a request waits at most 10 s for a free connection, the session time zone is UTC and the connection is labelled with the host name (`application_name`).
+  - `INVENIO_PGBOUNCER_ENABLED=True` turns off connection pooling in the application, for deployments where PgBouncer pools instead.
+  - `INVENIO_SQLALCHEMY_ENGINE_OPTIONS` (a JSON object, e.g. `{"pool_size": 10, "pool_pre_ping": true}`) is merged over these defaults.
 
 #### Internationalization
 - Sets default locale (`BABEL_DEFAULT_LOCALE="en"`) and timezone (`Europe/Prague`).
@@ -62,6 +66,7 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 #### Search
 - Configures OpenSearch connection (`SEARCH_INDEX_PREFIX`, `SEARCH_HOSTS`, `SEARCH_CLIENT_CONFIG`).
 - Supports SSL and certificate-based setups through environment variables.
+- `INVENIO_OPENSEARCH_TIMEOUT` (seconds) raises the search request timeout; the client's own default of 10 s applies otherwise.
 
 #### Caching & Background Tasks
 - Enables Redis caching (`INVENIO_CACHE_TYPE = "redis"`).
@@ -90,6 +95,52 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 - Sets `SECRET_KEY` from environment.
 - Provides `DASHBOARD_RECORD_CREATE_URL` placeholder (to be customized).
 - Clears default Invenio record routes and endpoints (since NRP provides replacements).
+
+#### InvenioRDM defaults
+
+A stock InvenioRDM instance takes its instance-wide defaults from `invenio_app_rdm.config`.
+NRP repositories do not load that module, because it would bring back the stock RDM record
+pages that NRP replaces. The defaults a repository should not run without are re-applied
+instead.
+
+`configure_generic_parameters()` applies the ones that switch on enforcement or depend on
+the deployment:
+
+| Setting | Effect |
+|---------|--------|
+| `REST_CSRF_ENABLED = True` | The REST API rejects `POST`/`PUT`/`PATCH`/`DELETE` requests made with a browser session unless they carry the CSRF token. Requests authenticated with an access token are exempt. |
+| `RATELIMIT_STORAGE_URI` | Rate-limit counters are kept in Redis and shared by all web processes, rather than each process allowing the full limit on its own. Uses Redis database `INVENIO_REDIS_RATELIMIT_DB` (default `4`); set `INVENIO_RATELIMIT_STORAGE_URI` to use a different server. |
+| `ACCOUNTS_LOGIN_RATELIMIT`, `ACCOUNTS_FORGOT_PASSWORD_EMAIL_RATELIMIT`, `ACCOUNTS_SEND_CONFIRMATION_RATELIMIT` | Brute-force protection of the local account forms. |
+| `ACCESS_CACHE` | Resolved permissions are cached instead of being read from the database on every check. |
+| `SQLALCHEMY_ENGINE_OPTIONS` | Database connection pool options, see [Database](#database). |
+
+The remaining ones are built into the `oarepo` and `oarepo-rdm` packages, so they apply even
+without a helper call:
+
+| Setting | Effect |
+|---------|--------|
+| `RATELIMIT_PER_ENDPOINT` | Tighter limits on the local and external login views. |
+| `FILES_REST_PERMISSION_FACTORY` | Denies the legacy `/api/files` REST API, which does not honour record permissions. Record files are not affected. |
+| `MAX_CONTENT_LENGTH` | 100 MiB limit on form submissions. File uploads are streamed and not affected. |
+| `SITEMAP_SECTIONS` | `/sitemap_index_0.xml` (advertised in `/robots.txt`) lists the public records of all models and the public communities. Refreshed daily by [`configure_cron`](#configure_cron). |
+| `COMMUNITIES_ERROR_HANDLERS`, `REQUESTS_ERROR_HANDLERS` | Invalid community visibility or access restrictions are reported as `400 Bad Request`, not as a server error. |
+| `ACCOUNTS_USER_PREFERENCES_SCHEMA`, `USERS_RESOURCES_SERVICE_SCHEMA` | The notification preferences in the user settings are validated and honoured. |
+| `INDEXER_MQ_PUBLISH_KWARGS` | Publishing to the indexing queue is retried instead of dropping the index update when the message broker is briefly unavailable. |
+| `ADMINISTRATION_DISPLAY_VERSIONS` | The administration panel shows the installed `oarepo` and `invenio-app-rdm` versions. |
+
+Each of them can be overridden by a plain assignment later in `invenio.cfg`.
+
+<Callout type="warning">
+With CSRF protection on, **your own browser code** has to send the value of the `csrftoken`
+cookie back in the `X-CSRFToken` header on every modifying request. The HTTP clients
+exported by `@js/oarepo_ui` and `react-invenio-forms` already do; a plain `fetch()` or a
+bare `axios` call does not, and is answered with `400 CSRF token missing or incorrect`.
+</Callout>
+
+<Callout type="info">
+The Redis database used for rate limiting must not be shared with the communities cache
+(`INVENIO_REDIS_COMMUNITIES_CACHE_DB`), which is flushed once a day.
+</Callout>
 
 #### Environment-driven
 The helper relies heavily on `load_configuration_variables()` to pull all `INVENIO_*` prefixed environment variables (or values from an equivalent `.env`/variable store).  
@@ -185,13 +236,18 @@ config.configure_ui(
 Register default Celery beat schedules for background tasks such as indexing, session cleanup, statistics processing, and cache invalidation.  
 Additional cron definitions can be provided via keyword arguments.
 
+The schedule covers every job a stock InvenioRDM instance runs, with one exception: usage
+statistics are not copied into the record search documents (`reindex-stats`), because NRP
+record models do not index them.
+
 _Defined in `oarepo/config/cron.py`._
 
 ### Parameters
 
 | Name | Type | Default | Description |
 |------|------|----------|-------------|
-| **\*\*extra_cron_items** | `dict[str, Any]` | `{}` | Extra Celery beat entries to merge into the default schedule (e.g., additional periodic jobs). |
+| **file_integrity_check_days** | `int \| None` | `None` | Turns on periodic fixity checking: the checksum of every stored file is re-computed once per this many days, spread over hourly batches, and a daily e-mail reports missing or corrupted files. Off by default. |
+| **\*\*extra_cron_items** | `dict[str, Any]` | `{}` | Extra Celery beat entries to merge into the default schedule (e.g., additional periodic jobs). An entry with the name of a default job replaces it. |
 
 ### Effect
 
@@ -205,6 +261,25 @@ The schedule includes default periodic jobs for:
 - **Statistics aggregation:** hourly at minute 0  
 - **Community cache clearing:** daily at 01:00 UTC  
 - **Expired access token cleanup:** daily at 00:04 UTC  
+- **Lifting expired embargoes:** daily at 00:00 UTC  
+- **Expiring requests past their expiration date** (e.g. community invitations): daily at 00:03 UTC  
+- **Purging discarded drafts:** every 60 minutes  
+- **Deleting old job logs** (older than `JOBS_LOGGING_RETENTION_DAYS`, 90 by default): daily at 00:05 UTC  
+- **Sitemap refresh:** daily at 02:00 UTC  
+- **User e-mail domain statistics:** every 4 hours  
+- **Community collections size:** hourly — only when `COMMUNITIES_COLLECTIONS_ENABLED = True` is set earlier in `invenio.cfg`  
+
+With `file_integrity_check_days` set, two more jobs are added:
+
+- **File checksum verification:** an hourly batch, sized so that all files are covered once per the given number of days  
+- **File integrity report:** daily at 07:00 UTC, e-mailed to `APP_RDM_ADMIN_EMAIL_RECIPIENT` (set `INVENIO_APP_RDM_ADMIN_EMAIL_RECIPIENT` in the environment)  
+
+<Callout type="warning">
+Fixity checking reads every file back from the storage. Before enabling it on an S3
+deployment, make sure that this traffic is acceptable and try it on a test instance first:
+files uploaded in multiple parts may carry a checksum that cannot be re-computed, and would
+then be reported as corrupted.
+</Callout>
 
 Any extra cron items passed as keyword arguments are merged into the schedule before being set.
 
@@ -221,6 +296,9 @@ config.configure_cron(
         "schedule": crontab(minute=30, hour=3),  # every day at 03:30 UTC
     },
 )
+
+# verify the checksum of every file twice a year
+config.configure_cron(file_integrity_check_days=180)
 ```
 
 ## `configure_stats`
@@ -235,10 +313,12 @@ _Defined in `oarepo/config/stats.py`._
 | Name | Type | Default | Description |
 |------|------|----------|-------------|
 | **enable** | `bool` | `True` | Whether to enable registration of statistics event receivers and related analytics features. |
+| **count_preview_downloads** | `bool` | `True` | Whether a file fetched by the in-page file previewer counts as a download. With `False`, opening a record page that previews a file no longer adds to its download count. |
 
 ### Effect
 
 - Sets `STATS_REGISTER_RECEIVERS` to control activation of statistics event receivers.  
+- Sets `RDM_STATS_EXCLUDE_PREVIEW_FILE_DOWNLOAD_EVENTS` to the inverse of `count_preview_downloads`.  
 - Imports and applies default `STATS_EVENTS`, `STATS_AGGREGATIONS`, `STATS_QUERIES`, and `STATS_PERMISSION_FACTORY` from `invenio_app_rdm.config`.  
 - Makes these constants available to the caller, so that the repository inherits the default InvenioRDM statistics setup.
 
@@ -252,6 +332,97 @@ config.configure_stats()
 
 # Disable all statistics receivers (e.g., in development)
 config.configure_stats(enable=False)
+
+# Do not count file previews as downloads
+config.configure_stats(count_preview_downloads=False)
+```
+
+## `configure_files`
+
+Set the file upload limits of a record, and the file-related toggles.
+
+_Defined in `oarepo/config/files.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **max_file_size** | `int` | `1 * 10**9` (1 GB) | Maximum size of a single uploaded file, in bytes. |
+| **max_files_count** | `int` | `100` | Maximum number of files per record. |
+| **max_total_size** | `int` | `5 * 10**9` (5 GB) | Maximum combined size of all files of a record, in bytes. |
+| **allow_metadata_only_records** | `bool` | `True` | With `False`, a record cannot be published without at least one file. |
+| **allow_empty_files** | `bool \| None` | `None` | Whether zero-byte files are accepted. Defaults to the value of `allow_metadata_only_records`, so that requiring files cannot be satisfied by an empty one. |
+| **file_modification_grace_period** | `timedelta` | `timedelta(days=45)` | How long after publication the files of a record can still be modified without creating a new version. |
+| **allow_immediate_file_modification** | `bool` | `True` | Lets record owners unlock and edit their published files themselves within the grace period; administrators can do so at any time. |
+| **allow_immediate_quota_increase** | `bool` | `True` | Lets users raise the storage quota of a draft from their additional allowance ("Manage storage" in the file uploader). |
+| **max_additional_quota_size** | `int` | `0` | Additional quota, in bytes, that may be granted on top of `max_total_size`. |
+| **allow_archive_download** | `bool` | `True` | Whether all files of a record can be downloaded at once as a ZIP archive ("Download all"). |
+| **max_archive_download_size** | `int \| None` | `None` | Largest total size of a record's files, in bytes, for which "Download all" is still offered. `None` means no limit. |
+
+### Effect
+
+- Sets the backend limits `RDM_FILES_DEFAULT_MAX_FILE_SIZE`, `RDM_FILES_DEFAULT_QUOTA_SIZE`, `RDM_RECORDS_MAX_FILES_COUNT` and `RDM_FILES_DEFAULT_MAX_ADDITIONAL_QUOTA_SIZE`, their `FILES_REST_*` fallbacks, and the matching deposit form quota `APP_RDM_DEPOSIT_FORM_QUOTA`.
+- Sets `RDM_ALLOW_METADATA_ONLY_RECORDS` and `RECORDS_RESOURCES_ALLOW_EMPTY_FILES`.
+- Sets `RDM_FILE_MODIFICATION_PERIOD`, `RDM_IMMEDIATE_FILE_MODIFICATION_ENABLED` and `RDM_IMMEDIATE_QUOTA_INCREASE_ENABLED`, with their policies.
+- Sets `RDM_ARCHIVE_DOWNLOAD_ENABLED` and `RECORDS_RESOURCES_ARCHIVE_DOWNLOAD_MAX_SIZE`.
+
+<Callout type="info">
+The "Download all" archive is assembled on the fly by a web worker, which stays busy for
+the whole download. If your repository accepts large files, set
+`max_archive_download_size`; larger records then only offer per-file downloads.
+</Callout>
+
+### Example
+
+```python
+from oarepo import config
+
+config.configure_files(
+    max_file_size=50 * 10**9,       # 50 GB per file
+    max_total_size=50 * 10**9,      # 50 GB per record
+    allow_metadata_only_records=False,
+    max_archive_download_size=5 * 10**9,  # "Download all" up to 5 GB
+)
+```
+
+## `configure_oai`
+
+Announce the repository over **OAI-PMH**, the protocol aggregators and other repositories
+use to harvest records, and tune the paging of its list responses.
+
+Call it after [`configure_ui`](#configure_ui), which provides the default repository name and contact.
+
+_Defined in `oarepo/config/oai.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **repository_name** | `str \| None` | `None` | Name announced in the `Identify` response. Defaults to the `name` given to `configure_ui`. |
+| **admin_emails** | `list[str] \| str \| None` | `None` | Administrative contact announced in the `Identify` response. Defaults to the `support_contact` given to `configure_ui`, if that is an e-mail address. |
+| **page_size** | `int` | `50` | Number of records per `ListRecords` / `ListIdentifiers` / `ListSets` page. |
+| **resumption_token_expire_time** | `int` | `120` | How long, in seconds, a harvester may wait before asking for the next page. |
+
+### Effect
+
+- Sets `OAISERVER_REPOSITORY_NAME`, `OAISERVER_PAGE_SIZE` and `OAISERVER_RESUMPTION_TOKEN_EXPIRE_TIME`.
+- Sets `OAISERVER_ADMIN_EMAILS` when a contact is known.
+
+<Callout type="warning">
+Without `configure_oai()`, or without a contact, the repository announces the placeholder
+address `info@inveniosoftware.org` as its administrator. Pass `admin_emails`, or give
+`configure_ui` an e-mail address as `support_contact`.
+</Callout>
+
+### Example
+
+```python
+from oarepo import config
+
+config.configure_oai(
+    repository_name="My NRP Repository",
+    admin_emails=["repository@example.org"],
+)
 ```
 
 ## `configure_vocabulary`
