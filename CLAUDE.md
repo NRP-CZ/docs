@@ -23,6 +23,9 @@ pnpm serve
 
 # Build with search index (runs pagefind automatically via postbuild)
 pnpm build && pnpm serve
+
+# Regenerate only llms.txt / llms-full.txt / page .md twins (needs an existing out/)
+pnpm llms
 ```
 
 **Build Troubleshooting:**
@@ -128,6 +131,22 @@ See [Record landing page](/customize/model_ui/detail)
 ```mdx
 <a href="https://github.com/..." target="_blank" rel="noopener noreferrer">Link</a>
 ```
+
+## llms.txt
+
+`scripts/generate-llms.mjs` runs in `postbuild` and writes, into `out/`:
+
+- `llms.txt` — index of every page (per [llmstxt.org](https://llmstxt.org/)), ordered by `_meta.js`
+- `llms-full.txt` — the whole documentation in one file
+- `<route>.md` — a Markdown twin of each page, linked from each page's `<link rel="alternate">`
+
+Nothing is committed: the files are rebuilt on every deploy, so they cannot go stale.
+The script parses `content/**/*.{md,mdx}` with remark and converts the JSX components
+(`Callout`, `Card`, `FileTree`, `Mermaid`, `Tabs`, `Steps`, `MigrationHeader`, …) to plain
+Markdown. **Adding a new MDX component?** Add a `case` to `convertJsx()` if unwrapping its
+children is not enough. The script self-checks its output and fails the build if generation breaks.
+
+Hand-written parts (title, summary, details) are the constants at the top of the script.
 
 ## Search
 
