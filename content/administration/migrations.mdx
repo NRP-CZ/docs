@@ -9,6 +9,178 @@ import { ToDo } from "@/components/todo";
 # Migrations & Updates
 
 <MigrationHeader
+  date="2026-11-19"
+  title="oarepo-app 6.0.0 → 8.0.1"
+  versionBadge="oarepo-app ≥ 8.0.1"
+/>
+
+This upgrade moves the repository to InvenioRDM 14.0.6 and changes repository configuration, workflow permissions, model presets and UI components. Existing repositories also need a database migration and a search index rebuild. Repositories with legacy CCMM data need to convert vocabulary references in published records and drafts.
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories upgrading from `oarepo-app 6.0.0` to `8.0.1` | New repositories created with `oarepo-app 8.0.1` |
+| Repositories with legacy CCMM vocabularies or records and drafts that reference them (step 7) | Repositories without legacy CCMM data (step 7) |
+| Repositories using e-INFRA login (step 4) | Repositories without e-INFRA login (step 4) |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**1. Update `pyproject.toml` and check the deployment**
+
+Pin `oarepo-app` to `8.0.1` and keep the extras used by your repository. This is the dependency for a repository using the production and CCMM extras.
+
+```toml filename="pyproject.toml"
+dependencies = [
+    "oarepo-app[production,ccmm]==8.0.1",
+]
+```
+
+Keep the other repository dependencies, including `oarepo[s3,rdm]` if already declared. The upgrade still requires Python 3.14. Ensure that your deployment image includes Pango for the new WeasyPrint dependency. If you use GlitchTip, include `oarepo-glitchtip` in the environment before calling `config.initialize_glitchtip()`. Update custom Sentry code to use the `sentry-sdk` 2.x API.
+
+Compare your Invenio template overrides, React overridables and configuration keys with the versions resolved in `uv.lock`. This upgrade includes major updates to `invenio-rdm-records`, `invenio-communities`, `invenio-requests`, `invenio-vocabularies`, `invenio-users-resources`, `invenio-jobs` and `invenio-checks`. Check compatibility if your application uses `oauthlib` (now 4.x), `cryptography`, `pillow`, `pikepdf` or `simplejson` directly. OARepo also adds optional `llm`, `ark` and `antivirus` extras, each with a `-development` variant.
+
+**2. Update `invenio.cfg`**
+
+Move configuration helper imports to `oarepo_config`. Repositories that already moved these imports in the 6.3.0 migration can keep them.
+
+```python filename="invenio.cfg"
+# Before
+from oarepo import config
+from oarepo_app.config import CommunityWorkflow, IndividualWorkflow, configure_workflows
+
+# After
+import oarepo_config as config
+from oarepo_config import CommunityWorkflow, IndividualWorkflow, configure_workflows
+```
+
+- Pass your existing `languages=` explicitly to both `configure_generic_parameters` and `configure_ui`. The default changed to English. For a Czech repository, use `languages=(("cs", "Czech"),)` in both calls.
+- Import symbols such as `is_vedidk` and `ExternalLinkConfig` from `oarepo.initial_rdm_config`.
+- Move draft actions from `OAREPO_UI_DRAFT_ACTIONS` into `OAREPO_UI_RECORD_ACTIONS`. Replace any use of `COMMUNITIES_RECORDS_SEARCH_ALL` with `OAREPO_REQUESTS_DEFAULT_RECEIVER`.
+- If you customise `NOTIFICATIONS_BUILDERS` or `NOTIFICATIONS_BACKENDS`, start with the package defaults and extend them explicitly. Assigning either setting now replaces its defaults.
+- The legacy `/api/files` endpoint is disabled. `MAX_CONTENT_LENGTH` limits form-data request bodies, and streamed file uploads are exempt. Login and signup default to 10 requests per minute. Community and request errors now return HTTP 400 in cases that previously returned 500. Update clients or tests that depend on those responses.
+- Review `REQUESTS_REVIEWERS_ENABLED`, which now defaults to `True`. The default vocabulary permission policy allows administrators to create and update items. Set `VOCABULARIES_PERMISSIONS_POLICY` explicitly if your repository needs different permissions.
+- The DataCite provider and DOI PID configuration are added automatically unless you define a provider named `datacite`. Keep that provider name in custom `RDM_PERSISTENT_IDENTIFIER*` settings so they take precedence. The DOI form default changed from `not_needed` to `no`, and `/doi_settings` is served by the API app.
+
+`oarepo_config` also provides `configure_detail_sidebar(templates=..., move=[...])`, `configure_files`, `configure_ark`, `configure_llm` and `configure_collections`. `configure_ui` accepts a `CSP` instance via `csp=`.
+
+**3. Update workflows and model definitions**
+
+- In `COMMUNITIES_ROLES`, set `can_curate=True` for each role that should review submissions. Invenio maps its built-in manager and curator roles to roles with `can_manage=True` and `can_curate=True`. These flags affect community invitations, membership and sub-community requests, record inclusion and submissions, and their notifications.
+- Review `CommunityWorkflow`. The default `draft_creation_community_roles` now includes submitters, curators and owners. Both `read_restricted_community_roles` and `record_manage_community_roles` now default to curators and owners. Set explicit role lists if your repository needs the previous access rules. The default `can_manage_quota` now also allows user managers, and `can_manage_record_access` now also allows administrators.
+- Replace `CompositeAndGenerator` with `RequireAll` and `CompositePermissionPolicyMixin` with `BooleanPermissionPolicyMixin`. The `RecordOwnerInRecordCommunity` and `RecordOwnerInDefaultRecordCommunity` generators require the latter mixin. Remove references to `UserInCommunityNeed`, `load_community_user_needs` and `AutoRequest`. Base custom generators on the Invenio classes.
+- Update custom request code to accept `topic=` in receiver functions, remove `*args` from `can_create(...)` overrides and use `PublishRequestType.get_topic_type()`.
+- For CCMM models, replace `ccmm_nma_preset_1_1_0` with `ccmm_preset_1_1_0` from `ccmm_invenio.models` and change `CCMMDataSet` references to `CCMMDataset`. The `ccmm_production_preset_1_1_0` alias still works. Update imports from the removed `ccmm_invenio.parsers`, `ccmm_invenio.serializers`, `ccmm_invenio.schemas` and `ccmm_invenio.conversion` modules. Store related identifiers in `metadata.related_resources` so that `metadata.related_identifiers` can be computed from them. Read `related_resources` in API clients that previously expected `related_identifiers` in the JSON export.
+- For RDM models, load the `subjects` vocabulary and update fixtures and imports that use `RDMSubject`. Update custom validation or import code that assumes `RDMDate.date` is a single date. It now accepts EDTF dates and intervals. Import `oai_preset` from `oarepo_rdm.model.presets.oai`. Remove references to `RDMRecordSchemaMixin`, `ReviewMappingPreset`, `CommunitiesServiceConfigLinks`, `CommunityRecordsService` and the former community workflow, inclusion and access components.
+- For `oarepo-model` customisations, review dependencies between customisations that relied on name order. The builder now orders them by what they modify. Create the target dictionary before using `AddToDictionary`. Check `AddFacetGroup` on models without drafts, where it may fail. Remove uses of `BuilderConstant`, `add_constant()` and `get_constant()`.
+- Remove references to the two deleted media-files presets, `MediaFilesRecordServiceConfigPreset` and the `FileRecordServiceComponentsPreset` from `oarepo_model.presets.drafts.services.files.media_files_record_service_components`.
+- In custom models, set `model:` on `pid-relation` fields and point EDTF interval range queries and facets at `<field>_range`. Replace the `multilingual-type` alias with `multilingual`. Replace uses of the removed `oarepo_runtime` schema fields `MultilingualField`, `I18nStrField` and their `*UIField` variants with the model datatypes `multilingual` or `i18ndict` as appropriate.
+
+If your lockfile resolves `oarepo-requests` 11.0.0, check custom code that uses `proxies.current_oarepo_requests_resource`. The symbol is a plain function in that release, so code that accesses resource attributes directly through it fails.
+
+**4. Update e-INFRA login**
+
+Switch the login configuration to `configure_einfra_oidc`. The datarepo setup uses the eligible-entitlements parser.
+
+```python filename="invenio.cfg"
+from oarepo_oidc_einfra.remote import einfra_eligible_parser_factory
+
+config.configure_einfra_oidc(entitlements_parser=einfra_eligible_parser_factory())
+```
+
+If you configure the parser directly, replace `EINFRA_COMMUNITIES_ROLES_TRANSFORMER` with `EINFRA_ENTITLEMENTS_PARSER` and adapt your callable to the new signature. The parser runs at login. If you assemble an `EINFRA` dictionary from environment settings, check its keys against the new configuration. `EINFRA_LOGIN_APP` is still supported.
+
+Remove Perun synchronisation tasks from the Celery beat schedule and any uses of the old `invenio einfra` CLI, AAI invitation request type or invitation links. The Perun integration is now read-only and manages repository roles and memberships based on the entitlements read at login. Review grants from the old integration manually, since the new implementation can only revoke tracked grants.
+
+**5. Update UI overrides and fixtures**
+
+- Add `PermissionsComponent` if you build the record UI's component list from scratch. The RDM and CCMM base configurations already include it. Remove the old `record_detail_permissions` and `deposit_*_permissions` attributes. On edit and preview pages, use the draft permission names, such as `can_delete_draft`, `can_update_draft` and `can_draft_read_files`. Replace reads of `config.permissions` and `config.filesLocked` with values from `parseFormAppConfig()`, which reads the form's hidden inputs.
+- Replace `VocabularySelectField`, `LocalVocabularySelectField`, `VocabularyTreeSelectField`, `VocabularyRemoteSelectField`, `VocabularyPickerField` and `useVocabularySuggestions` with `VocabularyField`. It queries the API and uses the `{id, title_l10n}` values at the corresponding path in the record's `ui` serialization. Remove `DepositVocabularyOptionsComponent` and migrate any custom JS that reads `form_config["vocabularies"]` to the new data sources.
+- Update links from `oarepo_vocabularies_ui.edit` to `oarepo_vocabularies_ui.deposit_edit`. Move sidebar customisations that used `SidebarLink.jinja` to `OAREPO_VOCABULARIES_UI_SIDEBAR_TEMPLATES`.
+- Update overrides of `<prefix>.TabForm.PublishButton` to accept the `record` prop. The button creates and submits a publish request when the workflow offers one.
+- Community invitations now use the InvenioRDM UI. Remove references to `CommunityInvitationsModal` and compare your overrides of `details/members/base.html`, `details/members/invitations.html` and `details/settings/base.html` with the InvenioRDM templates. If you override `details/header.html`, check that your override exposes the new **Add sub-community** action where appropriate.
+- Update identifier icon paths in templates and CSS from `/static/images/identifiers/<scheme>.svg` to `/static/images/<scheme>.svg`. Add `is_displayed(identity)` to custom exporters.
+- For RDM and CCMM, update integrations that call the removed `citation` export to use the hidden `bibliography` export. For CCMM, replace `/export/datacite` with `/export/datacite-json` or `/export/datacite-xml`. CCMM XML is available as the `ccmm-xml` export and as `ccmm` in OAI-PMH. Update OAI-PMH consumers that use the removed DCAT format.
+- For CCMM locations, include the Leaflet styles in your deposit and detail templates. Placement of the locations sidebar can be configured with `configure_detail_sidebar`, or disabled with `CCMM_INVENIO_LOCATIONS_SIDEBAR = False`.
+- Update vocabulary IDs in fixtures and import data. The loader now discovers `oarepo.fixtures` entry points and `<model-code>.yaml`, `.json` or `.jsonl` files in `app_data`. Check that your registered entry points and files matching model codes contain data you intend to load.
+
+**6. Rebuild assets and migrate the database**
+
+For a disposable local instance, run `./run.sh reset` after updating your code and fixtures. This reinstalls the application, rebuilds assets and recreates the database and indices. Continue with step 8.
+
+<Callout type="warning">
+  `./run.sh reset` deletes local data. To preserve existing data, back up the database, rehearse the migration on a staging copy and pause writes and scheduled jobs during the production migration.
+</Callout>
+
+When testing with a copy of production data, configure the staging S3 bucket, `SECRET_KEY` and DOI credentials before starting the upgraded application.
+
+Install the updated dependencies and rebuild the frontend assets, including the new webpack bundle from `oarepo-requests`. With the runner, `upgrade` also rebuilds the webpack bundles. In a container deployment, rebuild the application image with the updated dependencies and assets. Run the Alembic migration with the upgraded application against the existing database.
+
+```bash
+./run.sh upgrade
+./run.sh invenio alembic upgrade
+```
+
+The migrations include the `einfra_user_entitlements` table, removal of the old AAI invitation requests and timezone-aware OAI-PMH harvest datestamps.
+
+For existing CCMM records or drafts with manually entered identifiers stored only in `metadata.related_identifiers`, copy those relations into `metadata.related_resources` before the upgraded application next saves them. Keep existing related resources. Carry over the relation type and any resource type at the related-resource level, and put the identifier and scheme in that resource's `identifiers` list. Saving recalculates `metadata.related_identifiers` from the related resources. Plan this data conversion for your repository alongside the vocabulary migration in step 7.
+
+Recreate the search indices and reindex all data. Record and draft mappings now come from `invenio-rdm-records`. Review custom index overrides for `version_id` (now `long`), EDTF intervals, PID relations, CCMM fields and subject references. Vocabulary indices gained `mappings` and `custom_fields`, and harvest records also need reindexing. Use the sequence below whenever step 7 calls for a rebuild. Repositories that skip step 7 run it once now.
+
+```bash
+./run.sh invenio index destroy --yes-i-know
+./run.sh invenio index init
+./run.sh invenio rdm-records custom-fields init
+./run.sh invenio communities custom-fields init
+./run.sh invenio rdm-records rebuild-index
+./run.sh invenio rdm rebuild-all-indices
+```
+
+Use the upgraded Celery workers to process the indexing queue. Wait for reindexing to finish before proceeding to the next phase. See the [runner reference](/installation/run_script#index--manage-the-search-index).
+
+**7. Migrate existing CCMM vocabularies and records**
+
+Take `scripts/migration_vocabs.py` from the source of your target `ccmm-invenio` version and make it available in the repository as `scripts/migration_vocabs.py`. It updates vocabulary types and PID types (for example, `filetypes` → `fileformats` and `v-lan` → `lng`), loads the new vocabulary items and converts references such as SPDX licence IDs and COAR access rights in stored data. The script targets `datasets_metadata` and `datasets_draft_metadata`. Adapt its `TABLES` list to cover every CCMM model in your repository. See the [CCMM migration script and its command sequence](https://github.com/NRP-CZ/ccmm-invenio/blob/v2.0.2/scripts/migration_vocabs.py).
+
+1. Mark legacy items, migrate the vocabulary types and load the new vocabularies in this order.
+
+   ```bash
+   ./run.sh invenio shell scripts/migration_vocabs.py mark
+   ./run.sh invenio shell scripts/migration_vocabs.py migrate_types
+   ./run.sh invenio shell scripts/migration_vocabs.py load
+   ```
+
+2. Rebuild the indices using step 6 and wait for indexing to finish.
+3. Convert the vocabulary references in the stored records and drafts. The script also combines legacy start and end date pairs into EDTF intervals.
+
+   ```bash
+   ./run.sh invenio shell scripts/migration_vocabs.py migrate_data
+   ```
+
+4. Rebuild the indices again. Review any `cannot convert` messages and check that records and drafts resolve the new vocabulary items before removing deprecated entries.
+5. Once those checks pass, remove the deprecated entries and rebuild the indices a final time.
+
+   ```bash
+   ./run.sh invenio shell scripts/migration_vocabs.py remove_deprecated
+   ```
+
+**8. Verify repository behaviour**
+
+- Open existing records and drafts. Check search and facets, file access, vocabulary fields and the exports used by your repository.
+- Test draft creation, publication and resubmission after declining, cancelling or expiring a community review. Each of these outcomes opens a new review for the same community. The workflow is set when the review is created. Check the access level of drafts created through the API in restricted communities. The deposit form still pre-fills restricted access, while API clients must set it explicitly.
+- Test that community request notifications reach the roles that can act on them. Group recipients expand to individual members. Check custom mail templates against the new community and sub-community request templates, including their Czech translations if used.
+- Test e-INFRA login and API clients that send bearer tokens. With the e-INFRA provider enabled, bearer JWTs that fail e-INFRA validation now return HTTP 403 even on public endpoints.
+- Test DOI registration for public records and restricted records. Restricted records are excluded from DOI registration. If DataCite reports that a DOI already exists, the provider now updates it.
+- Update custom harvest permissions that reference the removed `oai-harvest-access` permission and verify that harvest managers can access the harvest configuration. For RDM models, use a publishing harvest configuration because `publish=False` raises an error.
+- Test an OAI-PMH harvest that includes source updates and deletions. Updates edit, update and publish a draft. Source deletions create tombstones, locally deleted records are restored on subsequent harvests, and the harvester strips `parent.communities` before saving. The harvester continues after a record fails. Enable file harvesting explicitly if you use it.
+- Review PID lookups that need pending or otherwise unregistered identifiers. PID resolution now defaults to registered PIDs. Check any assumptions about batch size in custom indexing jobs. `INDEXER_BULK_INDEX_MAX_ITEMS` defaults to 1,000 items per task.
+- Verify custom vocabulary integrations. SKOS `exactMatch` and `broadMatch` mappings take precedence over matching `props`, such as `props.datacite`. ROR affiliation and funder imports now update existing items.
+
+</MigrationSteps>
+
+<MigrationHeader
   date="2026-11-12"
   title="oarepo-ui cleanup, InvenioRDM v14 parity and copier fixes"
   prHref="https://github.com/oarepo/oarepo-ui/pull/519"
