@@ -1,0 +1,68 @@
+# oarepo-model 3.0.0 → 7.0.0
+
+## Affected repositories
+
+| Affected | Not affected |
+| --- | --- |
+| All repositories upgrading from `oarepo-model` 3.x to 7.x | Repositories already using `oarepo-model` 7.x |
+| Models with existing record or draft indices | New, empty development instances |
+| Repositories with custom model presets, customizations, datatypes, relations, or UI code | Copier-generated code that has not been customized in these areas |
+
+## Migration steps
+
+### 1. Rebuild indices
+
+Recreate and reindex both record and draft indices. This is required because
+`version_id` is now mapped as `long` and EDTF interval fields use a different
+mapping. Range queries for an `edtf-interval` field must target its new sibling
+field, `<field>_range`.
+
+### 2. Review custom model definitions and presets
+
+The following only affects repositories with custom builder code or presets:
+
+- `BuilderConstant`, `builder.add_constant()` and `builder.get_constant()` were
+  removed.
+- `AddToDictionary` no longer creates its target dictionary; create it before
+  adding values.
+- `JSONDeserializerPreset` now provides `JSONDeserializer`, not
+  `JSONDeserializerPreset`. Update matching `depends_on` and `modifies`
+  declarations.
+- Customizations should declare the partials they modify through
+  `Customization.modifies`. The application order of customizations now follows
+  these declarations.
+
+Also check warnings during model generation or tests. Incorrect preset
+declarations now emit `FutureWarning` and will become errors in a future
+release.
+
+### 3. Review relations and custom datatypes
+
+For `pid-relation`, string keys such as `metadata.title` are now resolved from
+the target model. Ensure that the target model is built first and that the keys
+exist there. Use an explicit `key: {type: ...}` definition when the type must
+not be inferred from the target model.
+
+When a relation payload includes `id`, additional submitted fields are ignored
+and populated from the referenced record. Review integrations that used those
+fields to override relation metadata.
+
+Custom datatype implementations may need updates because relation hooks and
+the `create_relations()` path format changed, and `get_facet()` now accepts an
+`ignored_keys` argument.
+
+### 4. Check search facets and UI customizations
+
+Relation and vocabulary mappings and facets have changed. In particular,
+pid-relations now expose facets for their `id` and declared keys, and facet
+names visible to the UI may differ. Review custom search configuration and
+frontend code that refers to facet names.
+
+Vocabulary references in the UI are now serialized as:
+
+```json
+{"id": "…", "title_l10n": {"en": "…"}}
+```
+
+Update templates or JavaScript that expects other properties on a vocabulary
+value. `i18ndict` UI fields additionally expose `<field>_l10n`.
