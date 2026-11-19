@@ -161,6 +161,15 @@ from oarepo_oidc_einfra.remote import einfra_eligible_parser_factory
 config.configure_einfra_oidc(entitlements_parser=einfra_eligible_parser_factory())
 ```
 
+**7. vocabularies**
+
+`VocabularySelectField`, `LocalVocabularySelectField`, `VocabularyTreeSelectField`, `VocabularyRemoteSelectField` were removed. Please use `VocabularyField` instead
+inside your deposition forms.
+
+Vocabulary metadata include a new mapping section which contains SKOS-compatible mapping to other vocabularies. 
+Due to that the **index needs to be destroyed/initialized/rebuilt** to include the mapping. Without it, creating 
+new vocabulary items will fail during indexing.
+
 </MigrationSteps>
 
 <MigrationHeader
