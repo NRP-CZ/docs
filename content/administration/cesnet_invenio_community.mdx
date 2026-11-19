@@ -31,7 +31,7 @@ First meeting of the new monthly CESNET Invenio Community series. The main topic
 
 * Rules governing a record's lifecycle; declared per community, at least one, one default; linked at creation.
 * RDM = one fixed review flow; CESNET Invenio = each community can define its own curators, curation policy and workflows; permissions are set inside the workflow.
- Roles: owner, curator, member + custom via `configure_communities()` in `invenio.cfg`; per-state permissions; global + community role levels.
+* Roles: owner, curator, member + custom via `configure_communities()` in `invenio.cfg`; per-state permissions; global + community role levels.
 * Perun no longer integrated — import only, no sync; owner manages members in UI.
 * Curation policy must be concrete and verifiable; feeds LLM checks (new in CESNET Invenio 14, needs an `ai.e-infra.cz` API key, advisory only).
 * Individual submission needs the global submitter role (self-publish); direct publishing is API-only. Some decision-tree branches are not working yet.
@@ -42,7 +42,7 @@ First meeting of the new monthly CESNET Invenio Community series. The main topic
 **Discussion**
 
 * **Curation checks:** CESNET Invenio ships the LLM check; the rest (Invenio RDM / OARepo checks) must be implemented by the repository team — currently no user-friendly config UI, requires manual setup.
-* **File uploads and transfer:** the UI uploads large files in parts automatically; a failed transfer can be re-uploaded after a network drop. File transfer methods `fetch` and `remote` must be enabled — `fetch` downloads a file from a URL into the instance (the record cannot be published until transfers complete), `remote` stores only a reference and redirects to the external URL. More information: [File transfer](URL_DOPLNIT).
+* **File uploads and transfer:** the UI uploads large files in parts automatically; a failed transfer can be re-uploaded after a network drop. File transfer methods `fetch` and `remote` must be enabled — `fetch` downloads a file from a URL into the instance (the record cannot be published until transfers complete), `remote` stores only a reference and redirects to the external URL. More information: [File transfer](https://inveniordm.docs.cern.ch/reference/file_transfer/).
 * **NMA XSLT (2.0 → 1.1):** conversion runs on the NMA side, triggered by the 2.0 namespace in the OAI-PMH payload — not the repository's job. Conversion is not 100%; some information is lost.
 * **OAI-PMH `ListMetadataFormats`:** the format name (`ccmm-xml`) is not decisive; the namespace URI / element name of the payload determines whether NMA treats it as CCMM 1.1.0, 2.0 or DataCite. The format name is a registration parameter.
 * **Compound records (datasets):** implementation starts next week, targeted at CESNET Invenio 15.
