@@ -22,7 +22,7 @@ An example `invenio.cfg` file using the helper config module might be as simple 
 ```python
 # invenio.cfg
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 # localization / internationalization
 config.initialize_i18n()

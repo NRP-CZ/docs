@@ -12,7 +12,7 @@ It covers core aspects such as site URLs, authentication, security headers, loca
 
 Use this as a **baseline initializer** for a NRP repository before applying any of your custom config overrides.
 
-_Defined in `oarepo/config/generic_parameters.py`._
+_Defined in `oarepo_config/generic_parameters.py`._
 
 ### Parameters
 
@@ -91,7 +91,7 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 - Enables `MAIL_SUPPRESS_SEND` if configured in environment.
 
 #### Miscellaneous
-- Defines rate limits and quota defaults (`APP_RDM_DEPOSIT_FORM_QUOTA`, `FILES_REST_DEFAULT_QUOTA_SIZE`).
+- Defines rate limits (`RATELIMIT_GUEST_USER`, `RATELIMIT_AUTHENTICATED_USER`). File upload limits and quotas are set by [`configure_files`](#configure_files).
 - Sets `SECRET_KEY` from environment.
 - Provides `DASHBOARD_RECORD_CREATE_URL` placeholder (to be customized).
 - Clears default Invenio record routes and endpoints (since NRP provides replacements).
@@ -151,7 +151,7 @@ All discovered values are injected into the caller scope via `set_constants_in_c
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 config.configure_generic_parameters(
     languages=(("en", _("English")), ("cs", _("Czech"))),
@@ -163,7 +163,7 @@ config.configure_generic_parameters(
 Configures **UI branding, theming, and build-time integration** for an NRP or InvenioRDM-based repository.  
 This helper establishes the front-end metadata, asset pipeline defaults, theme template layout, and optional analytics integration.
 
-_Defined in `oarepo/config/ui.py`._
+_Defined in `oarepo_config/ui.py`._
 
 ---
 
@@ -240,7 +240,7 @@ The schedule covers every job a stock InvenioRDM instance runs, with one excepti
 statistics are not copied into the record search documents (`reindex-stats`), because NRP
 record models do not index them.
 
-_Defined in `oarepo/config/cron.py`._
+_Defined in `oarepo_config/cron.py`._
 
 ### Parameters
 
@@ -286,7 +286,7 @@ Any extra cron items passed as keyword arguments are merged into the schedule be
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 from datetime import timedelta
 from celery.schedules import crontab
 
@@ -306,7 +306,7 @@ config.configure_cron(file_integrity_check_days=180)
 Enable and initialize repository & record-level statistics collection and aggregation features provided by `invenio-stats`.  
 This helper activates event receivers and imports default event, aggregation, and query definitions from `invenio-app-rdm`.
 
-_Defined in `oarepo/config/stats.py`._
+_Defined in `oarepo_config/stats.py`._
 
 ### Parameters
 
@@ -325,7 +325,7 @@ _Defined in `oarepo/config/stats.py`._
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 # Enable statistics collection and aggregation
 config.configure_stats()
@@ -341,7 +341,7 @@ config.configure_stats(count_preview_downloads=False)
 
 Set the file upload limits of a record, and the file-related toggles.
 
-_Defined in `oarepo/config/files.py`._
+_Defined in `oarepo_config/files.py`._
 
 ### Parameters
 
@@ -375,7 +375,7 @@ the whole download. If your repository accepts large files, set
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 config.configure_files(
     max_file_size=50 * 10**9,       # 50 GB per file
@@ -392,7 +392,7 @@ use to harvest records, and tune the paging of its list responses.
 
 Call it after [`configure_ui`](#configure_ui), which provides the default repository name and contact.
 
-_Defined in `oarepo/config/oai.py`._
+_Defined in `oarepo_config/oai.py`._
 
 ### Parameters
 
@@ -417,7 +417,7 @@ address `info@inveniosoftware.org` as its administrator. Pass `admin_emails`, or
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 config.configure_oai(
     repository_name="My NRP Repository",
@@ -431,7 +431,7 @@ Register or extend controlled vocabularies used in the repository.
 Each vocabulary is identified by a short `code` and associated metadata parameters that describe its configuration or source.  
 Be consistent with [your vocabularies defined in `app_data` folder](../vocabularies/initial_data.mdx).
 
-_Defined in `oarepo/config/vocabulary.py`._
+_Defined in `oarepo_config/vocabulary.py`._
 
 ### Parameters
 
@@ -449,7 +449,7 @@ _Defined in `oarepo/config/vocabulary.py`._
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 config.configure_vocabulary(
     "licenses",
@@ -464,7 +464,7 @@ config.configure_vocabulary(
 Configure community-related settings, role definitions, and permission policies for Invenio Communities integration.  
 Defines how community membership and CRUD permissions are structured within the repository.
 
-_Defined in `oarepo/config/communities.py`._
+_Defined in `oarepo_config/communities.py`._
 
 ### Parameters
 
@@ -510,7 +510,7 @@ Sets the following constants in the caller module:
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 config.configure_communities(
     communities_roles=[
@@ -544,7 +544,7 @@ config.configure_communities(
 Register a workflow with its display name, permission policy, and request policy.  
 Workflows define how deposits are handled in the repository, including approval processes, permissions, and request types.
 
-_Defined in `oarepo/config/workflows.py`._
+_Defined in `oarepo_config/workflows/low_level.py`._
 
 ### Parameters
 
@@ -566,7 +566,7 @@ _Defined in `oarepo/config/workflows.py`._
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 # Full workflow for community deposits:
 # requires approval from curators/owners before publishing
@@ -658,7 +658,7 @@ the already-configured defaults, following the CSP specification's own fallback 
 you don't accidentally drop sources the application still needs:
 
 ```python filename="invenio.cfg"
-from oarepo import config
+import oarepo_config as config
 
 config.configure_generic_parameters()
 
