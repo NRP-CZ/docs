@@ -134,7 +134,11 @@ If your metadata schema uses vocabularies, you need to declare them in the metad
 
 ## Add exports
 
-You need to add at least a DataCite export for your new model. This is required not only for DOI registration, but also for other parts of Invenio, such as the tombstone page when a record is deleted, proper citation generation, and signposting headers. The schema class for the export has been generated automatically in the `equipment/serializers.py` file.
+Check the exports provided by the model's preset. With `oarepo-rdm` 10, the
+complete RDM preset already provides DataCite JSON and XML. If your model
+needs DataCite and its preset does not provide it, register an export for
+the model. DataCite metadata is used for DOI registration, citations,
+tombstone pages and signposting headers.
 
 See the [export customization guide](/customize/model_backend/exports_and_imports) for more information.
 

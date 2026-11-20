@@ -198,7 +198,7 @@ A worked example is in [Build Your Form from Sections](#build-your-form-from-sec
 | Prop            | Type     | Description                                                                                                                                                           |
 | --------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `record`        | object   | The current record/draft data. Use to read existing field values (e.g. `record.ui.languages`, `record.is_published`)                                                  |
-| `formConfig`    | object   | The form configuration object. Contains `formConfig.config.vocabularies`, `formConfig.config.filesLocked`, `formConfig.config.quota`, `formConfig.overridableIdPrefix`, etc. |
+| `formConfig`    | object   | The form configuration object. For RDM file sections, read `filesLocked`, `permissions`, `fileModification` and `overridableIdPrefix` directly from `formConfig`. Quota is available at `formConfig.config.quota`. |
 | `activeStep`    | number   | Zero-based index of the currently active section tab                                                                                                                  |
 | `next`          | function | Call `next()` to programmatically advance to the next tab                                                                                                             |
 | `back`          | function | Call `back()` to programmatically navigate to the previous tab                                                                                                        |
@@ -642,6 +642,29 @@ When there is no bucket yet (create page) or the bucket has no limits, the missi
 - **Other services** — `FILES_REST_DEFAULT_QUOTA_SIZE` / `FILES_REST_DEFAULT_MAX_FILE_SIZE`, falling back to the `RDM_FILES_DEFAULT_*` values.
 
 The resource sets `quota` before running the `form_config` hooks of [resource components](#optional-resource-components), so a component can still replace `form_config["quota"]`.
+
+### RDM file sections
+
+If you override `RDMFiles`, pass the whole `formConfig` to `UppyUploader` and
+forward the published-file edit settings and draft bucket lock. The lock and
+permissions are available in the form context after parsing the page's hidden
+inputs.
+
+```jsx
+import { UppyUploader } from "@js/invenio_rdm_records";
+
+<UppyUploader
+  isDraftRecord={!record.is_published}
+  config={formConfig}
+  quota={formConfig.config.quota}
+  decimalSizeDisplay={formConfig.decimal_size_display}
+  allowEmptyFiles={formConfig.allow_empty_files}
+  fileUploadConcurrency={formConfig.file_upload_concurrency}
+  filesLocked={formConfig.filesLocked}
+  fileModification={formConfig.fileModification}
+  showMetadataOnlyToggle={formConfig.permissions?.can_manage_files}
+/>
+```
 
 ## useFieldData Helper
 

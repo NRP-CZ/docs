@@ -162,7 +162,7 @@ Facets are generated automatically for every field whose data type supports them
 | `vocabulary` | Terms facet on `.id`, with value labels taken from the vocabulary; additional `keys` (e.g. `props.<name>`) get their own facets, see [Caching vocabulary props](/customize/model_backend/model_reference#caching-vocabulary-props) |
 | `object`, `nested`, `array` | No facet of their own; facets are generated for their properties / items (inside `nested`, as nested facets) |
 
-No facets are generated for `fulltext`, `edtf-interval`, `edtf-date-or-interval`, `polymorphic`, or the sub-fields of `i18n` / `multilingual`. For `pid-relation`, `lazy-pid-relation` and `internal-relation`, facets are generated for the cached `keys` according to their types, except for `id`. For `lazy-pid-relation` and `internal-relation`, only keys with an explicit definition in `keys` get a facet.
+No facets are generated for `fulltext`, `edtf-interval`, `edtf-date-or-interval`, `polymorphic`, or the sub-fields of `i18n` / `multilingual`. As of `oarepo-model` 7, `pid-relation` generates facets for `id` and for cached `keys` that support facets. For `lazy-pid-relation` and `internal-relation`, only keys with an explicit definition in `keys` get a facet, excluding `id`.
 
 The facet label is taken from the field's `label`.
 
@@ -233,6 +233,10 @@ customizations=[
 | `exists_ok` | If `True`, adding a group that already exists is not an error |
 | `draft_facets` | Facets of the group on the drafts search. If omitted, the drafts search uses `facets`; pass `[]` to show no facets of this group on the drafts search |
 
+As of `oarepo-model` 7, `AddFacetGroup` writes to both `FacetGroups` and
+`DraftFacetGroups`. For a model without draft search options, configure
+`FacetGroups` directly.
+
 ## Geo search
 
 Models with [`geo_point`](/customize/model_backend/model_reference#geo_point),
@@ -291,6 +295,12 @@ customizations=[
 ## How search configuration is generated
 
 This section describes the internals; you do not need it to configure search. The oarepo-model framework uses presets to dynamically generate search configuration at build time. These presets scan your model schema and create the necessary service classes, facets, and OpenSearch mappings.
+
+With `oarepo-rdm` 10, RDM models take the top-level record and draft mappings
+from InvenioRDM through `RDMMappingPreset` and `RDMDraftMappingPreset`. The model
+still generates its metadata mapping. For RDM subjects, filter or aggregate on
+`metadata.subjects.id` for vocabulary IDs, or use
+`metadata.subjects.subject.keyword` to match the label exactly.
 
 | Preset | Generated | Description |
 |--------|-----------|-------------|

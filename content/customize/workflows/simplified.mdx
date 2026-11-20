@@ -65,7 +65,7 @@ objects as arguments; the function automatically writes the `WORKFLOWS` and
 `WORKFLOWS_DEFAULT_WORKFLOW` configuration entries — no manual assignment needed.
 
 ```python
-from oarepo_app.config import configure_workflows, IndividualWorkflow, CommunityWorkflow
+from oarepo_config import configure_workflows, IndividualWorkflow, CommunityWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -89,9 +89,9 @@ use when creating records. The `default_individual_workflow` parameter (default:
 `"individual"`) names which workflow is used when a record is created without
 specifying one explicitly.
 
-See [code of IndividualWorkflow](https://github.com/oarepo/oarepo-app/blob/rdm-14/src/oarepo_app/config/workflows/individual.py)
-and [code of CommunityWorkflow](https://github.com/oarepo/oarepo-app/blob/rdm-14/src/oarepo_app/config/workflows/community.py)
-together with [base class](https://github.com/oarepo/oarepo-app/blob/rdm-14/src/oarepo_app/config/workflows/base.py)
+See [code of IndividualWorkflow](https://github.com/oarepo/oarepo-config/blob/main/oarepo_config/workflows/simplified/individual.py)
+and [code of CommunityWorkflow](https://github.com/oarepo/oarepo-config/blob/main/oarepo_config/workflows/simplified/community.py)
+together with [base class](https://github.com/oarepo/oarepo-config/blob/main/oarepo_config/workflows/simplified/base.py)
 for a comprehensive list of options and their default values.
 
 ### Adding support for workflows to a model
@@ -139,7 +139,7 @@ accept and decline review requests.
 No review step, no restrictions.
 
 ```python
-from oarepo_app.config import configure_workflows, IndividualWorkflow
+from oarepo_config import configure_workflows, IndividualWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -170,7 +170,7 @@ work yet. Save the record as a draft first, then publish it from **My dashboard*
 are allowed to create records. They can publish their own records without review.
 
 ```python
-from oarepo_app.config import configure_workflows, IndividualWorkflow
+from oarepo_config import configure_workflows, IndividualWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -205,7 +205,7 @@ individual users access without creating a dedicated role, or when the same perm
 should be grantable either directly to a user or to an entire role.
 
 ```python
-from oarepo_app.config import configure_workflows, IndividualWorkflow
+from oarepo_config import configure_workflows, IndividualWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -235,7 +235,7 @@ approved by a designated reviewer (a user with the `reviewer` role) before it is
 published.
 
 ```python
-from oarepo_app.config import configure_workflows, IndividualWorkflow
+from oarepo_config import configure_workflows, IndividualWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -277,7 +277,7 @@ Reviewer does not see the publish request; a trusted depositor cannot accept the
 `trusted-depositor` role can bypass it and publish straight away.
 
 ```python
-from oarepo_app.config import configure_workflows, IndividualWorkflow
+from oarepo_config import configure_workflows, IndividualWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -311,7 +311,7 @@ which is set by an external process (e.g. a data quality checker). The depositor
 publish from a plain `draft` state.
 
 ```python
-from oarepo_app.config import configure_workflows, IndividualWorkflow
+from oarepo_config import configure_workflows, IndividualWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -341,7 +341,7 @@ Community *submitters*, *curators* and *owners* can deposit records; community
 *curators* and *owners* must approve them before they are published.
 
 ```python
-from oarepo_app.config import configure_workflows, CommunityWorkflow
+from oarepo_config import configure_workflows, CommunityWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -386,7 +386,7 @@ Users who are not community members cannot submit a record to the community (UI 
 logged-in user), not just assigned members.
 
 ```python
-from oarepo_app.config import configure_workflows, CommunityWorkflow
+from oarepo_config import configure_workflows, CommunityWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -413,7 +413,7 @@ configure_workflows(
 create records (not just submitters).
 
 ```python
-from oarepo_app.config import configure_workflows, CommunityWorkflow
+from oarepo_config import configure_workflows, CommunityWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -435,7 +435,7 @@ community *members* to be able to read drafts that are under review and restrict
 published records, not just the record owner.
 
 ```python
-from oarepo_app.config import configure_workflows, CommunityWorkflow
+from oarepo_config import configure_workflows, CommunityWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -471,7 +471,7 @@ For published records, a member can edit metadata and save as draft but cannot s
 the community, not only their own records.
 
 ```python
-from oarepo_app.config import configure_workflows, CommunityWorkflow
+from oarepo_config import configure_workflows, CommunityWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(
@@ -497,7 +497,7 @@ A real repository usually needs several workflows active at the same time. Below
 complete example that combines the most common patterns:
 
 ```python
-from oarepo_app.config import configure_workflows, IndividualWorkflow, CommunityWorkflow
+from oarepo_config import configure_workflows, IndividualWorkflow, CommunityWorkflow
 from invenio_i18n import lazy_gettext as _
 
 configure_workflows(

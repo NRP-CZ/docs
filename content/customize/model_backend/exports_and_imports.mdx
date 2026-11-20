@@ -10,20 +10,30 @@ We assume that you have already created a custom metadata schema as described in
 
 ## DataCite export
 
-The DataCite export has been pre-generated for your model in the `equipment/serializers.py` file.
-If your model is not based on the CCMM or RDM full template, you need to customize the DataCite export
-to include all required fields. For inspiration, check the [invenio-rdm-records](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/resources/serializers/datacite/schema.py) package.
+In `oarepo-rdm` 10, `rdm_complete_preset` includes
+`RDMCompleteExportsPreset`, which provides `datacite-json`, `datacite-xml`
+and `bibliography`. The landing page's citation box uses the
+`bibliography` export (`text/x-bibliography`), which is hidden from the
+export menu. For formats served over OAI-PMH, check the repository's
+`ListMetadataFormats` response. RDM no longer advertises `dcat` there.
+
+If your model has no DataCite export, register one that includes all required
+fields. Start from the example below and, if your template generated a
+`serializers.py` file, use it for your model-specific serializer. See the
+[InvenioRDM DataCite schema](https://github.com/inveniosoftware/invenio-rdm-records/blob/master/invenio_rdm_records/resources/serializers/datacite/schema.py).
 
 ## Adding custom export formats
 
-Export formats are registered within the `equipment/model.py` file inside the "customization" section:
+Register additional export formats in the `customizations` list in
+`equipment/model.py`. This example adds DataCite JSON to a model that
+does not already define it.
 
 ```python
 my_model = model(
     # ...
     customizations=[
         AddMetadataExport(
-            code="datacite",
+            code="datacite-json",
             name=_("DataCite export"),
             mimetype="application/vnd.datacite.datacite+json",
             serializer=DataCiteJSONSerializer(),

@@ -40,6 +40,16 @@ The community owner adds users to the community and assigns them roles such as
 `curator`, `approver` or member. See the [Workflows example](/customize/workflows/example)
 for the roles used in the default workflows.
 
+With `oarepo-communities` 14, the `can_manage` and `can_curate` flags in
+`COMMUNITIES_ROLES` control which configured roles take the place of the
+built-in manager and curator roles for community requests. This affects
+who can act on invitations, membership and sub-community requests, and
+record inclusion and submission. Notifications follow the roles that can
+act on the request.
+
+When a community review is declined, cancelled or expires, a new review is
+created for the same community so the depositor can submit the draft again.
+
 ### Fill in the curation policy
 
 The owner writes the community's [curation policy](#curation-policy) describing

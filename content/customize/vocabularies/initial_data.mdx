@@ -81,6 +81,22 @@ You should also [customize the UI for your vocabularies in `invenio.cfg` file](.
 
 <ToDo/>
 
+## Loading subject fixtures into an existing repository
+
+Define the required schemes under `subjects` in the vocabulary fixture
+catalogue. Each scheme specifies its own ID and data file. For example, with a
+scheme whose catalogue ID is `FORD`, load its entries with the repository
+services and Celery workers running.
+
+```bash
+./run.sh invenio rdm-records add-to-fixture subjects.FORD
+```
+
+Use the scheme ID exactly as it appears in your catalogue. The command queues
+fixture updates in Celery. Wait for the tasks to finish and check that the IDs
+required by your records resolve through the subjects API, for example
+`GET /api/subjects/ford:10100` for the FORD item in this example.
+
 ## Development tips
 
 For development purposes, you might want to speed up the initial data loading by reducing

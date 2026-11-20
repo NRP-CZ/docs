@@ -211,14 +211,16 @@ updated = await client.records.draft_records.update(record, verify_version=False
 
 ### Partial Update Pattern
 
+For models using the RDM subject field, use an ID from the repository's
+`subjects` vocabulary. The example uses a FORD ID. Substitute an ID available
+in your repository.
+
 ```python
 # Read draft, modify specific fields, update
 record = await client.records.draft_records.read("abc-123")
 
-# Add a new keyword
-if "subjects" not in record.metadata:
-    record.metadata["subjects"] = []
-record.metadata["subjects"].append({"subject": "climate science"})
+# Add a subject vocabulary reference
+record.metadata.setdefault("subjects", []).append({"id": "ford:10100"})
 
 # Update additional metadata
 if "additional_descriptions" not in record.metadata:

@@ -983,13 +983,13 @@ specimen_collection_date:
 
 ### edtf-interval
 
-Data type for a closed [EDTF](https://www.loc.gov/standards/datetime/) interval: two dates separated by `/`, each a full date, year and month, or year only ("1984/1985", "2022-06/2023-12", "1984-06-19/1985"). The start must not be after the end. Single dates, open or unknown ends ("1984/..", "..1985") and uncertainty or approximation qualifiers are rejected; use [`edtf-date-or-interval`](#edtf-date-or-interval) if a field can hold either a date or an interval. Maps to OpenSearch's `date_range` field type. Useful for project durations, historical periods, and other time spans.
+Data type for a closed [EDTF](https://www.loc.gov/standards/datetime/) interval: two dates separated by `/`, each a full date, year and month, or year only ("1984/1985", "2022-06/2023-12", "1984-06-19/1985"). The start must not be after the end. Single dates, open or unknown ends ("1984/..", "..1985") and uncertainty or approximation qualifiers are rejected; use [`edtf-date-or-interval`](#edtf-date-or-interval) if a field can hold either a date or an interval. As of `oarepo-model` 7, OpenSearch stores the original value as a keyword and indexes the interval bounds in a sibling `<field>_range` field. Useful for project durations, historical periods, and other time spans.
 
 | Property | Description |
 |----------|-------------|
 | source code | [date.py](https://github.com/oarepo/oarepo-model/blob/main/src/oarepo_model/datatypes/date.py) |
 | jsonschema type | `string` with `format: date` |
-| mapping | [`date_range`](https://docs.opensearch.org/latest/field-types/supported-field-types/range/) with EDTF date formats |
+| mapping | `keyword` with a sibling `<field>_range` of type [`date_range`](https://docs.opensearch.org/latest/field-types/supported-field-types/range/) |
 
 | Property in YAML schema | Description |
 |------------------------|-------------|
@@ -1026,7 +1026,7 @@ funding_period:
 |-------|-------------|
 | `research_period:"2022/2024"` | Search for research conducted from 2022 to 2024 |
 | `data_collection_period:"2022-06/2023-12"` | Search for data collected in specific period |
-| `research_period:[2022 TO 2025]` | Search for research periods overlapping with range |
+| `research_period_range:[2022 TO 2025]` | Search for research periods overlapping the range |
 
 ### edtf-date-or-interval
 

@@ -119,6 +119,11 @@ To use them, you need to know the names of the building blocks, which are define
 `record_links_item`). See the [oarepo-model sources](https://github.com/oarepo/oarepo-model/tree/main/src/oarepo_model/presets)
 for the names.
 
+As of `oarepo-model` 7, a custom customization runs before the first preset
+that declares a dependency on one of the partials it changes. Declare those
+partials through `Customization.modifies` when implementing your own
+customizations.
+
 | Customization | Description |
 |---------------|-------------|
 | **Classes** | |
@@ -132,7 +137,7 @@ for the names.
 | `AddList(name, exists_ok=False)` | Adds a new list |
 | `AddToList(list_name, value, exists_ok=False)` | Appends a value to a list |
 | `AddDictionary(name, default=None, exists_ok=False)` | Adds a new dictionary |
-| `AddToDictionary(dictionary_name, *values, key=None, value=None, exists_ok=False, patch=False, override_values=True)` | Adds entries to a dictionary, either as dictionaries in `values` or as a single `key`/`value`; `patch=True` merges into existing values |
+| `AddToDictionary(dictionary_name, *values, key=None, value=None, exists_ok=False, patch=False, override_values=True)` | Adds entries to an existing dictionary, either as dictionaries in `values` or as a single `key`/`value`. If no preset creates it, create it with `AddDictionary` first. To merge into an existing value, set `patch=True`, pass `key` and leave `exists_ok=False`. |
 | **Modules and files** | |
 | `AddModule(name, exists_ok=False)` | Adds a module to the model |
 | `AddToModule(module_name, property_name, value, exists_ok=False)` | Adds a variable to a module |
