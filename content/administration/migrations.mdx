@@ -14,8 +14,7 @@ import { ToDo } from "@/components/todo";
   versionBadge="oarepo-app ≥ 8.0.0"
 />
 
-This release moves repositories to the CESNET Invenio 14,
-as will be supported for the next 18 months.
+This release moves repositories to CESNET Invenio 14, which will be supported for the next 12-18 months.
 
 
 <MigrationAffected>
@@ -162,6 +161,8 @@ from oarepo_oidc_einfra.remote import einfra_eligible_parser_factory
 config.configure_einfra_oidc(entitlements_parser=einfra_eligible_parser_factory())
 ```
 
+With e-INFRA login enabled, API requests with a bearer JWT that fails e-INFRA validation return 403, even on public endpoints. Check your API clients.
+
 **7. Vocabularies**
 
 - Replace `VocabularySelectField`, `LocalVocabularySelectField`, `VocabularyTreeSelectField`, `VocabularyRemoteSelectField` and `VocabularyPickerField` with `VocabularyField` in your deposit forms.
@@ -223,7 +224,7 @@ from oarepo_config import CommunityWorkflow, IndividualWorkflow, configure_workf
 - Pass `languages=` explicitly to `configure_generic_parameters` and `configure_ui`; the default is now English only. For a Czech repository, use `languages=(("cs", "Czech"),)`.
 - Import `is_vedidk`, `ExternalLinkConfig` and similar symbols from `oarepo.initial_rdm_config`.
 - `REQUESTS_REVIEWERS_ENABLED` now defaults to `True`.
-- The DataCite DOI provider is configured automatically. If you set `RDM_PERSISTENT_IDENTIFIER_PROVIDERS` yourself, name the provider `datacite` so that your settings take precedence. The DOI form default changed from `not_needed` to `no`.
+- The DataCite DOI provider is configured automatically. If you set `RDM_PERSISTENT_IDENTIFIER_PROVIDERS` yourself, name the provider `datacite` so that your settings take precedence. The DOI form default changed from `not_needed` to `no`. Restricted records no longer get a DOI, and a DOI that already exists in DataCite is updated instead of failing.
 - The legacy `/api/files` endpoint is disabled, and login and signup are limited to 10 requests per minute.
 
 **13. Update model definitions**
@@ -242,15 +243,17 @@ from oarepo_config import CommunityWorkflow, IndividualWorkflow, configure_workf
 
 Update integrations and OAI-PMH consumers that use the removed formats.
 
+If you harvest other repositories with the OAI-PMH harvester, RDM models need a harvest configuration that publishes records (`publish=False` raises an error), and file harvesting must be enabled explicitly.
+
 **15. Migrate the database and data, and rebuild the indices**
 
 For a disposable local instance, run `./run.sh reset` and continue with step 17.
 
 <Callout type="warning">
-  `./run.sh reset` deletes local data. To keep existing data, back up the database and rehearse the migration on a staging copy.
+  `./run.sh reset` deletes local data. To keep existing data, back up the database and rehearse the migration on a staging copy. A staging copy of production data must use its own S3 bucket, `SECRET_KEY` and DataCite test credentials, otherwise it can change production files or DOIs. Pause writes and scheduled jobs during the production migration.
 </Callout>
 
-1. Install the dependencies, rebuild the assets and migrate the database:
+1. Install the dependencies, rebuild the assets and migrate the database. In a container deployment, rebuild the image instead of running `./run.sh upgrade`.
 
    ```bash
    ./run.sh upgrade
@@ -259,7 +262,9 @@ For a disposable local instance, run `./run.sh reset` and continue with step 17.
 
 2. Load the subject schemes your records use, for example `./run.sh invenio rdm-records add-to-fixture subjects.FORD`, and wait for the tasks to finish. See [Initial data for vocabularies](/customize/vocabularies/initial_data).
 3. Convert legacy subject values in records and drafts to vocabulary references. For CCMM, copy identifiers stored only in `metadata.related_identifiers` to `metadata.related_resources`.
-4. Rebuild the indices and wait for the Celery workers to finish. Repositories with legacy CCMM data do this as part of step 16.
+4. Rebuild the indices and wait for the Celery workers to finish.
+
+Repositories with legacy CCMM data skip items 2–4 and continue with step 16.
 
    ```bash
    ./run.sh index rebuild
@@ -267,7 +272,7 @@ For a disposable local instance, run `./run.sh reset` and continue with step 17.
 
 **16. Migrate existing CCMM vocabularies and records**
 
-Copy [`scripts/migration_vocabs.py`](https://github.com/NRP-CZ/ccmm-invenio/blob/v2.0.2/scripts/migration_vocabs.py) from your `ccmm-invenio` version into your repository and add every CCMM model table to its `TABLES` list. It renames vocabulary types, loads the new vocabularies and converts references in records and drafts.
+Copy [`scripts/migration_vocabs.py`](https://github.com/NRP-CZ/ccmm-invenio/blob/v2.0.2/scripts/migration_vocabs.py) from your `ccmm-invenio` version into your repository and add every CCMM model table to its `TABLES` list. It renames vocabulary types, loads the new vocabularies (including the bundled subject schemes) and converts references in records and drafts.
 
 ```bash
 ./run.sh invenio shell scripts/migration_vocabs.py mark
@@ -275,6 +280,7 @@ Copy [`scripts/migration_vocabs.py`](https://github.com/NRP-CZ/ccmm-invenio/blob
 ./run.sh invenio shell scripts/migration_vocabs.py load
 ./run.sh index rebuild         # wait for indexing to finish
 ./run.sh invenio shell scripts/migration_vocabs.py migrate_data
+# convert remaining subjects and related identifiers (step 15, item 3)
 ./run.sh index rebuild         # review "cannot convert" messages, check records
 ./run.sh invenio shell scripts/migration_vocabs.py remove_deprecated
 ./run.sh index rebuild
