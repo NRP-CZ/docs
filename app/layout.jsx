@@ -7,7 +7,7 @@ import Image from 'next/image'
 import RequiredPublicity from  '../public/images/ENG_eu-msmt-eosc-loga-barevne-ochrana-zona-paticka-bg.svg'
 
 export const metadata = {
-  metadataBase: new URL('https://github.com/NRP-CZ/docs'),
+  metadataBase: new URL('https://nrp-cz.github.io/docs/'),
   title: {
     template: '%s - CESNET Invenio Docs'
   },
@@ -44,7 +44,10 @@ export default async function RootLayout({ children }) {
   const pageMap = await getPageMap()
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
-      <Head faviconGlyph="✦" />
+      <Head faviconGlyph="✦">
+        {/* llms.txt v2 discovery: the index describing every page of this site */}
+        <link rel="describedby" type="text/plain" href="/docs/llms.txt" />
+      </Head>
       <body>
         <Layout
           navbar={navbar}
