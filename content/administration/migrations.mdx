@@ -10,11 +10,129 @@ import { ToDo } from "@/components/todo";
 
 <MigrationHeader
   date="2026-11-19"
+  title="oarepo-rdm 6.0.0 → 10.0.0"
+  versionBadge="oarepo-rdm ≥ 10.0.0"
+/>
+
+This upgrade changes the search mappings and subject schema for RDM models. It also changes how services handle PID resolution, cross-model search and community records. For an upgrade managed by `oarepo-app`, follow these steps alongside the [repository-wide upgrade](#2026-11-19-oarepo-app-600-801).
+
+<MigrationAffected>
+
+| Affected | Not affected |
+|----------|--------------|
+| Repositories upgrading from `oarepo-rdm 6.0.0` to `10.0.0` with RDM-based models | Repositories without RDM-based models |
+| Models that explicitly list RDM presets (preset additions in step 2) | Models that get those presets through `rdm_static_preset` |
+| Custom RDM services, community workflows, exporters or deposit form components (override changes in steps 3–5) | Repositories without those overrides |
+
+</MigrationAffected>
+
+<MigrationSteps>
+
+**1. Update the dependencies**
+
+If your repository declares `oarepo-rdm` directly, update its dependency to `10.0.0` in `pyproject.toml`. If `oarepo-app` manages the dependency, use an application bundle that resolves the target version. Check the other packages you declare directly for ranges compatible with the new requirements.
+
+| Dependency | Required range |
+|------------|----------------|
+| `oarepo-runtime` | `>=8,<9` |
+| `oarepo-model` | `>=7,<8` |
+| `oarepo-ui` | `>=14,<15` |
+| `pytest-oarepo` (tests) | `>=7,<8` |
+
+**2. Update model presets, schemas and fields**
+
+- `RDMMappingPreset` and `RDMDraftMappingPreset` take the top-level search mappings from `record-v7.0.0.json` and `draft-v6.0.0.json` in `invenio-rdm-records`. The presets omit `metadata`, the `$schema.index` flag and `index.query.default_field` from those files. The model generates its metadata mapping. If you list presets individually, keep `RDMMappingPreset` and add `RDMDraftMappingPreset` from `oarepo_rdm.model.presets.rdm`. Review custom record and draft mapping patches, including default search fields and `parent.review` on drafts.
+- If you list presets individually, compare the list against the new `rdm_static_preset`. Review custom search options against the new `RDMSearchOptions` and `RDMSearchDraftsOptions` base classes, which are set by `RDMRecordSearchOptionsPreset` and `RDMDraftSearchOptionsPreset`. The standard configuration also includes `RDMFacetsPreset` (with the `access_status` facet), `RDMErrorHandlersPreset` (which adds Invenio's handlers to `record_error_handlers`) and `RDMRecordRootLabelsPreset`.
+- The standard configuration includes `RDMFileServicePreset`, `RDMFileServiceConfigPreset`, `RDMDraftFileServicePreset` and `RDMDraftFileServiceConfigPreset`. Compare custom file resource presets with the new declarations for `file_response_handlers` and `media_file_response_handlers` in `modifies`.
+- Remove imports of the deleted `RDMRecordSchemaMixin`. `RDMRecordSchemaPreset` now uses Invenio's `RDMRecordSchema` as the base schema. Check custom serializers and tests that relied on the old mixin's `default_nested` or `hide_tombstone` behaviour.
+- `RDMSubject` and funding subject items now reference the `subjects` vocabulary. Remove uses of the old `SubjectRelationSchema`, and update fixtures and importers to use vocabulary references. The new relation keys are `subject` and `identifiers`. The `subject` key supports full-text search. For `metadata.subjects`, use `metadata.subjects.subject.keyword` for exact matches on subject labels and `metadata.subjects.id` for filters and facets based on vocabulary IDs. See [Facet Configuration in Model Schema](/customize/model_backend/search#facet-configuration-in-model-schema).
+- Update validation and export code that assumes `RDMDate.date` is a single date. It now accepts the `edtf-date-or-interval` type.
+- Update imports of the OAI-PMH preset.
+
+  ```python filename="model.py"
+  # Before
+  from oarepo_rdm.oai import oai_preset
+
+  # After
+  from oarepo_rdm.model.presets.oai import oai_preset
+  ```
+
+- If your repository declares a custom `invenio_search.mappings` entry point targeting `oarepo_rdm.oai.mappings`, remove it before reinstalling dependencies or initializing indices. The package removed the old `oarepo_rdm_oai` mapping entry point.
+
+**3. Update service and configuration overrides**
+
+- Remove references to `RDMServiceConfigUILinks` and change subclasses of `RDMRecordServiceConfigWithoutLinks` to inherit from Invenio's `RDMRecordServiceConfig`. Search hits now use the full record link set via `search_items_use_full_links`.
+- Check custom record component lists and their ordering. The RDM preset explicitly adds `RDMDraftFilesComponent` and uses `ComponentsOrderingMixin`. Check that PID, parent PID, content moderation and internal-notes components are inherited from `RDMRecordServiceConfig`. If you use Invenio Checks, make sure `ChecksComponent` is configured for the models that need it.
+- Review custom file services and their configuration against `RDMFileService`, `RDMFileRecordServiceConfig` and `RDMFileDraftServiceConfig`. `RDM_RECORDS_FILE_SERVICE_CLASS` now defaults to `DelegatingRDMFileService` and `RDM_RECORDS_FILE_DRAFT_SERVICE_CONFIG_CLASS` to `DelegatingRDMFileDraftServiceConfig`. Both delegate to model-level file handling. Retest quotas and file access if your repository overrides them.
+- Update custom `DelegatedQueryParam` or `MultiplexedSearchOptions` code. `params["delegated_query"]` is now a dictionary of queries keyed by model schema, and each model uses its own search options. `MultiplexedSearchOptions` takes its parameter interpreters from Invenio's `RDMRecordServiceConfig`. Check custom chains that used `QueryStrParam` or explicitly appended `SharedOrMyDraftsParam` or `MetricsParam`. Review overrides of `RDM_FACETS`, `RDM_SEARCH`, `RDM_SEARCH_DRAFTS` and `COMMUNITIES_RECORDS_SEARCH`, which are now built from model facets.
+- In subclasses of `DelegationToSpecializedServiceMixin`, set `default_attribute_on_base_service`. The mixin resolves `attribute_on_base_service` as a property. Review overrides of `_search` or `links_item_tpl` because both now come from this mixin on `OARepoRDMService`.
+- Custom services participating in cross-model operations must provide the relevant `rebuild_index`, `cleanup_drafts`, `reindex*` and `on_relation_update` methods. A missing method now raises `AttributeError` where it previously raised `NotImplementedError`. Update callers or tests that handle this exception. Check custom `MultiplexingSchema` code for the switch from `context` to `context_schema`.
+- Review PID lookups that need unregistered PIDs. `OARepoPIDFieldContext.resolve` now defaults to `registered_only=True`. The delegating PID service resolves through the owning model and can fall back to the latest published version for a parent PID such as a parent DOI.
+- Review custom `RDM_RECORDS_ERROR_HANDLERS`, which now defaults to Invenio's handlers. The upgrade also adds an HTTP 400 handler for `UndefinedModelError`. If you customise draft status handling, check that a cancelled review produces the `cancelled` draft status.
+
+**4. Update community integrations**
+
+When upgrading alongside `oarepo-communities` 14.0.0, update references to the features that moved or were removed.
+
+- Remove `ReviewMappingPreset` from custom model definitions. `RDMDraftMappingPreset` supplies `parent.review` after the index rebuild.
+- Remove `CommunitiesServiceConfigLinks` and keep `RDMServiceConfigLinks` when listing presets explicitly. Invenio supplies the `review` and `submit-review` links for applicable drafts. The `review` link has lost the old link-level `has_permission("review")` check, so verify review permissions at the endpoint with the relevant community roles.
+- Remove imports and overrides that point to the deleted `CommunityRecordsService` from `oarepo-communities`. `RDM_RECORDS_COMMUNITY_RECORDS_SERVICE_CLASS` and `RDM_RECORDS_COMMUNITY_RECORDS_CONFIG_CLASS` now default to `OARepoCommunityRecordsService` and `OARepoCommunityRecordsConfig`. The endpoint `/api/communities/<id>/records` searches across registered RDM models.
+- Remove references to the former default-workflow, community-inclusion and community-access components. These components have no service-level replacement in `oarepo-rdm`, which leaves `parent.communities.default` unset when creating a record. Check when your submission workflow attaches the community and sets its default. API clients that create drafts in restricted communities must set the required record and file access explicitly. The deposit form pre-fills restricted access when the selected community is restricted.
+
+**5. Update exports and deposit form overrides**
+
+- Update integrations that use the `citation` export code to call `bibliography` (`text/x-bibliography`). The replacement is hidden from the exports list and is used by the citation box. For OAI-PMH, update harvesters that request the removed `dcat` format.
+- Check clients that rely on generated export filenames, which now have explicit file extensions. The upgrade provides the `datacite-json` export. DataCite XML uses `oarepo_rdm.resources.records.datacite.DataCite43XMLSerializer`. Verify that XML export succeeds for a record whose licence lacks a title in the default language.
+- Update custom `RDMRecordsUIResourceConfig.components` lists. Verify that your `oarepo-ui` configuration supplies empty-record access defaults after removal of `EmptyRecordAccessComponent` from the RDM defaults. Include `RestrictedFromCommunityComponent` if you need to pre-fill access for a preselected restricted community, and `FileModificationComponent` if the deposit form must expose the published-file edit grace period.
+- Update custom `RDMFiles` sections to read `filesLocked`, `permissions`, `overridableIdPrefix` and `fileModification` from `formConfig`. Quota still comes from `formConfig.config.quota`. Use the `@translations/oarepo_rdm` translation bundle for RDM UI strings.
+
+**6. Install the upgrade, migrate subjects and rebuild the indices**
+
+Back up existing data and rehearse the migration on a staging copy. If you are also upgrading `oarepo-app`, use step 6 of the [`oarepo-app` migration](#2026-11-19-oarepo-app-600-801) to install dependencies, rebuild assets and run the database migrations. For a package-only upgrade, reinstall the dependencies and rebuild the frontend assets with the runner.
+
+```bash
+./run.sh upgrade
+```
+
+Before converting records, make sure the required subject schemes are loaded. To load missing entries from fixtures into an existing instance, run `add-to-fixture` with the vocabulary and scheme ID. For example, if the catalogue defines the `FORD` scheme under `subjects`, run the following with your repository's services and upgraded Celery workers running. Use the scheme ID as it appears in your catalogue. See [Initial data for vocabularies](/customize/vocabularies/initial_data).
+
+```bash
+./run.sh invenio rdm-records add-to-fixture subjects.FORD
+```
+
+Wait for the queued fixture tasks to finish. If you use a custom subject import process, wait for that import to finish as well. Before converting any records, verify that the target IDs you need resolve through the subjects API. For example, use `GET /api/subjects/ford:10100` for that FORD item.
+
+Check existing published records, drafts and imported data, including funding subjects where applicable. Convert legacy subject values to references that resolve in the loaded vocabulary. Review any unmatched values before proceeding.
+
+For a combined upgrade without legacy CCMM data, complete the subject conversion before the index rebuild in step 6 of the [application migration](#2026-11-19-oarepo-app-600-801). If legacy CCMM data needs migration, use step 7 of that guide. Its `load` command loads the bundled subject schemes. Verify that the subject IDs you need are available before `migrate_data`. Finish any remaining subject conversion before the rebuild and validation in item 4 of that step.
+
+For a package-only upgrade, recreate the OpenSearch indices and reindex the existing records and drafts with the command below. Keep the upgraded Celery workers running until the indexing queue is drained. See the [runner reference](/installation/run_script#index--manage-the-search-index).
+
+```bash
+./run.sh index rebuild
+```
+
+If you use OAI-PMH, verify that the `install_percollators` hook created the OAI percolator index during index initialization and that set queries still work. The default index name is `oaisource-percolators`, with the deployment's index prefix if configured.
+
+**7. Verify the upgraded repository**
+
+- Open and edit existing records and drafts. Verify subject lookups, date intervals, search results, facets and draft filters. If you run multiple models, test both the global and model-specific search.
+- Test resolution of a record PID and a parent DOI, and confirm that registered and unregistered PIDs behave as your integrations expect.
+- Verify review links and community permissions with non-privileged users. Test community search across models, API creation in a restricted community, deposit forms and published-file editing where enabled.
+- If you customise the record UI blueprint or file views, test the container item preview and download routes.
+- Test bibliography and DataCite exports and any OAI-PMH formats your repository exposes. If you customise `SITEMAP_SECTIONS`, check `SitemapSectionOfOARepoRecords` and `SitemapSectionOfCommunities`. The records section lists public, non-deleted records of RDM models with a UI blueprint.
+
+The `invenio rdm-records` command group also provides two maintenance commands. Use `replace-owner <record-id> <owner-email>` to change the owner of a record. Use `merge-records <old-record-id> <new-record-id>` with `--rebase-on-old` or `--rebase-on-new` to choose which parent receives the merged versions. The commands prompt for confirmation.
+
+</MigrationSteps>
+
+<MigrationHeader
+  date="2026-11-19"
   title="oarepo-app 6.0.0 → 8.0.1"
   versionBadge="oarepo-app ≥ 8.0.1"
 />
 
-This upgrade moves the repository to InvenioRDM 14.0.6 and changes repository configuration, workflow permissions, model presets and UI components. Existing repositories also need a database migration and a search index rebuild. Repositories with legacy CCMM data need to convert vocabulary references in published records and drafts.
+This upgrade moves the repository to InvenioRDM 14.0.6 and changes repository configuration, workflow permissions, model presets and UI components. Existing repositories also need a database migration and a search index rebuild. Repositories with legacy CCMM data need to convert vocabulary references in published records and drafts. For package-specific steps, see [oarepo-rdm 6.0.0 → 10.0.0](#2026-11-19-oarepo-rdm-600-1000).
 
 <MigrationAffected>
 
@@ -129,6 +247,8 @@ For existing CCMM records or drafts with manually entered identifiers stored onl
 
 Recreate the search indices and reindex all data. Record and draft mappings now come from `invenio-rdm-records`. Review custom index overrides for `version_id` (now `long`), EDTF intervals, PID relations, CCMM fields and subject references. Vocabulary indices gained `mappings` and `custom_fields`, and harvest records also need reindexing. Use the sequence below whenever step 7 calls for a rebuild. Repositories that skip step 7 run it once now.
 
+If the upgrade also includes `oarepo-rdm` 10.0.0 and you are skipping step 7, complete the subject conversion in step 6 of the [`oarepo-rdm` migration](#2026-11-19-oarepo-rdm-600-1000) before running the index rebuild below.
+
 ```bash
 ./run.sh invenio index destroy --yes-i-know
 ./run.sh invenio index init
@@ -152,14 +272,16 @@ Take `scripts/migration_vocabs.py` from the source of your target `ccmm-invenio`
    ./run.sh invenio shell scripts/migration_vocabs.py load
    ```
 
-2. Rebuild the indices using step 6 and wait for indexing to finish.
+2. Rebuild the indices using step 6 and wait for indexing to finish. If the upgrade also includes `oarepo-rdm` 10.0.0, follow step 6 of the [`oarepo-rdm` migration](#2026-11-19-oarepo-rdm-600-1000) to load any additional subject schemes and verify that the IDs you need resolve before proceeding.
 3. Convert the vocabulary references in the stored records and drafts. The script also combines legacy start and end date pairs into EDTF intervals.
 
    ```bash
    ./run.sh invenio shell scripts/migration_vocabs.py migrate_data
    ```
 
-4. Rebuild the indices again. Review any `cannot convert` messages and check that records and drafts resolve the new vocabulary items before removing deprecated entries.
+   If the upgrade also includes `oarepo-rdm` 10.0.0, finish any remaining subject conversion before proceeding to item 4.
+
+4. Rebuild the indices again. Review any `cannot convert` messages and check that records and drafts resolve the new vocabulary items, including converted subject references, before removing deprecated entries.
 5. Once those checks pass, remove the deprecated entries and rebuild the indices a final time.
 
    ```bash
