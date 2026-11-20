@@ -1,0 +1,333 @@
+import { Callout, Steps } from "nextra/components";
+
+# Support for ARKs
+
+<a href="https://arks.org/" target="_blank" rel="noopener noreferrer">ARKs</a> (Archival Resource
+Keys) are free, persistent identifiers. The
+<a href="https://github.com/oarepo/oarepo-ark" target="_blank" rel="noopener noreferrer">oarepo-ark</a>
+library gives every record published as public an ARK. It needs no model changes and no code:
+you install the library and call `config.configure_ark(...)` in `invenio.cfg`.
+
+This guide is for repositories built with oarepo 14, with models from `oarepo-model` using the
+`oarepo-rdm` (or CCMM, `ccmm-invenio`) presets and configured through `oarepo-config` in
+`invenio.cfg`. It assumes the models use standard Invenio record ids (`abcde-12345`). If yours do
+not, see [Custom record ids](#custom-record-ids).
+
+**Result:** every record published as public in any model gets a version ARK
+(`ark:NAAN/r1abcde12345p`). The ARK is:
+
+- stored in the record's `pids`,
+- resolvable at `https://<site>/ark:...` and through `https://n2t.net/ark:...`,
+- shown in the sidebar of the record's detail page.
+
+## ARK anatomy
+
+```
+ark:12345/r1abcde12345p
+    │     │ │         └ NOID check character
+    │     │ └ blade = record id "abcde-12345" without hyphens
+    │     └ shoulder "r1" (one per model, or shared)
+    └ NAAN (Name Assigning Authority Number)
+```
+
+| Part | Meaning |
+|---|---|
+| **NAAN** | A 5-digit number that <a href="https://arks.org/" target="_blank" rel="noopener noreferrer">arks.org</a> assigns to your institution for free. `99999` is the test NAAN. |
+| **Shoulder** | A prefix that splits the NAAN's namespace, e.g. one per repository or model. It is "primordinal": consonants followed by one digit (`r1`, `t1`, `bc2`). |
+| **Blade** | The rest of the name: the record id with the hyphens removed. |
+| **Check character** | Always appended, so the resolver can recognize typos. |
+| **Qualifiers** | `/files/<key>` points to a file, `.<format>` to an export (e.g. `.json`). |
+
+The repository writes ARKs in the current `ark:` form. The resolver also accepts the legacy
+`ark:/` form.
+
+## Setup
+
+<Steps>
+
+### Install
+
+Add the library to the repository's `pyproject.toml` and reinstall:
+
+```toml filename="pyproject.toml"
+[project]
+dependencies = [
+    # ...
+    "oarepo-ark>=1.0.0,<2.0.0",
+]
+```
+
+```bash
+./run.sh install
+```
+
+### Configure
+
+Call the `configure_ark` helper of `oarepo-config` in `invenio.cfg`. Call it **after**
+`config.configure_ui(...)`, because `configure_ui` sets the detail page sidebar that
+`configure_ark` extends (see [Show the ARK on the detail page](#show-the-ark-on-the-detail-page)):
+
+```python filename="invenio.cfg"
+config.configure_ui(...)
+
+config.configure_ark(
+    naan="12345",  # your NAAN from https://arks.org/ ("99999", the test NAAN, is the default)
+    default_shoulder="r1",  # required: the shoulder of all models
+    shoulders={  # optional: per-model shoulders, keyed by model name
+        "theses": "t1",
+    },
+)
+```
+
+If `configure_ark` is not called, the library is installed but does nothing: no ARKs are minted
+and the resolver answers 404.
+
+- **One NAAN per environment?** Leave `naan` at its default value and set the environment variable
+  `INVENIO_ARK_NAAN=12345` instead (no quoting needed).
+- **A different shoulder per model** (optional): the keys of `shoulders` are the models' service
+  ids. The service id is the model's name (`model("theses", ...)` gives `"theses"`), or
+  `configuration["base_name"]` if the model sets one. Models not listed in `shoulders` use
+  `default_shoulder`.
+
+  Each shoulder must be consonants followed by one digit (`r1`, `t1`, `bc2`), and no two shoulders
+  may be the same. `invenio ark check` (see below) prints the service ids.
+- `?info` takes the repository's name from `THEME_SITENAME`. `config.configure_ui(name=...)`
+  already sets it, so there is nothing to configure.
+
+<Callout type="warning">
+Choose the NAAN and shoulders before going to production. An ARK is meant to be permanent, so a
+published ARK keeps its shoulder even if you change the configuration later. Records that already
+have an ARK keep working, and only new records get the new shoulder.
+</Callout>
+
+### Show the ARK on the detail page
+
+By default, `configure_ark` adds an ARK box (the `oarepo_ark/ark_identifier.html` template) to the
+sidebar of the detail page. The box only appears for records that have an ARK. To leave the
+sidebar unchanged, pass `show_in_sidebar=False`:
+
+```python filename="invenio.cfg"
+config.configure_ark(
+    naan="12345",
+    default_shoulder="r1",
+    show_in_sidebar=False,
+)
+```
+
+The box is appended to the sidebar list that `config.configure_ui(...)` sets, which is why
+`configure_ark` must be called after `configure_ui`. If `invenio.cfg` assigns its own
+`APP_RDM_DETAIL_SIDE_BAR_TEMPLATES = [...]`, do that before calling `configure_ark` as well.
+
+For a given model, two other settings take precedence over the sidebar list, and `configure_ark`
+does not change them. If you use either of them, add `oarepo_ark/ark_identifier.html` there
+yourself:
+
+- `OAREPO_UI_SIDEBAR_TEMPLATES["<model name>"]` in `invenio.cfg`,
+- a `<model name>/record_detail/record_sidebar.html` template in the repository's UI package.
+
+To show the ARK somewhere else in your own templates, use the template globals
+`ark_identifier(record)` (gives `ark:NAAN/name`) and `ark_url(record)` (gives the citable
+`https://n2t.net/...` URL). Both accept a record, its UI dict or a service result item.
+
+### Check the configuration
+
+```bash
+invenio ark check
+```
+
+```
+r1	records	RDMRecordHandler('records')
+r1	datasets	RDMRecordHandler('datasets')
+```
+
+The output has one line per model, plus a line for `records`. This is oarepo-rdm's global service:
+it passes requests on to the models and never mints anything itself, so seeing it is expected.
+
+If the configuration is wrong (missing default shoulder, invalid or duplicate shoulder, bad NAAN),
+the command exits with status 1. You can run `invenio ark check` in CI or at deploy time. The
+application itself refuses to start with an invalid configuration.
+
+### Mint ARKs for records published earlier
+
+New publications get their ARK automatically. To give an ARK to records published before you
+installed the library, run:
+
+```bash
+invenio ark mint
+```
+
+```
+records: no PID type, skipped (use --service records --pid-type T)
+datasets	abcde-12345	ark:12345/r1abcde12345p	minted
+...
+```
+
+The `records` line is the global service again. It owns no records, so this line is expected.
+
+- Each record is updated in place in its own transaction. No new draft or version is created and
+  DataCite is not called. The ARK reaches DataCite with the record's next DOI update.
+- Restricted and deleted records are skipped, the same as on publish.
+- If a record fails, it is reported and the run continues. The command then exits with status 1,
+  and the next run retries the failed record. Running `mint` again is safe.
+- To limit the run, use `invenio ark mint --service datasets`, or pass record ids:
+  `invenio ark mint --service datasets abcde-12345 fghij-67890`.
+
+### Register the NAAN target
+
+At <a href="https://arks.org/" target="_blank" rel="noopener noreferrer">arks.org</a>, register
+`https://<site>/ark:${content}` as the NAAN's target, so that `https://n2t.net/ark:12345/...`
+reaches the repository's resolver.
+
+The UI application serves the resolver at `/ark:...` (and `/ark:/...`). Make sure that any reverse
+proxy in front of it forwards these paths unchanged.
+
+</Steps>
+
+## What works without further configuration
+
+| | |
+|---|---|
+| **Minting** | ARKs are minted on publish by RDM's own PID machinery. oarepo-ark adds a required `ark` scheme to `RDM_PERSISTENT_IDENTIFIERS`. All models share this setting, because they are RDM-based and run RDM's `PIDsComponent`. The `ark` scheme works alongside `oai` (oarepo-rdm) and `doi` (oarepo-doi). |
+| **Versions** | Each published version gets its own ARK, so the content behind an ARK never changes. There is no concept ARK covering all versions; use the concept DOI for that. Records published as restricted get no ARK (the same as with DOIs). They get one when they are published as public. |
+| **Where the ARK appears** | In `pids.ark` in the REST API and the search index. It is also sent to DataCite as an alternate identifier when a DOI is registered or updated, because RDM's DataCite serializer sends all non-DOI PIDs. |
+| **Landing page** | `https://<site>/ark:12345/r1abcde12345p` redirects to the model's detail page (`links.self_html`, e.g. `/datasets/records/abcde-12345`). With `Accept: application/json`, it redirects to the REST API. |
+| **Exports** | `<ark>.<code>` redirects to `<detail page>/export/<code>`, for each of the model's export codes (`AddMetadataExport(code=...)`), e.g. `.json`, `.ccmm-xml`, `.datacite-json`, `.dcat`. Unknown codes give a 404. |
+| **Files** | `<ark>/files/<key>` redirects to the file's content through the files API, which checks access. |
+| **`?info`** | Returns ERC metadata (who/what/when) from `metadata.creators`, `metadata.title` and `metadata.publication_date`. CCMM models store these RDM fields, so they need no handler. |
+| **Restricted / deleted** | An ARK of a record that was restricted after publication still redirects, and the detail page checks access. `?info` reveals nothing about such a record. An ARK of a deleted record redirects to RDM's tombstone page. |
+| **Citation link** | Every resolver response has a `Link: <https://n2t.net/ark:...>; rel="cite-as"` header. |
+
+### Resolution chain
+
+```
+https://n2t.net/ark:12345/r1abcde12345p/files/data.csv
+  → (N2T NAAN registry) 302 https://<site>/ark:12345/r1abcde12345p/files/data.csv
+  → (oarepo-ark resolver) 302 https://<site>/api/datasets/abcde-12345/files/data.csv/content
+```
+
+ARKs with a NAAN other than your own are redirected to `https://n2t.net/`. If an ARK under your
+own shoulder has a wrong check character, the 404 page says that it is probably a typo.
+
+### `?info` response
+
+Appending `?info` (or the legacy `?` / `??`) to an ARK returns its metadata and the persistence
+statement as ANVL text. With `Accept: application/json`, it returns JSON instead:
+
+```
+erc:
+who:   Novák, Jan; Svoboda, Petr
+what:  Title of the dataset
+when:  2025
+where: https://n2t.net/ark:12345/r1abcde12345p
+erc-support:
+who:   Example University Library
+what:  Permanent: Stable Content:
+when:  20260101
+where: https://repo.example.org/
+```
+
+### Inspecting an ARK
+
+```bash
+invenio ark show ark:12345/r1abcde12345p
+```
+
+This prints the stored PID, its status, the record's UUID, the handler and the public URL.
+
+## When you need a handler
+
+You only need a handler if a model's metadata are not RDM-like (no `metadata.title`,
+`metadata.creators` or `metadata.publication_date`), or if you want different landing, export or
+file URLs. Subclass the default handler and override what differs:
+
+```python filename="my_repo/ark.py"
+from oarepo_ark.api import ERC
+from oarepo_ark.handlers.rdm import RDMRecordHandler
+
+
+class ThesisARKHandler(RDMRecordHandler):
+    def erc(self, item):
+        md = item.data["metadata"]
+        return ERC(who=md["author"], what=md["thesis_title"], when=md["defense_date"][:4])
+```
+
+```python filename="invenio.cfg"
+config.configure_ark(
+    naan="12345",
+    default_shoulder="r1",
+    handlers={"theses": "my_repo.ark:ThesisARKHandler"},  # one model
+    # default_handler="my_repo.ark:ThesisARKHandler",     # or all models
+)
+```
+
+The value is a handler class or its import string. One handler instance is created per model.
+
+| Override | Used for |
+|---|---|
+| `erc(item)` | `?info` metadata |
+| `landing_url(item)` / `api_url(item)` | the plain ARK / the ARK with `Accept: application/json` |
+| `variant_url(item, code)` | `<ark>.<code>` (return `None` for a 404) |
+| `component_url(item, path)` | `<ark>/<path>`, e.g. `/files/<key>` (return `None` for a 404) |
+| `get_blade(record)` | the part of the name after the shoulder (default: the record id without hyphens) |
+
+`item` is the model service's result item (`item.data`, `item.links`, `item.id`). `ERC` also has
+an `extra` dict for additional ANVL elements.
+
+## Custom record ids
+
+The blade is the record id without hyphens, so the id must not contain `/`, `.` or `%`. A model
+whose own PID provider produces such ids (e.g. path-like ids) fails to publish with
+`pids.ark: Blade '...' contains structural characters`. Give that model a handler with its own
+`get_blade`, for example one that uses the record's UUID:
+
+```python filename="my_repo/ark.py"
+class UUIDBladeHandler(RDMRecordHandler):
+    def get_blade(self, record):
+        return str(record.id)
+```
+
+The check character is still appended automatically.
+
+## Limitations
+
+- **Only ARKs minted by the repository.** Users and API clients cannot supply their own ARKs, and
+  external or legacy ARKs cannot be imported.
+- **Only published RDM records.** Communities, vocabularies and other non-record entities do not
+  get ARKs.
+- **No concept ARKs.** ARKs identify versions only. To identify the work across all its versions,
+  use the concept DOI.
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| App does not start: `ARK_DEFAULT_SHOULDER is required when ARK_NAAN is set` | Pass `default_shoulder` to `configure_ark`. |
+| App does not start: `... is not primordinal` / `... share shoulder ...` | Shoulders must be consonants followed by one digit, and they must all be different (this includes the `shoulders` overrides compared with `default_shoulder`). |
+| `/ark:...` answers `ARKs are not configured.` | `configure_ark` is not called in this environment's `invenio.cfg`. |
+| Publish fails: `pids.ark: ARKs are assigned by the repository.` | The draft carries a `pids.ark` that the repository did not compute, e.g. an API client copied `pids` from another record, or the record was imported. Remove `pids.ark` from the payload. |
+| Publish fails: `pids.ark: Blade ... contains structural characters` | The model uses custom record ids, see [Custom record ids](#custom-record-ids). |
+| No ARK box on the detail page | Either the record has no ARK (it is restricted, or it was published before installation: run `invenio ark mint`), or `configure_ark` is called before `configure_ui` (which then replaces the sidebar list), or `show_in_sidebar=False` is set, or the model's sidebar is overridden: see [Show the ARK on the detail page](#show-the-ark-on-the-detail-page). |
+| `https://n2t.net/ark:12345/...` does not reach the repository | The NAAN target is not registered (see [Register the NAAN target](#register-the-naan-target)), or the proxy rewrites `/ark:` paths. |
+| `invenio ark mint --service X` fails: `Cannot determine the PID type of X` | `X` owns no records (e.g. `records`) or uses a custom PID field. Pass `--pid-type`. |
+
+## Configuration reference
+
+Parameters of `config.configure_ark(...)` and the Invenio configuration keys they set:
+
+| Parameter | Config key | Default | Notes |
+|---|---|---|---|
+| `naan` | `ARK_NAAN` | `"99999"` (test NAAN) | Your NAAN. Can be overridden by the `INVENIO_ARK_NAAN` environment variable. |
+| `default_shoulder` | `ARK_DEFAULT_SHOULDER` | | Required. |
+| `shoulders` | `ARK_SHOULDERS` | `{}` | Per-model overrides. The keys are model names. |
+| `handlers` | `ARK_HANDLERS` | `{}` | Per-model handler class or import string. The keys are model names. |
+| `default_handler` | `ARK_DEFAULT_HANDLER` | `RDMRecordHandler` | Fits CCMM and other RDM-like models. |
+| `show_in_sidebar` | `APP_RDM_DETAIL_SIDE_BAR_TEMPLATES` | `True` | Appends `oarepo_ark/ark_identifier.html` to the detail page sidebar. Call `configure_ark` after `configure_ui`. |
+| `public_resolver` | `ARK_PUBLIC_RESOLVER` | `https://n2t.net/` | Leave as is. |
+| `support` | `ARK_SUPPORT` | who: `THEME_SITENAME`, what: `Permanent: Stable Content:`, where: site URL | Leave as is. |
+
+To change how the PID is wired into RDM (e.g. make the scheme not required), define your own `ark`
+entries in `RDM_PERSISTENT_IDENTIFIER_PROVIDERS` and `RDM_PERSISTENT_IDENTIFIERS` in `invenio.cfg`.
+oarepo-ark keeps existing `ark` definitions instead of adding its own.
+
+For the library itself, see the
+<a href="https://github.com/oarepo/oarepo-ark" target="_blank" rel="noopener noreferrer">oarepo-ark README</a>.
