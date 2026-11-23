@@ -24,6 +24,7 @@ const ROOT = process.cwd()
 const CONTENT = path.join(ROOT, 'content')
 const OUT = path.resolve(ROOT, process.env.LLMS_OUT_DIR ?? 'out')
 const SITE_URL = (process.env.SITE_URL ?? 'https://nrp-cz.github.io/docs').replace(/\/$/, '')
+const REPO_RAW = 'https://raw.githubusercontent.com/NRP-CZ/docs/main'
 
 // ---------- helpers ----------
 
@@ -54,11 +55,22 @@ const attr = (node, name) => {
   return typeof a.value === 'string' ? a.value : a.value?.value // expression => raw JS source
 }
 
-/** Site-relative links become absolute so they still resolve outside the site. */
-const abs = url =>
-  typeof url === 'string' && url.startsWith('/')
-    ? SITE_URL + url.replace(/\.mdx?(?=$|#)/, '')
-    : url
+// Set per page by toMarkdown(); pages are generated sequentially, so one cursor is enough.
+let pageRouteDir = ''
+let pageSrcDir = 'content'
+
+/** Every link becomes absolute, so it still resolves outside the site. */
+const abs = (url, isImage = false) => {
+  if (typeof url !== 'string' || !url) return url
+  if (url.startsWith('#') || url.startsWith('//') || /^[a-z][a-z0-9+.-]*:/i.test(url)) return url
+  const page = u => SITE_URL + u.replace(/\.mdx?(?=$|#)/, '')
+  if (url.startsWith('/')) return page(url)
+  // Images sit next to their .mdx in content/ and webpack hashes them into /_next, so they have
+  // no stable site URL. Point at the file in the repo, which does.
+  return isImage
+    ? `${REPO_RAW}/${path.posix.normalize(`${pageSrcDir}/${url}`)}`
+    : page(path.posix.normalize(`${pageRouteDir}/${url}`))
+}
 
 /** `<FileTree>` keeps its structure in JSX attributes; render it as an indented tree. */
 function fileTree(node, depth = 0) {
@@ -89,6 +101,7 @@ function convertJsx(node) {
         }
       ]
     }
+    case 'Cards.Card': // same component, written either way in content/
     case 'Card': {
       const title = attr(node, 'title') ?? toText(node)
       const href = abs(attr(node, 'href'))
@@ -130,7 +143,7 @@ function convertJsx(node) {
       return [{ type: 'link', url: abs(attr(node, 'href')) ?? '', children: kids }]
     case 'img':
     case 'Image':
-      return [{ type: 'image', url: abs(attr(node, 'src')) ?? '', alt: attr(node, 'alt') ?? '' }]
+      return [{ type: 'image', url: abs(attr(node, 'src'), true) ?? '', alt: attr(node, 'alt') ?? '' }]
     case 'br':
       return [text('\n')]
     default:
@@ -145,8 +158,12 @@ const processor = isMdx => {
   return p.use(remarkStringify, { bullet: '-', fences: true, rule: '-' })
 }
 
-async function toMarkdown(file) {
+async function toMarkdown(file, route) {
   const src = await readFile(file, 'utf8')
+  const dir = path.posix.dirname(route)
+  // an index page's own route is already its directory
+  pageRouteDir = /(^|\/)index\.mdx?$/.test(file) ? (route === '/' ? '' : route) : dir === '/' ? '' : dir
+  pageSrcDir = path.relative(ROOT, path.dirname(file)).split(path.sep).join('/')
   const proc = processor(file.endsWith('.mdx'))
   const tree = proc.parse(src)
 
@@ -161,7 +178,7 @@ async function toMarkdown(file) {
       parent.children.splice(index, 1, ...convertJsx(node))
       return false
     }
-    if (node.type === 'link' || node.type === 'image') node.url = abs(node.url)
+    if (node.type === 'link' || node.type === 'image') node.url = abs(node.url, node.type === 'image')
   })
 
   const h1 = tree.children.find(n => n.type === 'heading' && n.depth === 1)
@@ -203,11 +220,10 @@ async function walk(dir, routeBase, trail) {
   for (const key of ordered) {
     const m = meta[key]
     const route = key === 'index' ? routeBase || '/' : `${routeBase}/${key}`
-    if (m?.display === 'hidden' && route !== '/') continue // hidden on the site, hidden here
     const label = String((typeof m === 'string' ? m : m?.title) ?? titleCase(key)).replace(/^»\s*/, '')
     const { file, dir: sub } = items.get(key)
     if (file) {
-      const { md, h1, hasH1, summary } = await toMarkdown(file)
+      const { md, h1, hasH1, summary } = await toMarkdown(file, route)
       pages.push({ route, title: h1 ?? label, hasH1, trail, md, summary })
     }
     if (sub) pages.push(...(await walk(sub, `${routeBase}/${key}`, [...trail, label])))
