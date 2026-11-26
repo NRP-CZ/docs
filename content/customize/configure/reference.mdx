@@ -2,7 +2,7 @@ import { Callout } from "nextra/components";
 
 # Configuration Reference
  
-This page provides a reference of configuration helpers available in NRP-based repositories through the `oarepo.config` module.
+This page provides a reference of configuration helpers available in NRP-based repositories through the `oarepo_config` module.
 
 ## `configure_generic_parameters`
 
@@ -267,7 +267,7 @@ The schedule includes default periodic jobs for:
 - **Deleting old job logs** (older than `JOBS_LOGGING_RETENTION_DAYS`, 90 by default): daily at 00:05 UTC  
 - **Sitemap refresh:** daily at 02:00 UTC  
 - **User e-mail domain statistics:** every 4 hours  
-- **Community collections size:** hourly — only when `COMMUNITIES_COLLECTIONS_ENABLED = True` is set earlier in `invenio.cfg`  
+- **Community collections size:** hourly — only when `COMMUNITIES_COLLECTIONS_ENABLED = True` is set earlier in `invenio.cfg`, i.e. call [`configure_collections`](#configure_collections) **before** `configure_cron()`  
 
 With `file_integrity_check_days` set, two more jobs are added:
 
@@ -539,6 +539,51 @@ config.configure_communities(
 
 ```
 
+## `configure_collections`
+
+Configure the collections feature. Collections are curated, browsable subsets of records — "saved searches": each collection stores a search query, and its records are whatever that query matches; a record is never added to a collection by hand. Collections can be organized hierarchically into trees to build meaningful, browsable groupings of content.
+
+_Defined in `oarepo_config/collections.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **communities_collections_enabled** | `bool` | `True` | Master switch. Shows the **Collections** menu item and the community settings panel, and enables the `manage_collections` permission. |
+| **max_depth** | `int` | `2` | Maximum nesting depth of collection trees. The value `2` allows three levels of hierarchy: root collections + their children + grandchildren. |
+
+### Effect
+
+Sets the following constants in the caller module:
+
+- `COMMUNITIES_COLLECTIONS_ENABLED` — from `communities_collections_enabled`.
+- `COLLECTIONS_MAX_DEPTH` — from `max_depth`.
+
+<Callout type="warning">
+  Call `configure_collections()` **before** `configure_cron()`. The cron helper decides
+  whether to schedule the hourly `update-collections-size` job by reading
+  `COMMUNITIES_COLLECTIONS_ENABLED` from `invenio.cfg` at the point `configure_cron()` is
+  called — a `configure_collections()` call placed after it enables collections in the UI,
+  but their record counts are then never refreshed.
+</Callout>
+
+Note that a bare `configure_collections()` call turns collections on, while the raw `COMMUNITIES_COLLECTIONS_ENABLED` constant defaults to `False`.
+
+Variables such as `INVENIO_COLLECTIONS_COMMUNITY_SLUG`, `INVENIO_COLLECTIONS_UI_URL_PREFIX` or `COMMUNITIES_COLLECTIONS_MENU_ORDER` are not managed by this helper — see the [Collections administration guide](/administration/collections) for the feature overview and these low-level settings.
+
+### Example
+
+```python
+import oarepo_config as config
+
+config.configure_collections(
+    # show the Collections menu item and enable collection management
+    communities_collections_enabled=True,
+    # allow 3 levels of hierarchy: root + children + grandchildren
+    max_depth=2,
+)
+```
+
 ## `register_workflow`
 
 Register a workflow with its display name, permission policy, and request policy.  
@@ -550,17 +595,24 @@ _Defined in `oarepo_config/workflows/low_level.py`._
 
 | Name | Type | Default | Description |
 |------|------|----------|-------------|
-| **name** | `str` | — | Unique identifier for the workflow (e.g., `"default"`, `"individual"`). |
-| **title** | `str` | — | Translated display name for the workflow, shown in UI and metadata. |
-| **permissions_class** | `str` | — | Dotted import path to the permission policy class that defines who can perform actions in this workflow. |
-| **requests_class** | `str` | — | Dotted import path to the request policy class that defines what types of requests (review, deletion, versioning) are supported. |
+| **workflow_code** | `str` | — | Unique identifier for the workflow (e.g., `"default"`, `"individual"`). |
+| **workflow_name** | `str` | — | Translated display name for the workflow, shown in UI and metadata. |
+| **permissions_policy** | `str \| type` | — | Permission policy class (or its dotted import path) that defines who can perform actions in this workflow. Must be a subclass of `DefaultWorkflowPermissions`. |
+| **requests_policy** | `str \| type` | — | Request policy class (or its dotted import path) that defines what types of requests (review, deletion, versioning) are supported. Must be a subclass of `WorkflowRequestPolicy`. |
+| **use_low_level_workflows** | `bool` | `False` | Set to `True` to silence the warning recommending `configure_workflows` instead. |
 
 ### Effect
 
-- Registers a new workflow in the `WORKFLOWS` dictionary in the caller's configuration.
-- Each workflow entry maps the `name` to a dictionary containing `title`, `permissions_class`, and `requests_class`.
+- Requires the `oarepo_workflows` package to be installed (and `oarepo_requests` for its defaults).
+- Appends a new workflow to the `WORKFLOWS` list in the caller's configuration; workflows registered by earlier calls are kept.
+- Sets `REQUESTS_PERMISSION_POLICY` if it is not already set, defaulting to `oarepo_config.requests.RequestsPermissionPolicy`.
 - Makes the workflow available for use in community or individual deposit configurations.
-- Supports different approval processes: community workflows with curator/owner approval, or simpler individual workflows.
+
+<Callout type="warning">
+  This is a low-level, single-workflow building block: unless `use_low_level_workflows=True`
+  is passed, the call emits a `UserWarning` recommending the higher-level
+  [`configure_workflows`](/customize/workflows/simplified) helper instead.
+</Callout>
 
 ### Example
 
@@ -576,6 +628,7 @@ config.register_workflow(
      _("Default workflow"),
      "common.workflows.default.DefaultWorkflowPermissions",
      "common.workflows.default.DefaultWorkflowRequests",
+     use_low_level_workflows=True,
 )
 
 
@@ -587,6 +640,7 @@ config.register_workflow(
      _("Individual deposition workflow"),
      "common.workflows.individual.IndividualDepositionWorkflowPermissions",
      "oarepo_workflows.requests.policy.WorkflowRequestPolicy",
+     use_low_level_workflows=True,
 )
 ```
 
