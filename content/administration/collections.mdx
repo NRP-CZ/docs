@@ -32,11 +32,42 @@ any one community.
 
 ## Enabling collections
 
-Set the following variables in your deployment configuration (`invenio.cfg`):
+Use the `configure_collections` configuration helper in your deployment configuration (`invenio.cfg`) — it sets the low-level constants for you:
+
+```python
+import oarepo_config as config
+
+config.configure_collections(
+    # show the Collections menu item and enable collection management
+    communities_collections_enabled=True,
+    # allow 3 levels of hierarchy: root + children + grandchildren
+    max_depth=2,
+)
+```
+
+A bare `configure_collections()` call is enough to turn collections on. See the
+[configuration reference](/customize/configure/reference#configure_collections) for the full
+parameter description.
+
+The helper sets the following constants:
+
+| Constant | Default | Description |
+|----------|---------|-------------|
+| `COMMUNITIES_COLLECTIONS_ENABLED` | `True` | Master switch. Must be truthy for the **Collections** menu item to appear. |
+| `COLLECTIONS_MAX_DEPTH` | `2` | Maximum nesting depth of collection trees: `2` allows three levels (root + children + grandchildren). |
+
+<Callout type="warning">
+  Place `configure_collections()` **before** `configure_cron()` in `invenio.cfg`. The cron
+  helper decides whether to schedule the hourly job that recounts collection record sizes by
+  reading `COMMUNITIES_COLLECTIONS_ENABLED` at the point `configure_cron()` is called — if
+  the helper call comes later, the job is never scheduled and the counts shown on the browse
+  pages stay stale.
+</Callout>
+
+The remaining collection-related variables are not covered by the helper and are set directly in `invenio.cfg`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `COMMUNITIES_COLLECTIONS_ENABLED` | `False` | Master switch. Must be truthy for the **Collections** menu item to appear. |
 | `INVENIO_COLLECTIONS_COMMUNITY_SLUG` | `"global"` | Slug of the community that holds the cross-repository ("global") collection trees. Its collections search across all records. Set to `None` to disable global collections. |
 | `INVENIO_COLLECTIONS_UI_URL_PREFIX` | `"/collections"` | URL prefix under which the collections UI is mounted. |
 | `COMMUNITIES_COLLECTIONS_MENU_ORDER` | `2` | Position of the **Collections** item within the main menu. |
@@ -84,5 +115,8 @@ the image is served.
   </Card>
   <Card title="InvenioRDM collections" arrow href="https://inveniordm.docs.cern.ch/operate/customize/collections/">
     Upstream reference for collection trees and the creation API.
+  </Card>
+  <Card title="Configuration reference" arrow href="/customize/configure/reference#configure_collections">
+    The `configure_collections` helper and other `configure_*` helpers.
   </Card>
 </Cards>

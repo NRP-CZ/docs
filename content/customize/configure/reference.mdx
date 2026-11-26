@@ -2,7 +2,7 @@ import { Callout } from "nextra/components";
 
 # Configuration Reference
  
-This page provides a reference of configuration helpers available in NRP-based repositories through the `oarepo.config` module.
+This page provides a reference of configuration helpers available in NRP-based repositories through the `oarepo_config` module.
 
 ## `configure_generic_parameters`
 
@@ -12,7 +12,7 @@ It covers core aspects such as site URLs, authentication, security headers, loca
 
 Use this as a **baseline initializer** for a NRP repository before applying any of your custom config overrides.
 
-_Defined in `oarepo/config/generic_parameters.py`._
+_Defined in `oarepo_config/generic_parameters.py`._
 
 ### Parameters
 
@@ -151,7 +151,7 @@ All discovered values are injected into the caller scope via `set_constants_in_c
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 config.configure_generic_parameters(
     languages=(("en", _("English")), ("cs", _("Czech"))),
@@ -163,7 +163,7 @@ config.configure_generic_parameters(
 Configures **UI branding, theming, and build-time integration** for an NRP or InvenioRDM-based repository.  
 This helper establishes the front-end metadata, asset pipeline defaults, theme template layout, and optional analytics integration.
 
-_Defined in `oarepo/config/ui.py`._
+_Defined in `oarepo_config/ui.py`._
 
 ---
 
@@ -240,7 +240,7 @@ The schedule covers every job a stock InvenioRDM instance runs, with one excepti
 statistics are not copied into the record search documents (`reindex-stats`), because NRP
 record models do not index them.
 
-_Defined in `oarepo/config/cron.py`._
+_Defined in `oarepo_config/cron.py`._
 
 ### Parameters
 
@@ -267,7 +267,7 @@ The schedule includes default periodic jobs for:
 - **Deleting old job logs** (older than `JOBS_LOGGING_RETENTION_DAYS`, 90 by default): daily at 00:05 UTC  
 - **Sitemap refresh:** daily at 02:00 UTC  
 - **User e-mail domain statistics:** every 4 hours  
-- **Community collections size:** hourly — only when `COMMUNITIES_COLLECTIONS_ENABLED = True` is set earlier in `invenio.cfg`  
+- **Community collections size:** hourly — only when `COMMUNITIES_COLLECTIONS_ENABLED = True` is set earlier in `invenio.cfg`, i.e. call [`configure_collections`](#configure_collections) **before** `configure_cron()`  
 
 With `file_integrity_check_days` set, two more jobs are added:
 
@@ -286,7 +286,7 @@ Any extra cron items passed as keyword arguments are merged into the schedule be
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 from datetime import timedelta
 from celery.schedules import crontab
 
@@ -306,7 +306,7 @@ config.configure_cron(file_integrity_check_days=180)
 Enable and initialize repository & record-level statistics collection and aggregation features provided by `invenio-stats`.  
 This helper activates event receivers and imports default event, aggregation, and query definitions from `invenio-app-rdm`.
 
-_Defined in `oarepo/config/stats.py`._
+_Defined in `oarepo_config/stats.py`._
 
 ### Parameters
 
@@ -325,7 +325,7 @@ _Defined in `oarepo/config/stats.py`._
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 # Enable statistics collection and aggregation
 config.configure_stats()
@@ -341,7 +341,7 @@ config.configure_stats(count_preview_downloads=False)
 
 Set the file upload limits of a record, and the file-related toggles.
 
-_Defined in `oarepo/config/files.py`._
+_Defined in `oarepo_config/files.py`._
 
 ### Parameters
 
@@ -375,7 +375,7 @@ the whole download. If your repository accepts large files, set
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 config.configure_files(
     max_file_size=50 * 10**9,       # 50 GB per file
@@ -392,7 +392,7 @@ use to harvest records, and tune the paging of its list responses.
 
 Call it after [`configure_ui`](#configure_ui), which provides the default repository name and contact.
 
-_Defined in `oarepo/config/oai.py`._
+_Defined in `oarepo_config/oai.py`._
 
 ### Parameters
 
@@ -417,7 +417,7 @@ address `info@inveniosoftware.org` as its administrator. Pass `admin_emails`, or
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 config.configure_oai(
     repository_name="My NRP Repository",
@@ -431,7 +431,7 @@ Register or extend controlled vocabularies used in the repository.
 Each vocabulary is identified by a short `code` and associated metadata parameters that describe its configuration or source.  
 Be consistent with [your vocabularies defined in `app_data` folder](../vocabularies/initial_data.mdx).
 
-_Defined in `oarepo/config/vocabulary.py`._
+_Defined in `oarepo_config/vocabulary.py`._
 
 ### Parameters
 
@@ -449,7 +449,7 @@ _Defined in `oarepo/config/vocabulary.py`._
 ### Example
 
 ```python
-from oarepo import config
+import oarepo_config as config
 
 config.configure_vocabulary(
     "licenses",
@@ -464,7 +464,7 @@ config.configure_vocabulary(
 Configure community-related settings, role definitions, and permission policies for Invenio Communities integration.  
 Defines how community membership and CRUD permissions are structured within the repository.
 
-_Defined in `oarepo/config/communities.py`._
+_Defined in `oarepo_config/communities.py`._
 
 ### Parameters
 
@@ -510,7 +510,7 @@ Sets the following constants in the caller module:
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 config.configure_communities(
     communities_roles=[
@@ -539,34 +539,86 @@ config.configure_communities(
 
 ```
 
-## `register_workflow`
+## `configure_collections`
 
-Register a workflow with its display name, permission policy, and request policy.  
-Workflows define how deposits are handled in the repository, including approval processes, permissions, and request types.
+Configure the collections feature. Collections are curated, browsable subsets of records — "saved searches": each collection stores a search query, and its records are whatever that query matches; a record is never added to a collection by hand. Collections can be organized hierarchically into trees to build meaningful, browsable groupings of content.
 
-_Defined in `oarepo/config/workflows.py`._
+_Defined in `oarepo_config/collections.py`._
 
 ### Parameters
 
 | Name | Type | Default | Description |
 |------|------|----------|-------------|
-| **name** | `str` | — | Unique identifier for the workflow (e.g., `"default"`, `"individual"`). |
-| **title** | `str` | — | Translated display name for the workflow, shown in UI and metadata. |
-| **permissions_class** | `str` | — | Dotted import path to the permission policy class that defines who can perform actions in this workflow. |
-| **requests_class** | `str` | — | Dotted import path to the request policy class that defines what types of requests (review, deletion, versioning) are supported. |
+| **communities_collections_enabled** | `bool` | `True` | Master switch. Shows the **Collections** menu item and the community settings panel, and enables the `manage_collections` permission. |
+| **max_depth** | `int` | `2` | Maximum nesting depth of collection trees. The value `2` allows three levels of hierarchy: root collections + their children + grandchildren. |
 
 ### Effect
 
-- Registers a new workflow in the `WORKFLOWS` dictionary in the caller's configuration.
-- Each workflow entry maps the `name` to a dictionary containing `title`, `permissions_class`, and `requests_class`.
+Sets the following constants in the caller module:
+
+- `COMMUNITIES_COLLECTIONS_ENABLED` — from `communities_collections_enabled`.
+- `COLLECTIONS_MAX_DEPTH` — from `max_depth`.
+
+<Callout type="warning">
+  Call `configure_collections()` **before** `configure_cron()`. The cron helper decides
+  whether to schedule the hourly `update-collections-size` job by reading
+  `COMMUNITIES_COLLECTIONS_ENABLED` from `invenio.cfg` at the point `configure_cron()` is
+  called — a `configure_collections()` call placed after it enables collections in the UI,
+  but their record counts are then never refreshed.
+</Callout>
+
+Note that a bare `configure_collections()` call turns collections on, while the raw `COMMUNITIES_COLLECTIONS_ENABLED` constant defaults to `False`.
+
+Variables such as `INVENIO_COLLECTIONS_COMMUNITY_SLUG`, `INVENIO_COLLECTIONS_UI_URL_PREFIX` or `COMMUNITIES_COLLECTIONS_MENU_ORDER` are not managed by this helper — see the [Collections administration guide](/administration/collections) for the feature overview and these low-level settings.
+
+### Example
+
+```python
+import oarepo_config as config
+
+config.configure_collections(
+    # show the Collections menu item and enable collection management
+    communities_collections_enabled=True,
+    # allow 3 levels of hierarchy: root + children + grandchildren
+    max_depth=2,
+)
+```
+
+## `register_workflow`
+
+Register a workflow with its display name, permission policy, and request policy.  
+Workflows define how deposits are handled in the repository, including approval processes, permissions, and request types.
+
+_Defined in `oarepo_config/workflows/low_level.py`._
+
+### Parameters
+
+| Name | Type | Default | Description |
+|------|------|----------|-------------|
+| **workflow_code** | `str` | — | Unique identifier for the workflow (e.g., `"default"`, `"individual"`). |
+| **workflow_name** | `str` | — | Translated display name for the workflow, shown in UI and metadata. |
+| **permissions_policy** | `str \| type` | — | Permission policy class (or its dotted import path) that defines who can perform actions in this workflow. Must be a subclass of `DefaultWorkflowPermissions`. |
+| **requests_policy** | `str \| type` | — | Request policy class (or its dotted import path) that defines what types of requests (review, deletion, versioning) are supported. Must be a subclass of `WorkflowRequestPolicy`. |
+| **use_low_level_workflows** | `bool` | `False` | Set to `True` to silence the warning recommending `configure_workflows` instead. |
+
+### Effect
+
+- Requires the `oarepo_workflows` package to be installed (and `oarepo_requests` for its defaults).
+- Appends a new workflow to the `WORKFLOWS` list in the caller's configuration; workflows registered by earlier calls are kept.
+- Sets `REQUESTS_PERMISSION_POLICY` if it is not already set, defaulting to `oarepo_config.requests.RequestsPermissionPolicy`.
 - Makes the workflow available for use in community or individual deposit configurations.
-- Supports different approval processes: community workflows with curator/owner approval, or simpler individual workflows.
+
+<Callout type="warning">
+  This is a low-level, single-workflow building block: unless `use_low_level_workflows=True`
+  is passed, the call emits a `UserWarning` recommending the higher-level
+  [`configure_workflows`](/customize/workflows/simplified) helper instead.
+</Callout>
 
 ### Example
 
 ```python
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 # Full workflow for community deposits:
 # requires approval from curators/owners before publishing
@@ -576,6 +628,7 @@ config.register_workflow(
      _("Default workflow"),
      "common.workflows.default.DefaultWorkflowPermissions",
      "common.workflows.default.DefaultWorkflowRequests",
+     use_low_level_workflows=True,
 )
 
 
@@ -587,6 +640,7 @@ config.register_workflow(
      _("Individual deposition workflow"),
      "common.workflows.individual.IndividualDepositionWorkflowPermissions",
      "oarepo_workflows.requests.policy.WorkflowRequestPolicy",
+     use_low_level_workflows=True,
 )
 ```
 
@@ -658,7 +712,7 @@ the already-configured defaults, following the CSP specification's own fallback 
 you don't accidentally drop sources the application still needs:
 
 ```python filename="invenio.cfg"
-from oarepo import config
+import oarepo_config as config
 
 config.configure_generic_parameters()
 

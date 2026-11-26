@@ -15,14 +15,14 @@ Invenio RDM configuration is based on Flask application configuration system. Fo
 
 NRP-based repositories use the same mechanisms for configuration as InvenioRDM applications. You can set configuration values in the primary Invenio configuration file `invenio.cfg`, or via environment variables (prefixed by `INVENIO_`).
 
-On top of that, a helper [config module](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) is available for you to use in your `invenio.cfg` file to help you configure NRP-specific features by a preset-based configuration approach.
+On top of that, a helper [config module (`oarepo_config`)](https://github.com/oarepo/oarepo-config) is available for you to use in your `invenio.cfg` file to help you configure NRP-specific features by a preset-based configuration approach.
 
 An example `invenio.cfg` file using the helper config module might be as simple as:
 
 ```python
 # invenio.cfg
 from invenio_i18n import lazy_gettext as _
-from oarepo import config
+import oarepo_config as config
 
 # localization / internationalization
 config.initialize_i18n()
@@ -55,9 +55,9 @@ Or as complex as you need it to be. The `invenio.cfg` is a regular Python script
 Configuration helpers are utility functions that simplify the process of setting up common configuration options in NRP-based repositories.
 They can be used in your `invenio.cfg` file to quickly configure various aspects of your repository without needing to manually set each configuration constant.
 
-Common helpers are provided for NRP repositories by the [oarepo.config](https://github.com/oarepo/oarepo/tree/rdm-14/oarepo/config) Python module.
+Common helpers are provided for NRP repositories by the [oarepo_config](https://github.com/oarepo/oarepo-config) Python module.
 
-All helpers set configuration constants in the caller module (typically `invenio.cfg`) using `oarepo.config.base.set_constants_in_caller` and read environment variables via `oarepo.config.base.load_configuration_variables` where applicable.
+All helpers set configuration constants in the caller module (typically `invenio.cfg`) using `oarepo_config.base.set_constants_in_caller` and read environment variables via `oarepo_config.base.load_configuration_variables` where applicable.
 
 ---
 
