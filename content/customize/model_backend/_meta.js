@@ -19,5 +19,8 @@ export default {
   },
   "compound_datasets": {
     "title": "Compound datasets (proposal)"
+  },
+  "persistent_identifiers": {
+    "title": "Persistent identifiers"
   }
 }

@@ -16,8 +16,46 @@ The community works both ways: the CESNET Invenio development team passes on cod
 ### Meetings details & presentations
 
 <details>
-    <summary><b> 2026/11/04 - Deposition Workflows</b></summary>
-    First meeting of the new monthly CESNET Invenio Community series. The main topic is deposition workflows — how deposition works in CESNET Invenio today, where it gets stuck, and what to configure.
+<summary><b>2026-11-04 — Deposition Workflows</b></summary>
+
+First meeting of the new monthly CESNET Invenio Community series. The main topic is deposition workflows — how deposition works in CESNET Invenio today, where it gets stuck, and what to configure.
+
+**Update & roadmap**
+
+* CESNET Invenio 14 releases Q4 2026 (+18 months support)
+* CESNET Invenio 12 support ends 31 Dec 2026
+* CESNET Invenio 15 feature requests by 31 Dec 2026
+* CCMM 2.0 ships with CESNET Invenio 15
+
+**Deposition workflows**
+
+* Rules governing a record's lifecycle; declared per community, at least one, one default; linked at creation.
+* RDM = one fixed review flow; CESNET Invenio = each community can define its own curators, curation policy and workflows; permissions are set inside the workflow.
+* Roles: owner, curator, member + custom via `configure_communities()` in `invenio.cfg`; per-state permissions; global + community role levels.
+* Perun no longer integrated — import only, no sync; owner manages members in UI.
+* Curation policy must be concrete and verifiable; feeds LLM checks (new in CESNET Invenio 14, needs an `ai.e-infra.cz` API key, advisory only).
+* Individual submission needs the global submitter role (self-publish); direct publishing is API-only. Some decision-tree branches are not working yet.
+* Custom workflows via `configure_workflows()`; advanced policies discouraged.
+* Recommendation: prefer default components.
+* Known issue: hardcoded "reader" role upstream vs. "member".
+
+**Discussion**
+
+* **Curation checks:** CESNET Invenio ships the LLM check; the rest (Invenio RDM / OARepo checks) must be implemented by the repository team — currently no user-friendly config UI, requires manual setup.
+* **File uploads and transfer:** the UI uploads large files in parts automatically; a failed transfer can be re-uploaded after a network drop. File transfer methods `fetch` and `remote` must be enabled — `fetch` downloads a file from a URL into the instance (the record cannot be published until transfers complete), `remote` stores only a reference and redirects to the external URL. More information: [File transfer](https://inveniordm.docs.cern.ch/reference/file_transfer/).
+* **NMA XSLT (2.0 → 1.1):** conversion runs on the NMA side, triggered by the 2.0 namespace in the OAI-PMH payload — not the repository's job. Conversion is not 100%; some information is lost.
+* **OAI-PMH `ListMetadataFormats`:** the format name (`ccmm-xml`) is not decisive; the namespace URI / element name of the payload determines whether NMA treats it as CCMM 1.1.0, 2.0 or DataCite. The format name is a registration parameter.
+* **Compound records (datasets):** implementation starts next week, targeted at CESNET Invenio 15.
+
+</details>
+
+<details>
+<summary><b>2026-12-02 — Customizing Invenio GUI</b></summary>
+
+The presentation covers designing a good GUI for CESNET Invenio, the main concepts and principles, and the basics of implementing a design — plus links to documentation and example implementations. We will look at the key pages (homepage, results list, record detail, deposition form), Figma components, the hybrid architecture (Jinja server-side rendering, React bundled via Webpack/RSpack, Semantic UI), key folders, and example use cases: visual identity, the deposition form, integrating a custom React component, custom search facets, custom fields on    record detail, and custom data previewers.
+
+The meetings are open to everyone working with CESNET Invenio.
+
 </details>
 
 Past sessions' details, including presentation and recording links, are kept in a publicly accessible document **[Program and Meeting Minutes](https://researchinfracz.sharepoint.com/:w:/s/NRP/IQAHsu0icKeCR57WWqIclxr8AZch43QbIN9Klc0AXCT9SNU?e=buvvZP)**.
@@ -30,4 +68,3 @@ Past sessions' details, including presentation and recording links, are kept in 
 * **Discord** — [`#invenio`](https://discord.com/invite/zV2DWFz7b2) (registration required). A forum for discussion and support specifically related to CESNET Invenio. It’s part of the datasteward.cz server within the RepoBuilders community.
 * **Mailing list** — updates and meeting minutes specific to repobuilders and CESNET Invenio, [subscribe at lists.eosc.cz](https://lists.eosc.cz/wws/info/repobuilders).
 * **Repository system specialists** — email to [nrp.repozitare@eosc.cz](mailto:nrp.repozitare@eosc.cz).
-

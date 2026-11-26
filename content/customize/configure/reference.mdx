@@ -91,7 +91,7 @@ Calling `configure_generic_parameters()` has a wide-ranging impact on applicatio
 - Enables `MAIL_SUPPRESS_SEND` if configured in environment.
 
 #### Miscellaneous
-- Defines rate limits and quota defaults (`APP_RDM_DEPOSIT_FORM_QUOTA`, `FILES_REST_DEFAULT_QUOTA_SIZE`).
+- Defines rate limits (`RATELIMIT_GUEST_USER`, `RATELIMIT_AUTHENTICATED_USER`). File upload limits and quotas are set by [`configure_files`](#configure_files).
 - Sets `SECRET_KEY` from environment.
 - Provides `DASHBOARD_RECORD_CREATE_URL` placeholder (to be customized).
 - Clears default Invenio record routes and endpoints (since NRP provides replacements).
